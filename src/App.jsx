@@ -15,19 +15,43 @@ function plates(kg) {
 }
 
 // ── STORAGE ──────────────────────────────────────────────────────────────────
-// PROD key is never wiped. DEV key can be reset freely.
+// API-backed persistence. Falls back gracefully if server unreachable.
+import api from './api.js';
 const IS_DEV = window.location.search.includes("dev");
-const KEY = IS_DEV ? "ivysaur-dev" : "ivysaur-prod";
-const DEV_KEY = "ivysaur-dev";
+
 async function load() {
-  try { const r = await window.storage.get(KEY); return r ? JSON.parse(r.value) : null; }
-  catch { return null; }
+  try {
+    const [state, weights, progs, deloads, holdCfg] = await Promise.all([
+      api.getState().catch(() => ({})),
+      api.getWeights().catch(() => ({})),
+      api.getProgressions().catch(() => ({})),
+      api.getDeloads().catch(() => ({})),
+      api.getHoldConfig().catch(() => ({})),
+    ]);
+    return {
+      ...state,
+      ...(Object.keys(weights).length && { weights }),
+      ...(Object.keys(progs).length   && { progs }),
+      ...(Object.keys(deloads).length && { deloads }),
+      ...(Object.keys(holdCfg).length && { holdCfg }),
+    };
+  } catch { return null; }
 }
+
 async function save(s) {
-  try { await window.storage.set(KEY, JSON.stringify(s)); } catch {}
+  try {
+    await api.saveState(s);
+    if (s.weights) await api.bulkWeights(s.weights);
+    if (s.deloads) {
+      await Promise.all(
+        Object.entries(s.deloads).map(([id, flagged]) => api.setDeload(id, flagged))
+      );
+    }
+  } catch { /* server unreachable — UI continues */ }
 }
+
 async function wipeDev() {
-  try { await window.storage.delete(DEV_KEY); } catch {}
+  try { await api.saveState({}); } catch {}
 }
 
 // ── MOTIVATIONS ──────────────────────────────────────────────────────────────
