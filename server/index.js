@@ -1,85 +1,31 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const crypto = require('crypto');
+const cors    = require('cors');
+const path    = require('path');
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-const API_KEY = process.env.DADLIFT_API_KEY;
+const app   = express();
+const PORT  = process.env.PORT  || 3001;
+const TOKEN = process.env.DADLIFT_URL_TOKEN;
 
-if (!API_KEY) {
-  console.error('FATAL: DADLIFT_API_KEY not set in .env');
+if (!TOKEN) {
+  console.error('FATAL: DADLIFT_URL_TOKEN not set — run: node cli/setup.js --restart');
   process.exit(1);
 }
 
-// Pre-hash the key — timingSafeEqual needs equal-length buffers.
-// SHA-256 both sides so length is always 32 bytes regardless of key length.
-const API_KEY_HASH = crypto.createHash('sha256').update(API_KEY).digest();
-
-function timingSafeKeyCheck(provided) {
-  if (!provided) return false;
-  try {
-    const h = crypto.createHash('sha256').update(provided).digest();
-    return crypto.timingSafeEqual(API_KEY_HASH, h);
-  } catch { return false; }
-}
-
-// ── RATE LIMITING ─────────────────────────────────────────────────────────────
-
-// Auth failures: 10 attempts per 15 min per IP — only counts failures
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: { error: 'Too many failed auth attempts. Try again in 15 minutes.' },
-});
-
-// General: 300 req/min — generous for single user, blocks scanners
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Rate limit exceeded.' },
-});
-
-// ── MIDDLEWARE ────────────────────────────────────────────────────────────────
-app.set('trust proxy', 1);
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || '*' }));
 app.use(express.json({ limit: '1mb' }));
+app.use(cors());
 
-// Health — no auth
-app.get('/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
+// Everything lives under /:token/ — unguessable URL is the only auth
+const r = express.Router();
 
-// Rate-limit before auth so failed attempts are always counted
-app.use(authLimiter);
+// API routes
+r.use('/api/lifts',  require('./routes/lifts'));
+r.use('/api/holds',  require('./routes/holds'));
+r.use('/api/state',  require('./routes/state'));
+r.get('/api/health', (_req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 
-// Timing-safe auth — constant ~100ms on failure regardless of where comparison fails
-app.use((req, res, next) => {
-  const header = req.headers['authorization'] || '';
-  const token  = header.startsWith('Bearer ') ? header.slice(7) : '';
-  if (!timingSafeKeyCheck(token)) {
-    return setTimeout(() => res.status(401).json({ error: 'Unauthorized' }), 100);
-  }
-  next();
-});
-
-app.use(apiLimiter);
-
-// ── ROUTES ────────────────────────────────────────────────────────────────────
-// Auth check — behind the auth middleware so the client can verify its key
-app.get('/api/auth/check', (_req, res) => res.json({ ok: true }));
-
-app.use('/api/lifts', require('./routes/lifts'));
-app.use('/api/holds', require('./routes/holds'));
-app.use('/api/state', require('./routes/state'));
-
-// ── AGENT SNAPSHOT ────────────────────────────────────────────────────────────
-// OpenClaw calls this for a complete training picture
-app.get('/api/agent/snapshot', (req, res) => {
+// Agent snapshot
+r.get('/api/agent/snapshot', (req, res) => {
   const db = require('./db');
   try {
     const weights      = db.prepare('SELECT * FROM weights').all();
@@ -110,21 +56,29 @@ app.get('/api/agent/snapshot', (req, res) => {
       WHERE s.date >= date('now', '-30 days')
       GROUP BY sl.lift_id
     `).all();
-
     res.json({
-      generated_at:   new Date().toISOString(),
-      weights:        Object.fromEntries(weights.map(r => [r.lift_id, r.w8_kg])),
-      progressions:   Object.fromEntries(progressions.map(r => [r.lift_id, { inc: r.inc_kg, incD: r.inc_d_kg }])),
-      active_deloads: deloads.map(r => r.lift_id),
-      hold_config:    Object.fromEntries(holdCfg.map(r => [r.hold_id, r])),
+      generated_at:    new Date().toISOString(),
+      weights:         Object.fromEntries(weights.map(r => [r.lift_id, r.w8_kg])),
+      progressions:    Object.fromEntries(progressions.map(r => [r.lift_id, { inc: r.inc_kg, incD: r.inc_d_kg }])),
+      active_deloads:  deloads.map(r => r.lift_id),
+      hold_config:     Object.fromEntries(holdCfg.map(r => [r.hold_id, r])),
       recent_sessions: sessions,
-      lift_summary:   liftSummary,
-      hold_summary:   holdSummary,
-      recent_30_days: recentLifts,
+      lift_summary:    liftSummary,
+      hold_summary:    holdSummary,
+      recent_30_days:  recentLifts,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`DADLIFT API :${PORT}`));
+// Serve built frontend under the token path
+const DIST = path.join(__dirname, '../dist');
+r.use(express.static(DIST));
+r.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
+
+// Mount everything under the token — any other path returns 404
+app.use(`/${TOKEN}`, r);
+app.use('*', (_req, res) => res.status(404).end());
+
+app.listen(PORT, () => console.log(`DADLIFT :${PORT}/${TOKEN}/`));

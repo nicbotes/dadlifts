@@ -9,11 +9,10 @@ const https = require('https');
 const http  = require('http');
 const url   = require('url');
 
-const BASE = (process.env.DADLIFT_API_URL || 'http://localhost:3001').replace(/\/$/, '');
-const KEY  = process.env.DADLIFT_API_KEY || '';
-
-if (!KEY) {
-  console.error('Error: DADLIFT_API_KEY environment variable not set');
+// BASE must include the token path, e.g. http://localhost:3001/xK9mP2...
+const BASE = (process.env.DADLIFT_API_URL || '').replace(/\/$/, '');
+if (!BASE) {
+  console.error('Error: DADLIFT_API_URL not set\nMust be the full token URL, e.g.:\n  export DADLIFT_API_URL=https://yourvps.com/your-token-here');
   process.exit(1);
 }
 
@@ -30,8 +29,7 @@ function req(method, path, body) {
       path:     parsed.path,
       method,
       headers: {
-        'Authorization': `Bearer ${KEY}`,
-        'Content-Type':  'application/json',
+          'Content-Type':  'application/json',
         ...(payload && { 'Content-Length': Buffer.byteLength(payload) }),
       },
     };
@@ -154,8 +152,7 @@ Lift IDs: deadlift, squat, bench, ohp, rows
 Hold IDs: frontlever, deadhang, handstand, hspushup, lsit
 
 Environment:
-  DADLIFT_API_URL   API base URL (default: http://localhost:3001)
-  DADLIFT_API_KEY   Bearer token (required)
+  DADLIFT_API_URL   Full token URL (required), e.g. https://yourvps.com/xK9mP2...
     `.trim());
   },
 };

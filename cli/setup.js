@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * DADLIFT SETUP
- * Run once by OpenClaw to generate API key, write .env, restart server.
- * Outputs the key so OpenClaw can message it to Nic.
+ * Run by OpenClaw once. Generates a URL token, configures nginx/server,
+ * outputs the URL to message to Nic.
  *
  * Usage: node cli/setup.js [--restart]
  */
@@ -12,49 +12,43 @@ const fs     = require('fs');
 const path   = require('path');
 const { execSync } = require('child_process');
 
-const ENV_PATH = path.join(__dirname, '../.env');
-const restart  = process.argv.includes('--restart');
+const ENV_PATH  = path.join(__dirname, '../.env');
+const restart   = process.argv.includes('--restart');
+const baseUrl   = process.env.DADLIFT_BASE_URL || 'http://localhost:3001';
 
-// Generate a 48-byte (384-bit) random key — long, URL-safe, memorable enough to paste
-const key = crypto.randomBytes(48).toString('base64url');
+// 32 bytes = 256-bit token, base64url ~43 chars — unguessable, URL-safe
+const token = crypto.randomBytes(32).toString('base64url');
 
-// Read existing .env or use template
+// Read/create .env
 let env = '';
-try {
-  env = fs.readFileSync(ENV_PATH, 'utf8');
-} catch {
-  // Start from example if .env doesn't exist yet
-  try {
-    env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
-  } catch {
-    env = 'PORT=3001\n';
-  }
+try   { env = fs.readFileSync(ENV_PATH, 'utf8'); }
+catch {
+  try { env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8'); }
+  catch { env = 'PORT=3001\n'; }
 }
 
-// Upsert DADLIFT_API_KEY line
-if (env.includes('DADLIFT_API_KEY=')) {
-  env = env.replace(/^DADLIFT_API_KEY=.*/m, `DADLIFT_API_KEY=${key}`);
+// Upsert URL_TOKEN
+if (env.includes('DADLIFT_URL_TOKEN=')) {
+  env = env.replace(/^DADLIFT_URL_TOKEN=.*/m, `DADLIFT_URL_TOKEN=${token}`);
 } else {
-  env = env.trimEnd() + `\nDADLIFT_API_KEY=${key}\n`;
+  env = env.trimEnd() + `\nDADLIFT_URL_TOKEN=${token}\n`;
 }
 
 fs.writeFileSync(ENV_PATH, env, { mode: 0o600 });
 
-// Restart server if requested (PM2)
 if (restart) {
-  try {
-    execSync('pm2 restart dadlift', { stdio: 'inherit' });
-  } catch {
-    console.error('Warning: pm2 restart failed — restart server manually');
-  }
+  try { execSync('pm2 restart dadlift', { stdio: 'inherit' }); }
+  catch { console.error('Warning: pm2 restart failed — restart server manually'); }
 }
 
-// Output for OpenClaw to pick up and message to Nic
-const output = {
-  key,
-  message: `🔑 DADLIFT key set.\n\nOpen the app → enter this key when prompted:\n\n${key}\n\nYou only need to do this once. The app will stay authenticated.`,
+const appUrl = `${baseUrl}/${token}/`;
+const apiUrl = `${baseUrl}/${token}/api/`;
+
+console.log(JSON.stringify({
+  token,
+  app_url: appUrl,
+  api_url: apiUrl,
+  message: `🏋️ DADLIFT is ready.\n\nAdd this to your home screen:\n${appUrl}\n\nThat's it — no login needed.`,
   env_updated: ENV_PATH,
   restart_attempted: restart,
-};
-
-console.log(JSON.stringify(output, null, 2));
+}, null, 2));
