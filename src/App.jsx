@@ -187,7 +187,7 @@ function BurstOverlay() {
           }}>{p.emoji}</div>
         : <div key={p.id} style={{
             position: "absolute", left: p.x - 80, top: p.y, width: 160,
-            textAlign: "center", fontFamily: "'Bebas Neue',sans-serif",
+            textAlign: "center", fontFamily: "'Nunito',sans-serif",
             fontSize: 21, letterSpacing: 3, color: "#d94f4f",
             textShadow: "0 0 20px #d94f4f88",
             animation: "frise .9s cubic-bezier(.2,.8,.4,1) forwards",
@@ -314,207 +314,169 @@ function mkDefault() {
 
 // ── STYLES ───────────────────────────────────────────────────────────────────
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Space+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@1,9..144,900&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  /* Backgrounds — slightly lifted so contrast math works */
-  --bg:#0d0d0d;--s1:#141414;--s2:#1a1a1a;--s3:#222;
-  /* Borders — visible without being distracting */
-  --bd:#2e2e2e;--bd2:#3a3a3a;
-  /* Text — full hierarchy with passing contrast */
-  --text:#f0f0f0;        /* primary — 15:1 on bg */
-  --sub:#b0b0b0;         /* secondary labels — 7.5:1 on bg */
-  --mut:#787878;         /* tertiary/hints — 4.6:1 on bg — AA pass */
-  --mut2:#909090;        /* inactive tabs, plate text — 5.8:1 on bg */
-  /* States */
-  --done:#1a3d28;--done-b:#3dd668;
-  --fail:#3d1818;--fail-b:#e05555;
-  --acc:#E85D04;
+  --bg:#FAFAF5;--card:#FFFFFF;--lift:#F4F4EE;--rule:#E0E0D8;
+  --ink:#111111;--mid:#666666;--sub:#999999;--light:#E8E8E0;
+  --green:#06C270;--green-bg:#DCFCE7;
+  --red:#FF3B3B;--red-bg:#FEE2E2;
+  --yellow:#FFD93D;--yellow-bg:#FFF9C4;
+  --orange:#FF5C00;--purple:#8B5CF6;--blue:#0085FF;--teal:#2DD4BF;
 }
 html{-webkit-text-size-adjust:100%}
-body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font-size:15px;
-  -webkit-font-smoothing:antialiased;overscroll-behavior:none}
+body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;font-size:13px;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 
-/* top bar — fixed height, no wrap */
-.bar{display:flex;align-items:center;gap:6px;padding:0 10px;height:52px;
-  border-bottom:1px solid var(--bd);background:var(--bg);position:sticky;top:0;z-index:50;
-  overflow:hidden}
-.bar-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;flex-shrink:0;white-space:nowrap}
-.bar-title em{color:var(--acc);font-style:normal}
+/* top bar */
+.bar{display:flex;align-items:center;gap:8px;padding:0 14px;height:56px;background:var(--bg);border-bottom:3px solid var(--ink);position:sticky;top:0;z-index:50;overflow:hidden}
+.bar-title{font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;letter-spacing:-1px;flex-shrink:0;line-height:1}
+.bar-title .dl{background:var(--ink);color:var(--orange);padding:0 5px 2px;border-radius:4px}
 .bar-gap{flex:1;min-width:0}
-.sdot{width:7px;height:7px;border-radius:50%;background:var(--mut);transition:background .3s;flex-shrink:0}
-.sdot.on{background:var(--done-b)}
-.mtabs{display:flex;border:1px solid var(--bd);overflow:hidden;flex-shrink:0}
-.mtab{padding:0 8px;height:36px;font-size:18px;background:var(--s2);color:var(--sub);
-  border:none;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
-.mtab.on{color:#000;font-weight:700}
-.stabs{display:flex;border:1px solid var(--bd);overflow:hidden;flex-shrink:0}
-.stab{padding:0 10px;height:36px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;
-  background:var(--s2);color:var(--sub);border:none;cursor:pointer;transition:all .15s;
-  white-space:nowrap;-webkit-tap-highlight-color:transparent}
-.stab.on{background:var(--acc);color:#000;font-weight:700}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--light);border:2px solid var(--rule);transition:all .3s;flex-shrink:0}
+.sdot.on{background:var(--green);border-color:var(--green)}
+.mtabs{display:flex;border:3px solid var(--ink);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--ink)}
+.mtab{padding:0 10px;height:34px;font-size:16px;background:var(--card);color:var(--mid);border:none;cursor:pointer;transition:background .1s;-webkit-tap-highlight-color:transparent;flex-shrink:0}
+.mtab.on{color:#fff}
+.stabs{display:flex;border:3px solid var(--ink);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--ink)}
+.stab{padding:0 12px;height:34px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;background:var(--card);color:var(--mid);border:none;cursor:pointer;transition:all .1s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.stab.on{background:var(--orange);color:#fff}
 
 /* week tag */
-.wtag{font-size:12px;letter-spacing:2px;color:var(--sub);padding:4px 10px;border:1px solid var(--bd2);display:inline-block;margin-bottom:14px}
-.wtag strong{color:var(--text)}
+.wtag{display:inline-flex;gap:6px;align-items:center;background:var(--yellow);border:3px solid var(--ink);border-radius:100px;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:14px;box-shadow:2px 2px 0 var(--ink)}
+.wtag strong{color:var(--ink)}
 
 /* page */
-.pg{padding:14px 12px 80px;max-width:375px;margin:0 auto}
+.pg{padding:16px 14px 80px;max-width:375px;margin:0 auto}
 
 /* day selector */
-.drow{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px}
-.dbt{height:38px;padding:0 13px;border:1px solid var(--bd);background:var(--s2);color:var(--sub);
-  cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;
-  transition:all .12s;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
-.dbt.on{color:#000;font-weight:700}
+.drow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.dbt{height:36px;padding:0 14px;border:3px solid var(--ink);border-radius:100px;background:var(--card);color:var(--mid);cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
+.dbt:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.dbt.on{color:#fff;box-shadow:2px 2px 0 var(--ink)}
 
-.shead{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;margin-bottom:14px}
-.stack{display:flex;flex-direction:column;gap:8px}
+.shead{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;margin-bottom:14px;line-height:1}
+.stack{display:flex;flex-direction:column;gap:10px}
 
 /* barbell card */
-.bc{background:var(--s2);border:1px solid var(--bd);overflow:hidden;transition:border-color .2s}
-.bc.done{border-color:var(--done-b)}
-.bc.fail{border-color:var(--fail-b)}
-.bc-dl{padding:7px 14px;background:#160808;border-bottom:1px solid var(--fail-b);
-  color:var(--fail-b);font-size:12px;letter-spacing:1px}
-.bc-top{display:flex;align-items:stretch}
-.bc-bar{width:4px;flex-shrink:0}
-.bc-inf{padding:13px 12px 8px;flex:1;min-width:0}
-.bc-n{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
-.bc-wrow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:5px}
-.bc-w{font-family:'Bebas Neue',sans-serif;font-size:58px;line-height:1;letter-spacing:1px}
-.bc-w sub{font-size:17px;color:var(--sub);letter-spacing:0;margin-left:2px}
-.bc-plates{font-size:14px;color:var(--sub);letter-spacing:.5px;padding-bottom:4px}
-.bc-sch{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:1px;margin-top:2px;display:flex;align-items:center;gap:8px}
-.bc-pct{font-size:14px;color:var(--mut2);font-family:'DM Mono',monospace;letter-spacing:.5px;margin-left:2px}
-.apill{font-size:11px;letter-spacing:1.5px;border:1px solid #c8a020;color:#c8a020;padding:2px 7px;font-family:'DM Mono',monospace}
-.bc-dots{display:flex;gap:5px;flex-wrap:wrap;max-width:58px;justify-content:flex-end;
-  padding:13px 12px 0 0;align-self:flex-start;margin-top:6px}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--bd);transition:all .12s;flex-shrink:0}
-.dot.done{background:var(--done-b)}
-.dot.fail{background:var(--fail-b)}
-.dot.sq{border-radius:2px}
+.bc{background:var(--card);border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--ink);transition:box-shadow .15s,border-color .15s}
+.bc.done{border-color:var(--green);box-shadow:5px 5px 0 var(--green)}
+.bc.fail{border-color:var(--red);box-shadow:5px 5px 0 var(--red)}
+.bc-dl{padding:8px 14px;background:var(--red-bg);border-bottom:3px solid var(--red);color:var(--red);font-size:11px;font-weight:700;letter-spacing:1px;border-radius:12px 12px 0 0}
+.bc-top{display:flex;align-items:stretch;padding:13px 12px 8px 14px;gap:10px}
+.bc-bar{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);flex-shrink:0;margin-top:4px}
+.bc-inf{flex:1;min-width:0}
+.bc-n{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;line-height:1.1;margin-bottom:5px}
+.bc-wrow{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}
+.bc-w{font-family:'Nunito',sans-serif;font-size:62px;font-weight:900;line-height:1;letter-spacing:-3px}
+.bc-w sub{font-family:'Space Mono',monospace;font-size:16px;color:var(--mid);letter-spacing:0;margin-left:2px;font-weight:700;vertical-align:baseline}
+.bc-plates{font-size:12px;color:var(--mid);margin-bottom:4px}
+.bc-sch{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;letter-spacing:-1px;display:flex;align-items:center;gap:8px;line-height:1}
+.bc-pct{font-family:'Space Mono',monospace;font-size:11px;color:var(--mid);font-weight:700;background:var(--light);border:2px solid var(--rule);border-radius:100px;padding:1px 8px}
+.apill{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--yellow);border:2px solid var(--ink);border-radius:100px;padding:2px 8px;color:var(--ink)}
+.bc-dots{display:flex;flex-direction:column;gap:5px;padding-top:6px;align-self:flex-start;flex-shrink:0}
+.dot{width:11px;height:11px;border-radius:50%;border:3px solid var(--light);background:transparent;transition:all .1s;flex-shrink:0}
+.dot.done{background:var(--green);border-color:var(--green)}
+.dot.fail{background:var(--red);border-color:var(--red)}
+.dot.sq{border-radius:4px}
 
-/* set buttons — full width, equal flex */
-.bc-sets{padding:4px 4px 14px;display:flex;gap:5px}
-.sb{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
-.sb-l{font-size:12px;color:var(--sub);font-weight:500}
-.sb-l.am{color:#c8a020}
-.sbp{display:flex;width:100%;border:1px solid var(--bd2);overflow:hidden;border-radius:3px}
-.sd,.sf{flex:1;height:58px;border:none;cursor:pointer;font-size:22px;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--s2);color:var(--mut2);transition:background .1s,color .1s;
-  -webkit-tap-highlight-color:transparent}
-.sd{border-right:1px solid var(--bd2)}
-.sd:active:not(.on){background:#1a3326;color:var(--done-b)}
-.sf:active:not(.on){background:#331414;color:var(--fail-b)}
-.sd.on{background:var(--done);color:var(--done-b)}
-.sf.on{background:var(--fail);color:var(--fail-b)}
+/* set buttons */
+.bc-sets{display:flex;gap:6px;padding:0 12px 14px;border-top:2px solid var(--light);padding-top:10px;margin-top:2px}
+.sb{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.sb-l{font-size:10px;color:var(--mid);font-weight:700;letter-spacing:1px}
+.sb-l.am{color:var(--orange)}
+.sbp{display:flex;width:100%;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--ink)}
+.sd,.sf{flex:1;height:52px;border:none;background:var(--bg);color:var(--light);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .08s,color .08s;-webkit-tap-highlight-color:transparent}
+.sd{border-right:2px solid var(--light)}
+.sd:active:not(.on){background:var(--green-bg);color:var(--green)}
+.sf:active:not(.on){background:var(--red-bg);color:var(--red)}
+.sd.on{background:var(--green-bg);color:var(--green)}
+.sf.on{background:var(--red-bg);color:var(--red)}
 
 /* hold card */
-.hc{background:var(--s2);border:1px solid var(--bd);overflow:hidden;transition:border-color .2s}
-.hc.done{border-color:var(--done-b)}
-.hc.fail{border-color:var(--fail-b)}
-.hc-top{display:flex;align-items:stretch}
-.hc-inf{padding:13px 12px 8px;flex:1;min-width:0}
-.hc-n{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:3px}
-.hc-t{font-family:'Bebas Neue',sans-serif;font-size:58px;line-height:1;letter-spacing:1px}
-.hc-t sub{font-size:17px;color:var(--sub);letter-spacing:0;margin-left:2px}
-.hc-goal{font-size:13px;color:var(--sub);margin-top:4px;font-style:italic}
-.hc-sets{padding:4px 4px 14px;display:flex;gap:5px}
-.hsp{display:flex;width:100%;border:1px solid var(--bd2);overflow:hidden;border-radius:3px}
-.hsd,.hsf{flex:1;height:58px;border:none;cursor:pointer;font-size:22px;
-  display:flex;align-items:center;justify-content:center;
-  background:var(--s2);color:var(--mut2);transition:background .1s,color .1s;
-  -webkit-tap-highlight-color:transparent}
-.hsd{border-right:1px solid var(--bd2)}
-.hsd:active:not(.on){background:#1a3326;color:var(--done-b)}
-.hsf:active:not(.on){background:#331414;color:var(--fail-b)}
-.hsd.on{background:var(--done);color:var(--done-b)}
-.hsf.on{background:var(--fail);color:var(--fail-b)}
+.hc{background:var(--card);border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--ink);transition:box-shadow .15s,border-color .15s}
+.hc.done{border-color:var(--green);box-shadow:5px 5px 0 var(--green)}
+.hc.fail{border-color:var(--red);box-shadow:5px 5px 0 var(--red)}
+.hc-top{display:flex;align-items:stretch;padding:13px 12px 8px 14px;gap:10px}
+.hc-inf{flex:1;min-width:0}
+.hc-n{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;line-height:1.1;margin-bottom:5px}
+.hc-t{font-family:'Nunito',sans-serif;font-size:58px;font-weight:900;line-height:1;letter-spacing:-3px}
+.hc-t sub{font-family:'Space Mono',monospace;font-size:15px;color:var(--mid);letter-spacing:0;margin-left:2px;font-weight:700;vertical-align:baseline}
+.hc-goal{font-size:12px;color:var(--mid);margin-top:4px;font-style:italic}
+.hc-sets{display:flex;gap:6px;padding:0 12px 14px;border-top:2px solid var(--light);padding-top:10px;margin-top:2px}
+.hsp{display:flex;width:100%;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--ink)}
+.hsd,.hsf{flex:1;height:52px;border:none;background:var(--bg);color:var(--light);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .08s,color .08s;-webkit-tap-highlight-color:transparent}
+.hsd{border-right:2px solid var(--light)}
+.hsd:active:not(.on){background:var(--green-bg);color:var(--green)}
+.hsf:active:not(.on){background:var(--red-bg);color:var(--red)}
+.hsd.on{background:var(--green-bg);color:var(--green)}
+.hsf.on{background:var(--red-bg);color:var(--red)}
 
-/* rehab */
-.rrow{display:flex;align-items:center;gap:10px;padding:14px;background:var(--s2);border:1px solid var(--bd)}
-.rbar{width:4px;height:38px;flex-shrink:0}
-.rn{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:2px}
-.rv{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--mut)}
-.rs{font-size:11px;letter-spacing:1px;color:var(--mut2);border:1px solid var(--bd2);padding:3px 6px;display:inline-block;margin-top:3px}
+/* rehab card */
+.rrow{display:flex;align-items:center;gap:12px;padding:14px;background:var(--light);border:3px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--ink)}
+.rbar{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);flex-shrink:0}
+.rn{font-family:'Nunito',sans-serif;font-size:19px;font-weight:900;text-transform:uppercase;color:var(--mid);line-height:1.1}
+.rv{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;color:var(--sub)}
+.rs{font-size:10px;color:var(--sub);margin-top:2px;font-weight:700;letter-spacing:1px}
 
 /* analytics */
-.asec{margin-bottom:22px}
-.at{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--sub);
-  border-bottom:1px solid var(--bd);padding-bottom:7px;margin-bottom:12px}
-.lac{background:var(--s1);border:1px solid var(--bd);margin-bottom:7px}
-.lach{display:flex;align-items:center;gap:8px;padding:13px 14px;cursor:pointer;user-select:none;
-  -webkit-tap-highlight-color:transparent}
-.lach:active{background:var(--s2)}
-.la-ab{font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1}
-.la-nm{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--sub);margin-top:2px}
+.asec{margin-bottom:24px}
+.at{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;border-bottom:3px solid var(--ink);padding-bottom:8px;margin-bottom:14px}
+.lac{background:var(--card);border:3px solid var(--ink);border-radius:14px;margin-bottom:8px;box-shadow:4px 4px 0 var(--ink)}
+.lach{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;border-radius:12px}
+.lach:active{background:var(--lift)}
+.la-ab{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;line-height:1;letter-spacing:-0.5px;text-transform:uppercase}
+.la-nm{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid);margin-top:2px}
 .la-st{margin-left:auto;display:flex;gap:14px}
-.la-sv{font-family:'Bebas Neue',sans-serif;font-size:19px;line-height:1}
-.la-sl{font-size:10px;letter-spacing:1px;color:var(--mut2);text-transform:uppercase;margin-top:3px}
+.la-sv{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;line-height:1;letter-spacing:-0.5px}
+.la-sl{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--mid);text-transform:uppercase;margin-top:3px}
 .la-ch{font-size:11px;color:var(--sub);transition:transform .2s;margin-left:5px;flex-shrink:0}
 .la-ch.op{transform:rotate(90deg)}
 .lacb{padding:0 14px 14px}
-.ctabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
-.ctab{padding:6px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;
-  text-transform:uppercase;border:1px solid var(--bd);background:var(--s2);color:var(--sub);
-  cursor:pointer;transition:all .12s;-webkit-tap-highlight-color:transparent}
-.ctab.on{color:#000;font-weight:700}
-.clbl{font-size:10px;color:var(--sub);letter-spacing:1px;margin-bottom:6px}
+.ctabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.ctab{padding:6px 14px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:3px solid var(--ink);border-radius:100px;background:var(--bg);color:var(--mid);cursor:pointer;transition:all .1s;-webkit-tap-highlight-color:transparent;box-shadow:2px 2px 0 var(--ink)}
+.ctab:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.ctab.on{color:#fff;font-weight:700}
+.clbl{font-size:10px;color:var(--mid);font-weight:700;margin-bottom:6px}
 
 /* config */
-.cdiv{border-top:1px solid var(--bd);margin-top:12px;padding-top:10px}
-.chd{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:8px}
+.cdiv{border-top:2px solid var(--rule);margin-top:12px;padding-top:10px}
+.chd{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:8px}
 .cr{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.cl{font-size:12px;color:var(--sub);width:80px;flex-shrink:0}
-.cst{display:flex;align-items:center;border:1px solid var(--bd);overflow:hidden}
-.cb{width:38px;height:38px;background:var(--s2);border:none;color:var(--text);cursor:pointer;
-  font-size:18px;display:flex;align-items:center;justify-content:center;
-  -webkit-tap-highlight-color:transparent}
-.cb:active{background:var(--s3)}
-.cv{min-width:56px;text-align:center;font-family:'DM Mono',monospace;font-size:13px;
-  padding:5px 4px;background:var(--bg);color:var(--text);border:none;
-  border-left:1px solid var(--bd);border-right:1px solid var(--bd)}
-.crst{font-size:11px;letter-spacing:1px;color:var(--mut2);background:none;border:1px solid var(--bd);
-  padding:6px 12px;cursor:pointer;font-family:'DM Mono',monospace;margin-top:5px;
-  -webkit-tap-highlight-color:transparent}
+.cl{font-size:11px;font-weight:700;color:var(--mid);width:80px;flex-shrink:0}
+.cst{display:flex;align-items:center;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--ink)}
+.cb{width:40px;height:40px;background:var(--card);border:none;color:var(--ink);cursor:pointer;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+.cb:active{background:var(--lift)}
+.cv{min-width:52px;text-align:center;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:5px 4px;background:var(--bg);color:var(--ink);border:none;border-left:2px solid var(--light);border-right:2px solid var(--light)}
+.crst{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--mid);background:none;border:3px solid var(--rule);border-radius:100px;padding:6px 14px;cursor:pointer;font-family:'Space Mono',monospace;margin-top:5px;-webkit-tap-highlight-color:transparent}
 
 /* deload */
-.dlr{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;
-  background:#120808;border:1px solid var(--fail-b);margin-bottom:6px}
+.dlr{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--red-bg);border:3px solid var(--red);border-radius:12px;margin-bottom:6px;box-shadow:3px 3px 0 var(--ink)}
 
-/* footer hint */
-.fh{margin-top:18px;padding-top:12px;border-top:1px solid var(--bd);
-  font-size:11px;color:var(--mut2);letter-spacing:1px;
-  display:flex;justify-content:space-between;align-items:center}
-.fhb{background:none;border:1px solid var(--bd);color:var(--sub);
-  padding:8px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;
-  -webkit-tap-highlight-color:transparent}
+/* footer */
+.fh{margin-top:20px;padding-top:14px;border-top:3px solid var(--ink);font-size:10px;font-weight:700;color:var(--mid);letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+.fhb{background:none;border:3px solid var(--ink);border-radius:100px;color:var(--ink);padding:8px 16px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
+.fhb:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 
 /* goal badge */
-.gbadge{font-size:11px;color:var(--sub);border:1px solid var(--bd);padding:5px 10px;
-  display:inline-block;margin-bottom:12px}
+.gbadge{font-size:11px;font-weight:700;background:var(--yellow-bg);border:2px solid var(--ink);border-radius:100px;padding:4px 12px;display:inline-block;margin-bottom:12px}
 
 /* signature */
-.sig{margin-top:40px;padding-bottom:20px;text-align:center;font-size:11px;
-  color:var(--mut);letter-spacing:1.5px;font-style:italic;line-height:1.8}
-.sig span{display:block;font-size:9px;letter-spacing:3px;text-transform:uppercase;
-  color:var(--bd2);margin-top:2px;font-style:normal}
-.motd{background:var(--s1);border-left:3px solid var(--acc);padding:14px 16px;margin-bottom:18px}
-.motd-q{font-size:14px;color:var(--text);line-height:1.6;font-style:italic}
-.motd-a{font-size:12px;color:var(--sub);letter-spacing:1.5px;text-transform:uppercase;margin-top:8px}
-.xsec{margin-top:26px;padding-top:16px;border-top:1px solid var(--bd)}
-.xhd{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--sub);margin-bottom:12px}
-.xrow{display:flex;gap:6px;flex-wrap:wrap}
-.xbtn{flex:1;min-width:100px;padding:11px 10px;font-family:'DM Mono',monospace;font-size:12px;
-  letter-spacing:1px;border:1px solid var(--bd);background:var(--s2);color:var(--sub);
-  cursor:pointer;text-align:center;-webkit-tap-highlight-color:transparent}
-.xbtn:active{background:var(--s3);color:var(--text)}
-.xbtn.primary{border-color:var(--acc);color:var(--acc)}
-.xtxt{width:100%;margin-top:8px;padding:10px;background:var(--s1);border:1px solid var(--bd);
-  color:var(--text);font-family:'DM Mono',monospace;font-size:11px;
-  resize:vertical;min-height:80px;letter-spacing:.5px}
+.sig{margin-top:40px;padding-bottom:20px;text-align:center;font-size:11px;color:var(--light);letter-spacing:1.5px;font-style:italic;line-height:1.8}
+.sig span{display:block;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--rule);margin-top:2px;font-style:normal;font-weight:700}
+
+/* motivation */
+.motd{background:var(--yellow);border:3px solid var(--ink);border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:4px 4px 0 var(--ink)}
+.motd-q{font-family:'Fraunces',serif;font-style:italic;font-size:16px;line-height:1.55;color:var(--ink);margin-bottom:8px}
+.motd-a{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid)}
+
+/* export */
+.xsec{margin-top:26px;padding-top:16px;border-top:3px solid var(--rule)}
+.xhd{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:12px}
+.xrow{display:flex;gap:8px;flex-wrap:wrap}
+.xbtn{flex:1;min-width:100px;padding:11px 10px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;border:3px solid var(--ink);border-radius:100px;background:var(--card);color:var(--mid);cursor:pointer;text-align:center;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
+.xbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.xbtn.primary{background:var(--orange);border-color:var(--orange);color:#fff}
+.xtxt{width:100%;margin-top:8px;padding:12px;background:var(--lift);border:3px solid var(--ink);border-radius:12px;color:var(--ink);font-family:'Space Mono',monospace;font-size:11px;resize:vertical;min-height:80px;letter-spacing:.5px}
 
 @keyframes bfly{
   0%{transform:translate(0,0) rotate(0) scale(1);opacity:1}
@@ -527,12 +489,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;font
   70%{opacity:1}
   100%{transform:translateY(-80px) scale(.9);opacity:0}
 }
-`;
+`;;
 
 // ── MINI CHART ───────────────────────────────────────────────────────────────
 function MiniChart({ data, color }) {
   if (!data || data.length < 2) {
-    return <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center", color: "#252525", fontSize: 9, letterSpacing: "1px" }}>LOG SESSIONS TO SEE CHART</div>;
+    return <div style={{ height: 60, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 9, letterSpacing: "1px", fontWeight: 700 }}>LOG SESSIONS TO SEE CHART</div>;
   }
   const W = 340, H = 58, P = 2;
   const vals = data.map(d => d.y);
@@ -551,13 +513,13 @@ function MiniChart({ data, color }) {
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      {[0, 50, 100].map(p => <line key={p} x1={P} y1={H * p / 100} x2={W - P} y2={H * p / 100} stroke="#181818" strokeWidth=".5" />)}
+      {[0, 50, 100].map(p => <line key={p} x1={P} y1={H * p / 100} x2={W - P} y2={H * p / 100} stroke="#E0E0D8" strokeWidth=".5" />)}
       <path d={area} fill={`url(#${gid})`} />
       <path d={line} fill="none" stroke={color} strokeWidth="1.5" />
       {pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={i === pts.length - 1 ? 2.5 : 1.2} fill={color} />)}
-      <text x={P} y={H - 1} fontSize="7" fill="#333">{Math.round(mn)}</text>
-      <text x={P} y="9" fontSize="7" fill="#333">{Math.round(mx)}</text>
-      <text x={W - P} y={H - 1} fontSize="7" fill="#333" textAnchor="end">now</text>
+      <text x={P} y={H - 1} fontSize="7" fill="#999" fontFamily="Space Mono">{Math.round(mn)}</text>
+      <text x={P} y="9" fontSize="7" fill="#999" fontFamily="Space Mono">{Math.round(mx)}</text>
+      <text x={W - P} y={H - 1} fontSize="7" fill="#999" fontFamily="Space Mono" textAnchor="end">now</text>
     </svg>
   );
 }
@@ -654,12 +616,12 @@ function HoldCard({ id, cfg, sets, onDone, onFail }) {
   return (
     <div className={`hc${failN ? " fail" : allDone ? " done" : ""}`}>
       <div className="hc-top">
-        <div className="bc-bar" style={{ background: h.color }} />
+        <div className="bc-bar" style={{ background: h.color, width: 14, height: 14, borderRadius: "50%", border: "3px solid #111", flexShrink: 0, marginTop: 4 }} />
         <div className="hc-inf">
           <div className="hc-n">{h.emoji} {h.name}</div>
           <div className="hc-t" style={{ color: h.color }}>{displayVal}<sub>{displayUnit}</sub></div>
           <div className="hc-goal">{h.goal}</div>
-          <div style={{fontSize:11,color:"var(--mut2)",marginTop:2,lineHeight:1.4}}>{h.note}</div>
+          <div style={{fontSize:11,color:"var(--mid)",marginTop:2,lineHeight:1.4,fontWeight:700}}>{h.note}</div>
         </div>
         <div className="bc-dots">
           {sets.map((s, i) => <div key={i} className={`dot${s === "done" ? " done" : s === "fail" ? " fail" : ""}`} />)}
@@ -720,15 +682,15 @@ function LiftStats({ id, history, progs, onProg }) {
         </div>
         <div className="la-st">
           <div style={{ textAlign: "right" }}>
-            <div className="la-sv" style={{ color: l.color }}>{ormD[ormD.length - 1]?.y ?? "—"}<span style={{ fontSize: 9, color: "var(--mut)" }}>kg</span></div>
+            <div className="la-sv" style={{ color: l.color }}>{ormD[ormD.length - 1]?.y ?? "—"}<span style={{ fontSize: 9, color: "var(--sub)" }}>kg</span></div>
             <div className="la-sl">1rm</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="la-sv" style={{ color: "var(--mut2)" }}>{maxD.length ? Math.max(...maxD.map(d => d.y)) : "—"}<span style={{ fontSize: 9, color: "var(--mut)" }}>kg</span></div>
+            <div className="la-sv" style={{ color: "var(--mid)" }}>{maxD.length ? Math.max(...maxD.map(d => d.y)) : "—"}<span style={{ fontSize: 9, color: "var(--sub)" }}>kg</span></div>
             <div className="la-sl">max</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="la-sv" style={{ color: "var(--mut2)" }}>{volD[volD.length - 1] ? Math.round(volD[volD.length - 1].y) : "—"}</div>
+            <div className="la-sv" style={{ color: "var(--mid)" }}>{volD[volD.length - 1] ? Math.round(volD[volD.length - 1].y) : "—"}</div>
             <div className="la-sl">vol</div>
           </div>
         </div>
@@ -795,15 +757,15 @@ function HoldStats({ id, history, holdCfg, onCfg }) {
         </div>
         <div className="la-st">
           <div style={{ textAlign: "right" }}>
-            <div className="la-sv" style={{ color: h.color }}>{h.isReps ? cfg.reps : cfg.secs}<span style={{ fontSize: 9, color: "var(--mut)" }}>{h.isReps ? "r" : "s"}</span></div>
+            <div className="la-sv" style={{ color: h.color }}>{h.isReps ? cfg.reps : cfg.secs}<span style={{ fontSize: 9, color: "var(--sub)" }}>{h.isReps ? "r" : "s"}</span></div>
             <div className="la-sl">target</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="la-sv" style={{ color: "var(--mut2)" }}>{best || "—"}<span style={{ fontSize: 9, color: "var(--mut)" }}>s</span></div>
+            <div className="la-sv" style={{ color: "var(--mid)" }}>{best || "—"}<span style={{ fontSize: 9, color: "var(--sub)" }}>s</span></div>
             <div className="la-sl">best</div>
           </div>
           <div style={{ textAlign: "right" }}>
-            <div className="la-sv" style={{ color: "var(--mut2)" }}>{cfg.sets}</div>
+            <div className="la-sv" style={{ color: "var(--mid)" }}>{cfg.sets}</div>
             <div className="la-sl">sets</div>
           </div>
         </div>
@@ -902,22 +864,22 @@ const STANDARDS = Object.fromEntries(
 );
 // CSS for benchmarks — added inline to the css string additions
 const bmCss = `
-.bm-card{background:var(--s1);border:1px solid var(--bd);margin-bottom:6px;overflow:hidden}
-.bm-head{display:flex;align-items:center;gap:8px;padding:10px 12px}
-.bm-name{font-family:'Bebas Neue',sans-serif;font-size:18px}
+.bm-card{background:var(--card);border:3px solid var(--ink);border-radius:14px;margin-bottom:8px;box-shadow:4px 4px 0 var(--ink);overflow:hidden}
+.bm-head{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.bm-name{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:-0.5px}
 .bm-orm{margin-left:auto;text-align:right}
-.bm-orm-val{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1}
-.bm-orm-lbl{font-size:8px;letter-spacing:1px;color:var(--mut);text-transform:uppercase}
-.bm-tiers{padding:0 12px 12px}
-.bm-tier{margin-bottom:8px}
-.bm-tier-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
-.bm-tier-name{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mut2)}
-.bm-tier-kg{font-family:'Bebas Neue',sans-serif;font-size:15px;line-height:1}
-.bm-tier-note{font-size:8px;color:var(--mut);letter-spacing:.5px}
-.bm-track{height:4px;background:var(--bd);border-radius:2px;overflow:hidden}
-.bm-fill{height:100%;border-radius:2px;transition:width .6s ease}
-.bm-src{font-size:8px;color:var(--mut);margin-top:8px;letter-spacing:.5px;font-style:italic}
-.bm-achieved{font-size:8px;letter-spacing:1px;color:var(--done-b);border:1px solid var(--done);padding:1px 5px;margin-left:6px;vertical-align:middle}
+.bm-orm-val{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;line-height:1;letter-spacing:-1px}
+.bm-orm-lbl{font-size:9px;font-weight:700;letter-spacing:1px;color:var(--mid);text-transform:uppercase}
+.bm-tiers{padding:0 14px 14px}
+.bm-tier{margin-bottom:10px}
+.bm-tier-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.bm-tier-name{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--mid)}
+.bm-tier-kg{font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;line-height:1;letter-spacing:-0.5px}
+.bm-tier-note{font-size:9px;color:var(--mid);letter-spacing:.5px;font-weight:700}
+.bm-track{height:10px;background:var(--light);border:2px solid var(--ink);border-radius:100px;overflow:hidden}
+.bm-fill{height:100%;transition:width .6s ease;border-radius:100px}
+.bm-src{font-size:9px;color:var(--sub);margin-top:10px;letter-spacing:.5px;font-style:italic;font-weight:700}
+.bm-achieved{font-size:9px;font-weight:700;letter-spacing:1px;background:var(--green-bg);border:2px solid var(--green);border-radius:100px;padding:1px 7px;margin-left:6px;color:var(--green);vertical-align:middle}
 `;
 
 function Benchmarks({ currentOrms }) {
@@ -960,7 +922,7 @@ function Benchmarks({ currentOrms }) {
                       </span>
                       <div style={{ textAlign: "right" }}>
                         <span className="bm-tier-kg" style={{ color: achieved ? std.color : isNext ? "var(--text)" : "var(--mut2)" }}>{tier.kg}kg</span>
-                        <span style={{ fontSize: 8, color: "var(--mut)", marginLeft: 5 }}>{tier.note}</span>
+                        <span style={{ fontSize: 8, color: "var(--sub)", marginLeft: 5 }}>{tier.note}</span>
                       </div>
                     </div>
                     <div className="bm-track">
@@ -1107,7 +1069,7 @@ export default function App() {
     return (
       <>
         <style>{css}</style>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--mut)", fontSize: 10, letterSpacing: "2px" }}>LOADING…</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#999", fontSize: 10, letterSpacing: "2px", fontWeight: 700, background: "#FAFAF5" }}>LOADING…</div>
       </>
     );
   }
@@ -1120,8 +1082,8 @@ export default function App() {
 
         {/* TOP BAR */}
         <div className="bar">
-          <div className="bar-title">DAD<em>LIFT</em></div>
-          {IS_DEV && <div style={{fontSize:9,letterSpacing:1,color:'#000',background:'#F7B731',padding:'2px 6px',flexShrink:0,fontWeight:700}}>DEV</div>}
+          <div className="bar-title">DAD<span className="dl">LIFT</span></div>
+          {IS_DEV && <div style={{fontSize:9,letterSpacing:1,color:'#000',background:'#FFD93D',padding:'2px 8px',flexShrink:0,fontWeight:700,border:'2px solid #111',borderRadius:100}}>DEV</div>}
           <div className="bar-gap" />
           <div className={`sdot${saving ? " on" : ""}`} />
           <div className="mtabs">
@@ -1156,7 +1118,7 @@ export default function App() {
               ))}
             </div>
             <div className="shead" style={{ color: acc }}>
-              {today.label} <span style={{ color: "var(--mut2)", fontSize: 14 }}>/ {today.lifts.length} LIFTS</span>
+              {today.label} <span style={{ color: "var(--mid)", fontSize: 14 }}>/ {today.lifts.length} LIFTS</span>
             </div>
             <div className="stack">
               {today.lifts.map(sl => {
@@ -1185,7 +1147,7 @@ export default function App() {
             <div className="fh">
               <span>SWIPE ← STATS</span>
               <div style={{display:'flex',gap:6}}>
-                <button className="fhb" style={{borderColor:'var(--done-b)',color:'var(--done-b)'}}
+                <button className="fhb" style={{borderColor:'var(--green)',color:'var(--green)'}}
                   onClick={()=>{ if(window.confirm("End cycle + advance weights?\n\nDeloaded lifts hold at current weight. All others increment.")) advanceCycle(); }}>
                   END CYCLE ↑
                 </button>
@@ -1200,7 +1162,7 @@ export default function App() {
         )}
         {st.mode === 0 && atab === 1 && (
           <div className="pg">
-            <div style={{ fontSize: 11, color: "var(--mut2)", letterSpacing: "1.5px", marginBottom: 14 }}>TAP LIFT TO EXPAND · SWIPE → TRAIN</div>
+            <div style={{ fontSize: 10, color: "var(--mid)", letterSpacing: "1.5px", marginBottom: 14, fontWeight: 700 }}>TAP LIFT TO EXPAND · SWIPE → TRAIN</div>
             <div className="asec">
               <div className="at">Barbell Performance</div>
               {Object.keys(LIFTS).filter(id => !LIFTS[id].rehab).map(id => (
@@ -1228,10 +1190,10 @@ export default function App() {
                 <div className="at">Flagged Deloads</div>
                 {Object.entries(st.deloads).filter(([, v]) => v).map(([id]) => (
                   <div key={id} className="dlr">
-                    <span style={{ color: LIFTS[id].color, fontSize: 13 }}>{LIFTS[id].name}</span>
-                    <span style={{ color: "var(--fail-b)", fontFamily: "'Bebas Neue',sans-serif", fontSize: 20 }}>
+                    <span style={{ color: LIFTS[id].color, fontSize: 14, fontFamily: "'Nunito',sans-serif", fontWeight: 900 }}>{LIFTS[id].name}</span>
+                    <span style={{ color: "var(--red)", fontFamily: "'Nunito',sans-serif", fontSize: 20 }}>
                       {validW((wts[id].w8 || 0) * .9)} kg
-                      <span style={{ fontSize: 11, color: "var(--mut2)", marginLeft: 5 }}>next</span>
+                      <span style={{ fontSize: 11, color: "var(--mid)", marginLeft: 5 }}>next</span>
                     </span>
                   </div>
                 ))}
@@ -1239,7 +1201,7 @@ export default function App() {
             )}
             <div className="xsec">
               <div className="xhd">Data · Export / Import {IS_DEV && <span style={{color:'#F7B731',marginLeft:6}}>DEV MODE</span>}</div>
-              <div style={{ fontSize: 11, color: "var(--mut2)", marginBottom: 10, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: "var(--mid)", marginBottom: 10, lineHeight: 1.6 }}>
                 {IS_DEV
                   ? "DEV build — data saved to separate key. Production data is untouched."
                   : "PRODUCTION — data is preserved. Export JSON to back up or move to another device."}
@@ -1247,7 +1209,7 @@ export default function App() {
               <div className="xrow">
                 <button className="xbtn primary" onClick={doExport}>EXPORT</button>
                 <button className="xbtn" onClick={() => { setShowExport(true); setImportText(""); }}>IMPORT</button>
-                {IS_DEV && <button className="xbtn" style={{borderColor:'var(--fail-b)',color:'var(--fail-b)'}}
+                {IS_DEV && <button className="xbtn" style={{borderColor:'var(--red)',color:'var(--red)'}}
                   onClick={async () => { if(window.confirm("Wipe dev data?")) { await wipeDev(); setSt(mkDefault()); }}}>WIPE DEV</button>}
               </div>
               {showExport && (
@@ -1263,7 +1225,7 @@ export default function App() {
                     <button className="xbtn primary" onClick={doImport}>APPLY</button>
                     <button className="xbtn" onClick={() => { setShowExport(false); setImportMsg(""); }}>CLOSE</button>
                   </div>
-                  {importMsg && <div style={{ marginTop: 6, fontSize: 11, color: importMsg.startsWith("✓") ? "var(--done-b)" : "var(--fail-b)", letterSpacing: "1px" }}>{importMsg}</div>}
+                  {importMsg && <div style={{ marginTop: 6, fontSize: 11, color: importMsg.startsWith("✓") ? "var(--green)" : "var(--red)", letterSpacing: "1px" }}>{importMsg}</div>}
                 </div>
               )}
             </div>
@@ -1278,7 +1240,7 @@ export default function App() {
         {st.mode === 1 && atab === 0 && (
           <div className="pg">
             <div className="shead" style={{ color: "#A78BFA" }}>
-              HOLDS & SKILLS <span style={{ color: "var(--sub)", fontSize: 16 }}>/ {Object.keys(HOLDS).length}</span>
+              HOLDS & SKILLS <span style={{ color: "var(--mid)", fontSize: 16 }}>/ {Object.keys(HOLDS).length}</span>
             </div>
             {(() => { const m = weeklyMotivation(); return (
               <div className="motd" style={{borderLeftColor:'#A78BFA'}}>
@@ -1286,7 +1248,7 @@ export default function App() {
                 {m.a && <div className="motd-a">— {m.a}</div>}
               </div>
             ); })()}
-            <div style={{ fontSize: 12, color: "var(--mut2)", letterSpacing: "1px", marginBottom: 14, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 12, color: "var(--mid)", letterSpacing: "1px", marginBottom: 14, lineHeight: 1.6 }}>
               ✓ completed · ✕ dropped early
             </div>
             <div className="stack">
@@ -1311,7 +1273,7 @@ export default function App() {
         {/* CALI STATS */}
         {st.mode === 1 && atab === 1 && (
           <div className="pg">
-            <div style={{ fontSize: 11, color: "var(--mut2)", letterSpacing: "1.5px", marginBottom: 14 }}>TAP TO EXPAND · SWIPE → TRAIN</div>
+            <div style={{ fontSize: 10, color: "var(--mid)", letterSpacing: "1.5px", marginBottom: 14, fontWeight: 700 }}>TAP TO EXPAND · SWIPE → TRAIN</div>
             <div className="asec">
               <div className="at">Skills & Holds</div>
               {Object.keys(HOLDS).filter(id => !HOLDS[id].rehab).map(id => (
