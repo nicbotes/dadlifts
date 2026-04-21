@@ -1082,7 +1082,7 @@ export default function App() {
 
         {/* TOP BAR */}
         <div className="bar">
-          <div className="bar-title">DAD<span className="dl">LIFT</span></div>
+          <div className="bar-title">D<span style={{color:"#FF5C00"}}>Δ</span>DLIFTS</div>
           {IS_DEV && <div style={{fontSize:9,letterSpacing:1,color:'#000',background:'#FFD93D',padding:'2px 8px',flexShrink:0,fontWeight:700,border:'2px solid #111',borderRadius:100}}>DEV</div>}
           <div className="bar-gap" />
           <div className={`sdot${saving ? " on" : ""}`} />
