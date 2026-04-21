@@ -1,0 +1,195 @@
+{
+  "_comment": "Edit this file to personalise DADLIFT for a new user. See BOOTSTRAP.md.",
+
+  "user": {
+    "name": "Nic",
+    "bodyweight_kg": 95,
+    "height_cm": 194,
+    "age": 37,
+    "goal": "Strong, mobile, healthy for the next 20 years. Two young sons."
+  },
+
+  "equipment": {
+    "bar_kg": 20,
+    "plates_kg": [2.5, 5, 10, 20],
+    "snap_to_kg": 5
+  },
+
+  "lifts": {
+    "deadlift": {
+      "name": "Deadlift",
+      "abbr": "DL",
+      "color": "#E85D04",
+      "base8_kg": 100,
+      "def_inc_kg": 5,
+      "def_inc_double_kg": 10,
+      "rehab": false
+    },
+    "squat": {
+      "name": "Back Squat",
+      "abbr": "BS",
+      "color": "#F7B731",
+      "base8_kg": 90,
+      "def_inc_kg": 5,
+      "def_inc_double_kg": 10,
+      "rehab": false
+    },
+    "bench": {
+      "name": "Bench Press",
+      "abbr": "BP",
+      "color": "#48CAE4",
+      "base8_kg": 60,
+      "def_inc_kg": 5,
+      "def_inc_double_kg": 10,
+      "rehab": false
+    },
+    "ohp": {
+      "name": "OHP",
+      "abbr": "OHP",
+      "color": "#74C69D",
+      "base8_kg": 45,
+      "def_inc_kg": 5,
+      "def_inc_double_kg": 5,
+      "rehab": false
+    },
+    "rows": {
+      "name": "Bent-Over Row",
+      "abbr": "ROW",
+      "color": "#9D8DF1",
+      "base8_kg": null,
+      "def_inc_kg": 5,
+      "def_inc_double_kg": 10,
+      "rehab": true
+    }
+  },
+
+  "benchmarks": {
+    "_source": "Kilgore 2023 + OpenPowerlifting 2025. Scaled to user bodyweight.",
+    "_note": "Update multipliers if user bodyweight changes significantly.",
+    "deadlift": {
+      "beginner_multiplier":     1.20,
+      "intermediate_multiplier": 1.70,
+      "advanced_multiplier":     2.15,
+      "elite_multiplier":        2.70
+    },
+    "squat": {
+      "beginner_multiplier":     1.05,
+      "intermediate_multiplier": 1.50,
+      "advanced_multiplier":     1.90,
+      "elite_multiplier":        2.40
+    },
+    "bench": {
+      "beginner_multiplier":     0.77,
+      "intermediate_multiplier": 1.00,
+      "advanced_multiplier":     1.20,
+      "elite_multiplier":        1.60
+    },
+    "ohp": {
+      "beginner_multiplier":     0.53,
+      "intermediate_multiplier": 0.74,
+      "advanced_multiplier":     0.95,
+      "elite_multiplier":        1.20
+    }
+  },
+
+  "calisthenics": [
+    {
+      "id": "frontlever",
+      "name": "Front Lever",
+      "abbr": "FL",
+      "color": "#F87171",
+      "emoji": "🦅",
+      "progression": "Tuck → Advanced Tuck → Straddle → Full",
+      "currentLevel": "Advanced Tuck",
+      "goal": "Advanced Tuck → build to 15s → progress to Straddle",
+      "note": "Hips extended, body near horizontal from bar. Not pulled in.",
+      "def_secs": 7,
+      "def_sets": 5,
+      "def_inc": 1,
+      "is_reps": false,
+      "rehab": false
+    },
+    {
+      "id": "deadhang",
+      "name": "Dead Hang",
+      "abbr": "HNG",
+      "color": "#34D399",
+      "emoji": "🪝",
+      "progression": "30s → 60s → weighted",
+      "currentLevel": "Building to 60s",
+      "goal": "Build to 60s continuous hold",
+      "note": "Full hang, active shoulders packed. Grip + decompression.",
+      "def_secs": 30,
+      "def_sets": 4,
+      "def_inc": 5,
+      "is_reps": false,
+      "rehab": false
+    },
+    {
+      "id": "handstand",
+      "name": "Wall Handstand",
+      "abbr": "WHS",
+      "color": "#60A5FA",
+      "emoji": "🤸",
+      "progression": "Wall-facing → 60s → freestanding kick-up",
+      "currentLevel": "Wall-facing holds",
+      "goal": "Build to 60s wall-facing → progress to kick-up",
+      "note": "Chest to wall (not back to wall). Correct alignment for freestanding.",
+      "def_secs": 20,
+      "def_sets": 4,
+      "def_inc": 5,
+      "is_reps": false,
+      "rehab": false
+    },
+    {
+      "id": "hspushup",
+      "name": "Wall HSPU",
+      "abbr": "HSPU",
+      "color": "#FBBF24",
+      "emoji": "💪",
+      "progression": "Negatives → partial ROM → full ROM → strict",
+      "currentLevel": "Negatives + partial ROM",
+      "goal": "Strict wall HSPU — build from negatives",
+      "note": "At ~55kg OHP 1RM you're right at the prerequisite. Control the descent.",
+      "def_secs": 0,
+      "def_sets": 4,
+      "def_inc": 0,
+      "is_reps": true,
+      "def_reps": 3,
+      "rehab": false
+    },
+    {
+      "id": "lsit",
+      "name": "L-Sit",
+      "abbr": "LS",
+      "color": "#F472B6",
+      "emoji": "🪑",
+      "progression": "Tucked → One leg → Full L-Sit → 20s → L-Sit to handstand",
+      "currentLevel": "Tucked L-Sit",
+      "goal": "Build tucked to 20s → extend one leg",
+      "note": "Stay tucked. Hip flexors and abs need time. Don't rush the extension.",
+      "def_secs": 10,
+      "def_sets": 4,
+      "def_inc": 2,
+      "is_reps": false,
+      "rehab": false
+    },
+    {
+      "id": "muscleup",
+      "name": "Muscle-Up",
+      "abbr": "MU",
+      "color": "#9D8DF1",
+      "emoji": "🔝",
+      "progression": "False grip negatives → kipping → strict",
+      "currentLevel": "PAUSED",
+      "goal": "Paused — brachioradialis rehab",
+      "note": "Resume when elbow is clear. False grip negatives when ready.",
+      "def_secs": 0,
+      "def_sets": 0,
+      "def_inc": 0,
+      "is_reps": true,
+      "def_reps": 0,
+      "rehab": true
+    }
+  ]
+}

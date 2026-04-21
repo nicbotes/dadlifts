@@ -1,14 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 
-// ── PLATE MATH ───────────────────────────────────────────────────────────────
-const BAR = 20;
-const snap5 = x => Math.round(x / 5) * 5;
+// ── PLATE MATH — from config.json ────────────────────────────────────────────
+import CFG from "../config.json";
+const BAR    = CFG.equipment.bar_kg;
+const SNAP   = CFG.equipment.snap_to_kg;
+const PLATES = [...CFG.equipment.plates_kg].sort((a,b) => b-a);
+const snap5  = x => Math.round(x / SNAP) * SNAP;
 const validW = w => Math.max(BAR, snap5(w));
 function plates(kg) {
   let load = (kg - BAR) / 2;
   if (load <= 0) return "bar only";
   const used = [];
-  [20, 10, 5, 2.5].forEach(p => {
+  PLATES.forEach(p => {
     while (load >= p - 0.01) { used.push(p); load = Math.round((load - p) * 10) / 10; }
   });
   return used.length ? used.join(" + ") + " /side" : "bar only";
@@ -195,13 +198,18 @@ function BurstOverlay() {
 }
 
 // ── BARBELL DATA ─────────────────────────────────────────────────────────────
-const LIFTS = {
-  deadlift: { name: "Deadlift",       abbr: "DL",  color: "#E85D04", base8: 100, defInc: 5, defIncD: 10 },
-  squat:    { name: "Back Squat",     abbr: "BS",  color: "#F7B731", base8: 90,  defInc: 5, defIncD: 10 },
-  bench:    { name: "Bench Press",    abbr: "BP",  color: "#48CAE4", base8: 60,  defInc: 5, defIncD: 10 },
-  ohp:      { name: "OHP",            abbr: "OHP", color: "#74C69D", base8: 45,  defInc: 5, defIncD: 5  },
-  rows:     { name: "Bent-Over Row",  abbr: "ROW", color: "#9D8DF1", base8: null, defInc: 5, defIncD: 10, rehab: true },
-};
+// Lifts from config.json
+const LIFTS = Object.fromEntries(
+  Object.entries(CFG.lifts).map(([id, l]) => [id, {
+    name:    l.name,
+    abbr:    l.abbr,
+    color:   l.color,
+    base8:   l.base8_kg,
+    defInc:  l.def_inc_kg,
+    defIncD: l.def_inc_double_kg,
+    rehab:   l.rehab || false,
+  }])
+);
 
 const SCHED = [
   { week: 1, label: "W1·D1", lifts: [{ id: "bench", sets: 4, reps: 4, type: "4rep" }, { id: "squat", sets: 4, reps: 8, type: "8rep" }, { id: "ohp", sets: 4, reps: 8, type: "8rep" }, { id: "rows", sets: 4, reps: 8, type: "8rep" }] },
@@ -241,90 +249,16 @@ function initLiftSets() {
   return s;
 }
 
-// ── CALISTHENICS CONFIG ───────────────────────────────────────────────────────
-// Edit this to progress to the next level. Hand to Claude and say "deploy this".
-// rehab:true = shows as paused, no sets, hidden from stats.
-const CALI_CONFIG = [
-  {
-    id: "frontlever",
-    name: "Front Lever",
-    abbr: "FL",
-    color: "#F87171",
-    emoji: "🦅",
-    progression: "Tuck → Advanced Tuck → Straddle → Full",
-    currentLevel: "Advanced Tuck",
-    goal: "Advanced Tuck → build to 15s → progress to Straddle",
-    note: "Hips extended, body near horizontal from bar. Not pulled in.",
-    defSecs: 7, defSets: 5, defInc: 1,
-    isReps: false, rehab: false,
-  },
-  {
-    id: "deadhang",
-    name: "Dead Hang",
-    abbr: "HNG",
-    color: "#34D399",
-    emoji: "🪝",
-    progression: "30s → 60s → weighted",
-    currentLevel: "Building to 60s",
-    goal: "Build to 60s continuous hold",
-    note: "Full hang, active shoulders packed. Grip + decompression.",
-    defSecs: 30, defSets: 4, defInc: 5,
-    isReps: false, rehab: false,
-  },
-  {
-    id: "handstand",
-    name: "Wall Handstand",
-    abbr: "WHS",
-    color: "#60A5FA",
-    emoji: "🤸",
-    progression: "Wall-facing → 60s → freestanding kick-up",
-    currentLevel: "Wall-facing holds",
-    goal: "Build to 60s wall-facing → progress to kick-up",
-    note: "Chest to wall (not back to wall). Correct alignment for freestanding.",
-    defSecs: 20, defSets: 4, defInc: 5,
-    isReps: false, rehab: false,
-  },
-  {
-    id: "hspushup",
-    name: "Wall HSPU",
-    abbr: "HSPU",
-    color: "#FBBF24",
-    emoji: "💪",
-    progression: "Negatives → partial ROM → full ROM → strict",
-    currentLevel: "Negatives + partial ROM",
-    goal: "Strict wall HSPU — at OHP threshold, build from negatives",
-    note: "At ~55kg OHP 1RM you're right at the prerequisite. Control the descent.",
-    defSecs: 0, defSets: 4, defInc: 0,
-    isReps: true, defReps: 3, rehab: false,
-  },
-  {
-    id: "lsit",
-    name: "L-Sit",
-    abbr: "LS",
-    color: "#F472B6",
-    emoji: "🪑",
-    progression: "Tucked → One leg → Full L-Sit → 20s → L-Sit to handstand",
-    currentLevel: "Tucked L-Sit",
-    goal: "Build tucked to 20s → extend one leg",
-    note: "Stay tucked. Hip flexors and abs need time. Don't rush the extension.",
-    defSecs: 10, defSets: 4, defInc: 2,
-    isReps: false, rehab: false,
-  },
-  {
-    id: "muscleup",
-    name: "Muscle-Up",
-    abbr: "MU",
-    color: "#9D8DF1",
-    emoji: "🔝",
-    progression: "False grip negatives → kipping → strict",
-    currentLevel: "PAUSED",
-    goal: "Paused — brachioradialis rehab",
-    note: "Resume when elbow is clear. False grip negatives when ready.",
-    defSecs: 0, defSets: 0, defInc: 0,
-    isReps: true, defReps: 0, rehab: true,
-  },
-];
-
+// ── CALISTHENICS CONFIG — from config.json ──────────────────────────────────────
+// To advance a skill: edit config.json and redeploy.
+const CALI_CONFIG = CFG.calisthenics.map(h => ({
+  ...h,
+  defSecs:  h.def_secs,
+  defSets:  h.def_sets,
+  defInc:   h.def_inc,
+  isReps:   h.is_reps,
+  defReps:  h.def_reps ?? 0,
+}));
 // Build HOLDS lookup from config
 const HOLDS = Object.fromEntries(CALI_CONFIG.map(h => [h.id, h]));
 
@@ -943,53 +877,29 @@ function HoldStats({ id, history, holdCfg, onCfg }) {
 // ── BENCHMARKS ───────────────────────────────────────────────────────────────
 // Source: Kilgore (2023) recreational standards + OpenPowerlifting 2025 data
 // Scaled to 95kg male. All values are 1RM in kg.
-const STANDARDS = {
-  deadlift: {
-    label: "Deadlift",
-    color: "#E85D04",
-    tiers: [
-      { label: "Beginner",     kg: 115, note: "1.2× BW" },
-      { label: "Intermediate", kg: 160, note: "1.7× BW · your goal" },
-      { label: "Advanced",     kg: 205, note: "2.15× BW" },
-      { label: "Elite",        kg: 260, note: "2.7× BW · top 25% competitive" },
-    ],
-    source: "Kilgore 2023 · OpenPowerlifting 2025",
-  },
-  squat: {
-    label: "Back Squat",
-    color: "#F7B731",
-    tiers: [
-      { label: "Beginner",     kg: 100, note: "1.05× BW" },
-      { label: "Intermediate", kg: 140, note: "1.5× BW · your goal" },
-      { label: "Advanced",     kg: 180, note: "1.9× BW" },
-      { label: "Elite",        kg: 230, note: "2.4× BW · top 25% competitive" },
-    ],
-    source: "Kilgore 2023 · OpenPowerlifting 2025",
-  },
-  bench: {
-    label: "Bench Press",
-    color: "#48CAE4",
-    tiers: [
-      { label: "Beginner",     kg: 73,  note: "0.77× BW" },
-      { label: "Intermediate", kg: 95,  note: "1.0× BW · your goal" },
-      { label: "Advanced",     kg: 115, note: "1.2× BW" },
-      { label: "Elite",        kg: 150, note: "1.6× BW · top 25% competitive" },
-    ],
-    source: "Kilgore 2023 · OpenPowerlifting 2025",
-  },
-  ohp: {
-    label: "Overhead Press",
-    color: "#74C69D",
-    tiers: [
-      { label: "Beginner",     kg: 50,  note: "0.53× BW" },
-      { label: "Intermediate", kg: 70,  note: "0.74× BW · your goal" },
-      { label: "Advanced",     kg: 90,  note: "0.95× BW" },
-      { label: "Elite",        kg: 115, note: "1.2× BW" },
-    ],
-    source: "Legion Athletics · Rippetoe standards",
-  },
-};
-
+// Benchmarks from config.json — scaled to user bodyweight
+const BW = CFG.user.bodyweight_kg;
+const TIER_LABELS = [
+  { key: "beginner",     label: "Beginner",     note_suffix: "× BW" },
+  { key: "intermediate", label: "Intermediate", note_suffix: "× BW · your goal" },
+  { key: "advanced",     label: "Advanced",     note_suffix: "× BW" },
+  { key: "elite",        label: "Elite",        note_suffix: "× BW · top 25% competitive" },
+];
+const LIFT_COLORS = Object.fromEntries(Object.entries(LIFTS).map(([id,l])=>[id,l.color]));
+const STANDARDS = Object.fromEntries(
+  Object.entries(CFG.benchmarks)
+    .filter(([k]) => !k.startsWith('_'))
+    .map(([id, b]) => [id, {
+      label:  LIFTS[id]?.name ?? id,
+      color:  LIFT_COLORS[id] ?? '#888',
+      source: CFG.benchmarks._source,
+      tiers:  TIER_LABELS.map(t => ({
+        label: t.label,
+        kg:    Math.round(BW * b[`${t.key}_multiplier`] / 5) * 5,
+        note:  `${b[`${t.key}_multiplier`]}${t.note_suffix}`,
+      })),
+    }])
+);
 // CSS for benchmarks — added inline to the css string additions
 const bmCss = `
 .bm-card{background:var(--s1);border:1px solid var(--bd);margin-bottom:6px;overflow:hidden}
