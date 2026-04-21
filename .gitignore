@@ -1,4 +1,8 @@
 node_modules
 dist
 .env
+.env.local
+server/dadlift.db
+server/dadlift.db-shm
+server/dadlift.db-wal
 .DS_Store
