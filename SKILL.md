@@ -169,3 +169,38 @@ node cli/dadlift.js snapshot
 ```bash
 node cli/dadlift.js set-weight squat 95
 ```
+
+## First-time setup
+
+Run this **once** to generate the API key, write it to `.env`, and restart the server:
+
+```bash
+node cli/setup.js --restart
+```
+
+The output JSON contains a `message` field — send this to Nic verbatim.
+It contains the key he needs to paste into the app on first open.
+
+Example output:
+```json
+{
+  "key": "abc123...",
+  "message": "🔑 DADLIFT key set.\n\nOpen the app → enter this key when prompted:\n\nabc123...\n\nYou only need to do this once. The app will stay authenticated.",
+  "env_updated": "/path/to/.env",
+  "restart_attempted": true
+}
+```
+
+After Nic enters the key in the app once, it's saved to localStorage.
+The app will stay authenticated permanently — even after closing, even after
+adding to the home screen. The key only needs to be re-entered if he
+clears browser data or switches devices (in which case run setup again).
+
+## Rotating the key
+
+If you need to rotate:
+```bash
+node cli/setup.js --restart
+```
+Then message Nic the new key. He pastes it into the app prompt (it will
+show automatically once the old key stops working).

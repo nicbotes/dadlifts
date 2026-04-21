@@ -70,6 +70,9 @@ app.use((req, res, next) => {
 app.use(apiLimiter);
 
 // ── ROUTES ────────────────────────────────────────────────────────────────────
+// Auth check — behind the auth middleware so the client can verify its key
+app.get('/api/auth/check', (_req, res) => res.json({ ok: true }));
+
 app.use('/api/lifts', require('./routes/lifts'));
 app.use('/api/holds', require('./routes/holds'));
 app.use('/api/state', require('./routes/state'));
