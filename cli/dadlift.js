@@ -97,6 +97,74 @@ const commands = {
     const data = await req('GET', '/api/state/main');
     console.log(JSON.stringify(data, null, 2));
   },
+
+  async snapshot() {
+    // Parsed summary — easier for agents to read than the raw blob
+    const raw = await req('GET', '/api/state/main');
+
+    const SCHED = [
+      { label:"W1·D1", week:1 }, { label:"W1·D2", week:1 }, { label:"W1·D3", week:1 },
+      { label:"W2·D1", week:2 }, { label:"W2·D2", week:2 }, { label:"W2·D3", week:2 },
+    ];
+
+    const weights = raw.weights || {};
+    const progs   = raw.progs   || {};
+    const deloads = raw.deloads || {};
+    const sessionLog = raw.sessionLog || [];
+    const failLog    = raw.failLog    || {};
+
+    // Build per-lift summary from sessionLog
+    const liftSummary = {};
+    sessionLog.forEach(function(session) {
+      Object.keys(session.lifts || {}).forEach(function(id) {
+        const entry = session.lifts[id];
+        if (!liftSummary[id]) liftSummary[id] = { sessions: 0, allTimeMax: 0, allTimeOrm: 0, recentSessions: [] };
+        liftSummary[id].sessions++;
+        if (entry.maxWeight > liftSummary[id].allTimeMax) liftSummary[id].allTimeMax = entry.maxWeight;
+        if (entry.orm      > liftSummary[id].allTimeOrm)  liftSummary[id].allTimeOrm  = entry.orm;
+        liftSummary[id].recentSessions.push({
+          cycle: session.cycle, day: SCHED[session.dayIdx]?.label || session.dayIdx,
+          weight: entry.weight, volume: entry.volume, orm: entry.orm,
+        });
+      });
+    });
+
+    // Keep only last 5 sessions per lift
+    Object.keys(liftSummary).forEach(function(id) {
+      liftSummary[id].recentSessions = liftSummary[id].recentSessions.slice(-5);
+    });
+
+    // Parse fail log
+    const failsByLift = {};
+    Object.keys(failLog).forEach(function(key) {
+      const parts = key.split('-');
+      const liftId = parts.length === 4 ? parts[2] : parts[1];
+      if (!failsByLift[liftId]) failsByLift[liftId] = [];
+      failsByLift[liftId].push(failLog[key]);
+    });
+
+    // Today's sets
+    const todayIdx  = raw.dayIdx || 0;
+    const todaySets = (raw.liftSets || {})[todayIdx] || {};
+    const todayLabel = SCHED[todayIdx]?.label || 'Unknown';
+
+    const out = {
+      user_summary: {
+        current_cycle: raw.cycle || 1,
+        current_day:   todayLabel,
+        total_sessions_logged: sessionLog.length,
+      },
+      current_weights: weights,
+      progression_increments: progs,
+      active_deloads: Object.keys(deloads).filter(id => deloads[id]),
+      todays_sets: todaySets,
+      lift_history: liftSummary,
+      current_cycle_fails: failsByLift,
+      hold_config: raw.holdCfg || {},
+    };
+
+    console.log(JSON.stringify(out, null, 2));
+  },
   help() {
     console.log(`
 DADLIFTS CLI — per-user commands
@@ -114,6 +182,7 @@ Commands:
   set-prog <id> <kg>    Update progression
   health                API health check
   state                 Full app state blob (primary data source)
+  snapshot              Parsed training summary — easier for agents
 
 Lift IDs: deadlift squat bench ohp rows
     `.trim());
