@@ -1,4 +1,4 @@
-# DADLIFT 🏋️
+# D∆DLIFTS 🏋️
 
 Personal training tracker. Barbell + calisthenics. Built between sets, for the boys.
 
