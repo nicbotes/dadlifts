@@ -756,7 +756,9 @@ function LiftStats(props) {
   var lift = LIFTS[id];
   var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
   var pair2 = useState("volume"); var ct = pair2[0]; var setCt = pair2[1];
-  var ls = history.filter(function(entry) { return entry.lifts[id]; }).map(function(entry) { return entry.lifts[id]; });
+  var ls = history
+    .filter(function(entry) { return entry && entry.lifts && entry.lifts[id]; })
+    .map(function(entry) { return entry.lifts[id]; });
   var volD = ls.map(function(x, i) { return { x:i, y:x.volume }; });
   var maxD = ls.map(function(x, i) { return { x:i, y:x.maxWeight }; });
   var ormD = ls.map(function(x, i) { return { x:i, y:x.orm }; });
@@ -789,8 +791,20 @@ function LiftStats(props) {
     }
     if (liftId === id) {
       var result = failLog[key];
+      if (!result || typeof result !== "object") return;
+      var weight = Number(result.weight);
+      var reps = Number(result.reps);
+      if (!Number.isFinite(weight) || !Number.isFinite(reps)) return;
       var day = SCHED[dayIdx] || {};
-      failEntries.push({ key:key, cycle:cycle, dayIdx:dayIdx, setIdx:setIdx, dayLabel:"C" + cycle + " " + (day.label || ("D" + dayIdx)), weight:result.weight, reps:result.reps });
+      failEntries.push({
+        key:key,
+        cycle:cycle,
+        dayIdx:dayIdx,
+        setIdx:setIdx,
+        dayLabel:"C" + cycle + " " + (day.label || ("D" + dayIdx)),
+        weight:weight,
+        reps:reps
+      });
     }
   });
   // Sort by dayIdx then setIdx
@@ -887,7 +901,9 @@ function HoldStats(props) {
   var hold = HOLDS[id];
   var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
   var pair2 = useState("hold"); var ct = pair2[0]; var setCt = pair2[1];
-  var hs = history.filter(function(e) { return e.holds[id]; }).map(function(e) { return e.holds[id]; });
+  var hs = history
+    .filter(function(e) { return e && e.holds && e.holds[id]; })
+    .map(function(e) { return e.holds[id]; });
   var holdD = hs.map(function(x, i) { return { x:i, y:x.secs }; });
   var volD  = hs.map(function(x, i) { return { x:i, y:x.totalTime }; });
   var chartD = ct === "hold" ? holdD : volD;
