@@ -107,11 +107,51 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 import api from './api.js';
 
 async function loadState() {
-  try { return await api.getState(); } catch(e) { return null; }
+  try {
+    // Load blob first
+    var state = await api.getState().catch(function() { return null; });
+    if (!state) return null;
+
+    // Merge structured tables — CLI updates take precedence over blob
+    var weights     = await api.getWeights().catch(function() { return {}; });
+    var progs       = await api.getProgressions().catch(function() { return {}; });
+    var deloads     = await api.getDeloads().catch(function() { return {}; });
+    var holdCfg     = await api.getHoldConfig().catch(function() { return {}; });
+
+    // Only override if structured table has data (non-empty)
+    if (Object.keys(weights).length)  state.weights  = Object.assign({}, state.weights,  weights);
+    if (Object.keys(progs).length)    state.progs    = Object.assign({}, state.progs,    progs);
+    if (Object.keys(deloads).length)  state.deloads  = Object.assign({}, state.deloads,  deloads);
+    if (Object.keys(holdCfg).length)  state.holdCfg  = Object.assign({}, state.holdCfg,  holdCfg);
+
+    return state;
+  } catch(e) { return null; }
 }
 
 async function saveState(data) {
-  try { await api.saveState(data); } catch(e) {}
+  try {
+    // Save full blob
+    await api.saveState(data);
+
+    // Also sync structured tables so CLI/agent queries stay accurate
+    if (data.weights)  await api.bulkWeights(data.weights).catch(function(){});
+    if (data.deloads) {
+      Object.keys(data.deloads).forEach(function(id) {
+        api.setDeload(id, data.deloads[id]).catch(function(){});
+      });
+    }
+    if (data.progs) {
+      Object.keys(data.progs).forEach(function(id) {
+        api.setProgression(id, data.progs[id]).catch(function(){});
+      });
+    }
+    if (data.holdCfg) {
+      Object.keys(data.holdCfg).forEach(function(id) {
+        var cfg = data.holdCfg[id];
+        api.setHoldConfig(id, { secs: cfg.secs, reps: cfg.reps, sets: cfg.sets, inc: cfg.inc }).catch(function(){});
+      });
+    }
+  } catch(e) {}
 }
 
 // ── DEFAULT STATE ─────────────────────────────────────────────────────────────
@@ -740,12 +780,17 @@ function LiftStats(props) {
   var failEntries = [];
   Object.keys(failLog).forEach(function(key) {
     var parts = key.split("-");
-    if (parts[1] === id) {
-      var dayIdx = parseInt(parts[0]);
-      var setIdx = parseInt(parts[2]);
+    // Key format: cycle-dayIdx-liftId-setIdx (new) or dayIdx-liftId-setIdx (legacy)
+    var cycle, dayIdx, liftId, setIdx;
+    if (parts.length === 4) {
+      cycle = parseInt(parts[0]); dayIdx = parseInt(parts[1]); liftId = parts[2]; setIdx = parseInt(parts[3]);
+    } else {
+      cycle = 1; dayIdx = parseInt(parts[0]); liftId = parts[1]; setIdx = parseInt(parts[2]);
+    }
+    if (liftId === id) {
       var result = failLog[key];
       var day = SCHED[dayIdx] || {};
-      failEntries.push({ key:key, dayIdx:dayIdx, setIdx:setIdx, dayLabel:day.label || ("Day " + dayIdx), weight:result.weight, reps:result.reps });
+      failEntries.push({ key:key, cycle:cycle, dayIdx:dayIdx, setIdx:setIdx, dayLabel:"C" + cycle + " " + (day.label || ("D" + dayIdx)), weight:result.weight, reps:result.reps });
     }
   });
   // Sort by dayIdx then setIdx
@@ -1150,6 +1195,7 @@ export default function App() {
     if (Object.keys(lifts).length === 0 && Object.keys(holds).length === 0) return state;
     var snapshot = { cycle:state.cycle||1, dayIdx:dayIdx, lifts:lifts, holds:holds };
     var log = (state.sessionLog || []).slice();
+    // Deduplicate: replace existing entry for same cycle+day, else append
     var existingIdx = -1;
     log.forEach(function(entry, i) {
       if (entry.cycle === snapshot.cycle && entry.dayIdx === snapshot.dayIdx) existingIdx = i;
@@ -1159,6 +1205,8 @@ export default function App() {
     } else {
       log.push(snapshot);
     }
+    // Keep log bounded — max 200 sessions (~3+ years), drop oldest
+    if (log.length > 200) log = log.slice(log.length - 200);
     return Object.assign({}, state, { sessionLog: log });
   }
 
@@ -1206,6 +1254,16 @@ export default function App() {
       next.liftSets = makeDefaultLiftSets();
       next.dayIdx = 0;
       next.cycle = (next.cycle || 1) + 1;
+      // Clear failLog entries from completed cycle (they're now in sessionLog history)
+      var newCycle = next.cycle;
+      var oldCycle = newCycle - 1;
+      var cleanedLog = {};
+      Object.keys(next.failLog || {}).forEach(function(key) {
+        var parts = key.split("-");
+        var keyCycle = parts.length === 4 ? parseInt(parts[0]) : 1;
+        if (keyCycle >= newCycle) cleanedLog[key] = next.failLog[key];
+      });
+      next.failLog = cleanedLog;
       return next;
     });
   }
@@ -1229,7 +1287,7 @@ export default function App() {
       next.deloads[lid] = failCount >= 2;
       if (result && cur !== "fail") {
         if (!next.failLog) next.failLog = {};
-        var key = prev.dayIdx + "-" + lid + "-" + si;
+        var key = (prev.cycle || 1) + "-" + prev.dayIdx + "-" + lid + "-" + si;
         next.failLog[key] = result;
       }
       return upsertSession(next);
