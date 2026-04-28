@@ -105,12 +105,6 @@ userRouter.get('/api/agent/snapshot', (req, res) => {
   }
 });
 
-
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // Serve built frontend — each token gets the same SPA
 const DIST = path.join(__dirname, '../dist');
 userRouter.use(express.static(DIST));

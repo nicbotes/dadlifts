@@ -46,12 +46,17 @@ router.get('/progressions', (req, res) => {
 
 router.put('/progressions/:liftId', (req, res) => {
   const { inc, incD } = req.body;
+  const incVal = Number(inc);
+  const incDVal = Number(incD);
+  if (!Number.isFinite(incVal) || !Number.isFinite(incDVal)) {
+    return res.status(400).json({ error: 'inc and incD are required numbers' });
+  }
   db.prepare(`
     INSERT INTO progressions (token, lift_id, inc_kg, inc_d_kg, updated_at)
     VALUES (?, ?, ?, ?, datetime('now'))
     ON CONFLICT(token, lift_id) DO UPDATE SET inc_kg = excluded.inc_kg, inc_d_kg = excluded.inc_d_kg, updated_at = excluded.updated_at
-  `).run(req.token, req.params.liftId, inc, incD);
-  res.json({ lift_id: req.params.liftId, inc, incD });
+  `).run(req.token, req.params.liftId, incVal, incDVal);
+  res.json({ lift_id: req.params.liftId, inc: incVal, incD: incDVal });
 });
 
 // ── DELOADS ───────────────────────────────────────────────────────────────────
