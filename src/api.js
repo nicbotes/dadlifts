@@ -1,11 +1,17 @@
-// API client — BASE is the user's full token URL, baked in at build time.
-// e.g. VITE_API_BASE = https://yourvps.com/their-token-here
-// All requests are automatically scoped to this user's data.
+// API client — token is read from the URL path at runtime.
+// URL shape: https://yourvps.com/:token/
+// This means one build serves all users — no per-user builds needed.
 
-const BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:3001').replace(/\/$/, '');
+function getBase() {
+  // Extract token from pathname: /:token/...
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  const token = parts[0] || '';
+  const origin = window.location.origin;
+  return token ? `${origin}/${token}` : origin;
+}
 
 async function req(method, path, body) {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${getBase()}${path}`, {
     method,
     headers: { 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
