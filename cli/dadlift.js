@@ -92,6 +92,11 @@ const commands = {
     const data = await req('GET', '/api/health');
     console.log(JSON.stringify(data, null, 2));
   },
+  async state() {
+    // Primary data source — full app state blob
+    const data = await req('GET', '/api/state/main');
+    console.log(JSON.stringify(data, null, 2));
+  },
   help() {
     console.log(`
 DADLIFTS CLI — per-user commands
@@ -108,6 +113,7 @@ Commands:
   progressions          Progression increments
   set-prog <id> <kg>    Update progression
   health                API health check
+  state                 Full app state blob (primary data source)
 
 Lift IDs: deadlift squat bench ohp rows
     `.trim());
