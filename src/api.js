@@ -1,5 +1,7 @@
-// API client — BASE already contains the token path (set at build time)
-// e.g. VITE_API_BASE = https://yourvps.com/xK9mP2vQr8nL4...
+// API client — BASE is the user's full token URL, baked in at build time.
+// e.g. VITE_API_BASE = https://yourvps.com/their-token-here
+// All requests are automatically scoped to this user's data.
+
 const BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:3001').replace(/\/$/, '');
 
 async function req(method, path, body) {
@@ -31,8 +33,8 @@ const api = {
   logSet:          (sid, s)    => req('POST',   `/api/sessions/${sid}/sets`, s),
   logHold:         (sid, h)    => req('POST',   `/api/sessions/${sid}/holds`, h),
   getLiftAnalytics:()          => req('GET',    '/api/lifts/analytics/lifts'),
-  getHoldAnalytics:()          => req('GET',    '/api/holds/analytics'),
   getSummary:      ()          => req('GET',    '/api/lifts/analytics/summary'),
+  getHoldAnalytics:()          => req('GET',    '/api/holds/analytics'),
   getSnapshot:     ()          => req('GET',    '/api/agent/snapshot'),
 };
 
