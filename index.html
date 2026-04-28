@@ -8,8 +8,39 @@
     <meta name="apple-mobile-web-app-title" content="DADLIFT" />
     <meta name="theme-color" content="#0d0d0d" />
     <title>D∆DLIFTS</title>
-    <link rel="apple-touch-icon" href="/icon.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="./icon.png" />
+    <script>
+      (function () {
+        var token = window.location.pathname.split("/").filter(Boolean)[0] || "";
+        var base = token ? "/" + token + "/" : "/";
+        var icon = document.querySelector('link[rel="apple-touch-icon"]');
+        if (icon) icon.setAttribute("href", base + "icon.png");
+
+        var manifest = {
+          name: "D∆DLIFTS",
+          short_name: "D∆DLIFTS",
+          description: "Built between sets, to keep playing.",
+          start_url: base,
+          scope: base,
+          id: base,
+          display: "standalone",
+          background_color: "#0d0d0d",
+          theme_color: "#0d0d0d",
+          orientation: "portrait",
+          icons: [
+            { src: base + "icon.png", sizes: "192x192", type: "image/png" },
+            { src: base + "icon.png", sizes: "512x512", type: "image/png" }
+          ]
+        };
+
+        var manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+        var manifestUrl = URL.createObjectURL(manifestBlob);
+        var manifestLink = document.createElement("link");
+        manifestLink.setAttribute("rel", "manifest");
+        manifestLink.setAttribute("href", manifestUrl);
+        document.head.appendChild(manifestLink);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
