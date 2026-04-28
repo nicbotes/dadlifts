@@ -41,3 +41,15 @@ deadlift · squat · bench · ohp · rows
 Ivysaur 4-4-8 — 3×/week, 2-week cycle.
 2 failed sets on same lift = deload flag = hold weight next cycle.
 All users start fresh from config.json defaults.
+
+## Redeploying the app
+
+When Nic says "redeploy", "update the app", "push the latest", or similar:
+
+```bash
+cd /home/black_thorn/apps/dadlift
+node cli/deploy.js
+```
+
+Read the `message` field from the JSON output and send it to Nic.
+See DEPLOY.md for troubleshooting if it fails.
