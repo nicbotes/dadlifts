@@ -124,7 +124,7 @@ async function loadState() {
     if (Object.keys(deloads).length)  state.deloads  = Object.assign({}, state.deloads,  deloads);
     if (Object.keys(holdCfg).length)  state.holdCfg  = Object.assign({}, state.holdCfg,  holdCfg);
 
-    return state;
+    return normalizeState(state);
   } catch(e) { return null; }
 }
 
@@ -212,6 +212,25 @@ function makeDefault() {
     holdCfg: holdCfg,
     holdSets: makeDefaultHoldSets(holdCfg),
   };
+}
+
+function normalizeState(raw) {
+  var base = makeDefault();
+  var state = Object.assign({}, base, raw || {});
+  state.weights = Object.assign({}, base.weights, state.weights || {});
+  state.progs = Object.assign({}, base.progs, state.progs || {});
+  state.liftSets = Object.assign({}, base.liftSets, state.liftSets || {});
+  state.deloads = Object.assign({}, base.deloads, state.deloads || {});
+  state.holdCfg = Object.assign({}, base.holdCfg, state.holdCfg || {});
+  state.holdSets = Object.assign({}, base.holdSets, state.holdSets || {});
+  state.failLog = Object.assign({}, state.failLog || {});
+  state.sessionLog = Array.isArray(state.sessionLog) ? state.sessionLog : [];
+  if (!Number.isFinite(Number(state.mode))) state.mode = base.mode;
+  if (!Number.isFinite(Number(state.bbTab))) state.bbTab = base.bbTab;
+  if (!Number.isFinite(Number(state.caliTab))) state.caliTab = base.caliTab;
+  if (!Number.isFinite(Number(state.dayIdx)) || !SCHED[state.dayIdx]) state.dayIdx = base.dayIdx;
+  if (!Number.isFinite(Number(state.cycle))) state.cycle = base.cycle;
+  return state;
 }
 
 // ── BURST SYSTEM ──────────────────────────────────────────────────────────────
@@ -674,7 +693,7 @@ function BarbellCard(props) {
 
 // ── HOLD CARD ─────────────────────────────────────────────────────────────────
 function HoldCard(props) {
-  var id = props.id, cfg = props.cfg, sets = props.sets, onDone = props.onDone, onFail = props.onFail;
+  var id = props.id, cfg = props.cfg || {}, sets = props.sets || [], onDone = props.onDone, onFail = props.onFail;
   var hold = HOLDS[id];
   var tot = sets.length;
   var doneN = sets.filter(function(s) { return s === "done"; }).length;
@@ -752,7 +771,7 @@ function HoldCard(props) {
 
 // ── LIFT STATS ────────────────────────────────────────────────────────────────
 function LiftStats(props) {
-  var id = props.id, history = props.history, progs = props.progs, onProg = props.onProg, failLog = props.failLog || {};
+  var id = props.id, history = props.history || [], progs = props.progs || {}, onProg = props.onProg, failLog = props.failLog || {};
   var lift = LIFTS[id];
   var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
   var pair2 = useState("volume"); var ct = pair2[0]; var setCt = pair2[1];
@@ -897,7 +916,7 @@ function LiftStats(props) {
 
 // ── HOLD STATS ────────────────────────────────────────────────────────────────
 function HoldStats(props) {
-  var id = props.id, history = props.history, holdCfg = props.holdCfg, onCfg = props.onCfg;
+  var id = props.id, history = props.history || [], holdCfg = props.holdCfg || {}, onCfg = props.onCfg;
   var hold = HOLDS[id];
   var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
   var pair2 = useState("hold"); var ct = pair2[0]; var setCt = pair2[1];
@@ -1076,14 +1095,14 @@ export default function App() {
 
   useEffect(function() {
     loadState().then(function(saved) {
-      if (saved) { _setSt(function(prev) { return Object.assign({}, prev, saved); }); }
+      if (saved) { _setSt(function(prev) { return normalizeState(Object.assign({}, prev, saved)); }); }
       setReady(true);
     });
   }, []);
 
   function setSt(upd) {
     _setSt(function(prev) {
-      var next = typeof upd === "function" ? upd(prev) : Object.assign({}, prev, upd);
+      var next = normalizeState(typeof upd === "function" ? upd(prev) : Object.assign({}, prev, upd));
       clearTimeout(saveTimer.current);
       setSaving(true);
       saveTimer.current = setTimeout(function() {
@@ -1099,8 +1118,8 @@ export default function App() {
     st.mode === 0 ? setSt({ bbTab:t }) : setSt({ caliTab:t });
   }
 
-  var today = SCHED[st.dayIdx];
-  var todaySets = st.liftSets[st.dayIdx];
+  var today = SCHED[st.dayIdx] || SCHED[0];
+  var todaySets = (st.liftSets || {})[st.dayIdx] || makeDefaultLiftSets()[st.dayIdx];
   var firstActiveLift = today.lifts.find(function(sl) { return !LIFTS[sl.id].rehab; });
   var acc = firstActiveLift ? LIFTS[firstActiveLift.id].color : "#FF5C00";
 
