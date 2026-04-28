@@ -107,4 +107,49 @@ db.exec(`
   );
 `);
 
+// ── VIEWS — make app_state blob queryable like real tables ──────────────────
+// OpenClaw tends to query tables directly. These views proxy into the blob
+// so direct SQL queries return real data instead of empty results.
+db.exec(`
+  DROP VIEW IF EXISTS v_weights;
+  CREATE VIEW v_weights AS
+  SELECT
+    u.token,
+    u.name,
+    json_extract(s.value, '$.weights.deadlift') AS deadlift_kg,
+    json_extract(s.value, '$.weights.squat')    AS squat_kg,
+    json_extract(s.value, '$.weights.bench')    AS bench_kg,
+    json_extract(s.value, '$.weights.ohp')      AS ohp_kg,
+    json_extract(s.value, '$.cycle')            AS current_cycle,
+    json_extract(s.value, '$.dayIdx')           AS current_day_idx,
+    json_extract(s.value, '$.sessionLog')       AS session_log_json,
+    json_extract(s.value, '$.deloads')          AS deloads_json,
+    json_extract(s.value, '$.failLog')          AS fail_log_json,
+    s.updated_at
+  FROM users u
+  JOIN app_state s ON s.token = u.token AND s.key = 'main';
+`);
+
+// Also populate the weights table from blob on startup so direct queries work
+try {
+  const users = db.prepare('SELECT token FROM users').all();
+  const upsertW = db.prepare(
+    "INSERT INTO weights (token, lift_id, w8_kg, updated_at) " +
+    "VALUES (?, ?, ?, datetime('now')) " +
+    "ON CONFLICT(token, lift_id) DO UPDATE SET w8_kg = excluded.w8_kg, updated_at = excluded.updated_at"
+  );
+  users.forEach(({ token }) => {
+    const row = db.prepare("SELECT value FROM app_state WHERE token=? AND key='main'").get(token);
+    if (!row) return;
+    const state = JSON.parse(row.value);
+    const weights = state.weights || {};
+    const tx = db.transaction(() => {
+      Object.entries(weights).forEach(([liftId, kg]) => {
+        if (kg != null) upsertW.run(token, liftId, kg);
+      });
+    });
+    tx();
+  });
+} catch(e) { /* ignore on first run before any users exist */ }
+
 module.exports = db;

@@ -35,35 +35,77 @@ userRouter.use('/api/holds', require('./routes/holds'));
 userRouter.use('/api/state', require('./routes/state'));
 userRouter.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-// Agent snapshot for this user
+// Agent snapshot — reads app_state blob and returns parsed summary
+// This is the correct endpoint for agent queries. Structured tables are empty.
 userRouter.get('/api/agent/snapshot', (req, res) => {
   try {
     const token = req.token;
-    const weights     = db.prepare('SELECT lift_id, w8_kg FROM weights WHERE token = ?').all(token);
-    const progs       = db.prepare('SELECT lift_id, inc_kg, inc_d_kg FROM progressions WHERE token = ?').all(token);
-    const deloads     = db.prepare('SELECT lift_id FROM deloads WHERE token = ? AND flagged = 1').all(token);
-    const sessions    = db.prepare('SELECT * FROM sessions WHERE token = ? ORDER BY created_at DESC LIMIT 10').all(token);
-    const holdCfg     = db.prepare('SELECT * FROM hold_config WHERE token = ?').all(token);
-    const liftSummary = db.prepare(`
-      SELECT sl.lift_id,
-        MAX(sl.weight_kg) AS all_time_max_kg,
-        MAX(sl.weight_kg*(1+sl.reps/30.0)) AS all_time_est_1rm,
-        COUNT(DISTINCT s.id) AS sessions_logged,
-        SUM(CASE WHEN sl.status='fail' THEN 1 ELSE 0 END) AS total_fails
-      FROM set_logs sl JOIN sessions s ON s.id = sl.session_id
-      WHERE sl.token = ? GROUP BY sl.lift_id
-    `).all(token);
+    const row = db.prepare("SELECT value FROM app_state WHERE token=? AND key='main'").get(token);
+    if (!row) return res.json({ error: 'no data yet — user has not opened the app' });
+
+    const state = JSON.parse(row.value);
+    const SCHED = [
+      { label:'W1·D1', week:1 }, { label:'W1·D2', week:1 }, { label:'W1·D3', week:1 },
+      { label:'W2·D1', week:2 }, { label:'W2·D2', week:2 }, { label:'W2·D3', week:2 },
+    ];
+
+    const sessionLog = state.sessionLog || [];
+    const failLog    = state.failLog    || {};
+    const deloads    = state.deloads    || {};
+
+    // Build per-lift summary
+    const liftSummary = {};
+    sessionLog.forEach(session => {
+      Object.keys(session.lifts || {}).forEach(id => {
+        const e = session.lifts[id];
+        if (!liftSummary[id]) liftSummary[id] = { sessions:0, allTimeMax:0, allTimeOrm:0, recentSessions:[] };
+        liftSummary[id].sessions++;
+        if (e.maxWeight > liftSummary[id].allTimeMax) liftSummary[id].allTimeMax = e.maxWeight;
+        if (e.orm       > liftSummary[id].allTimeOrm)  liftSummary[id].allTimeOrm  = e.orm;
+        liftSummary[id].recentSessions.push({
+          cycle: session.cycle, day: SCHED[session.dayIdx]?.label,
+          weight: e.weight, volume: e.volume, orm: e.orm,
+        });
+      });
+    });
+    Object.keys(liftSummary).forEach(id => {
+      liftSummary[id].recentSessions = liftSummary[id].recentSessions.slice(-5);
+    });
+
+    // Parse fails by lift
+    const failsByLift = {};
+    Object.keys(failLog).forEach(key => {
+      const parts = key.split('-');
+      const liftId = parts.length === 4 ? parts[2] : parts[1];
+      if (!failsByLift[liftId]) failsByLift[liftId] = [];
+      failsByLift[liftId].push(failLog[key]);
+    });
+
+    const todayIdx = state.dayIdx || 0;
 
     res.json({
-      generated_at:    new Date().toISOString(),
-      user:            req.user.name,
-      weights:         Object.fromEntries(weights.map(r => [r.lift_id, r.w8_kg])),
-      progressions:    Object.fromEntries(progs.map(r => [r.lift_id, { inc: r.inc_kg, incD: r.inc_d_kg }])),
-      active_deloads:  deloads.map(r => r.lift_id),
-      hold_config:     Object.fromEntries(holdCfg.map(r => [r.hold_id, r])),
-      recent_sessions: sessions,
-      lift_summary:    liftSummary,
+      note: 'All data from app_state blob. Structured tables are empty — ignore them.',
+      user: req.user.name,
+      generated_at: new Date().toISOString(),
+      user_summary: {
+        current_cycle: state.cycle || 1,
+        current_day:   SCHED[todayIdx]?.label,
+        total_sessions_logged: sessionLog.length,
+      },
+      current_weights:        state.weights || {},
+      progression_increments: state.progs   || {},
+      active_deloads: Object.keys(deloads).filter(id => deloads[id]),
+      todays_sets:    (state.liftSets || {})[todayIdx] || {},
+      lift_history:   liftSummary,
+      current_cycle_fails: failsByLift,
+      hold_config:    state.holdCfg || {},
     });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
