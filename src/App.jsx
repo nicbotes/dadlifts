@@ -345,7 +345,7 @@ var css = `
 }
 html{-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;font-size:13px;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
-.bar{display:flex;align-items:center;gap:5px;padding:0 10px;height:52px;background:var(--bg);border-bottom:3px solid var(--ink);position:sticky;top:0;z-index:1000;overflow:hidden}
+.bar{display:flex;align-items:center;gap:5px;padding:max(env(safe-area-inset-top),8px) 10px 0;height:calc(52px + max(env(safe-area-inset-top),8px));background:var(--bg);border-bottom:3px solid var(--ink);position:sticky;top:0;z-index:1000;overflow:hidden}
 .logo{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;letter-spacing:-1px;line-height:1;flex-shrink:0}
 
 .bar-gap{flex:1}
