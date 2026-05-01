@@ -755,6 +755,7 @@ function HoldCard(props) {
   var allDone = doneN === tot && failN === 0 && tot > 0;
   var displayVal = hold.isReps ? (cfg.reps || 0) : cfg.secs;
   var displayUnit = hold.isReps ? "reps" : "sec";
+  var modalPair = useState(null); var activeModal = modalPair[0]; var setActiveModal = modalPair[1];
 
   if (hold.rehab) {
     return (
@@ -807,11 +808,8 @@ function HoldCard(props) {
                 <button
                   className={"hsf" + (state === "fail" ? " on" : "")}
                   onClick={function(e) {
-                    if (state !== "fail") {
-                      var rect = e.currentTarget.getBoundingClientRect();
-                      emitBurst(makeFailBurst(rect.left + rect.width / 2, rect.top + rect.height / 2));
-                    }
-                    onFail(i);
+                    if (state === "fail") { onFail(i, null); return; }
+                    setActiveModal({ setIdx: i });
                   }}
                 >✕</button>
               </div>
@@ -819,6 +817,75 @@ function HoldCard(props) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+
+// ── HOLD FAIL MODAL ───────────────────────────────────────────────────────────
+function HoldFailModal(props) {
+  var holdName   = props.holdName;
+  var holdColor  = props.holdColor;
+  var holdEmoji  = props.holdEmoji;
+  var targetSecs = props.targetSecs;
+  var targetReps = props.targetReps;
+  var isReps     = props.isReps;
+  var setNum     = props.setNum;
+  var onConfirm  = props.onConfirm;
+  var onCancel   = props.onCancel;
+
+  var valPair = useState(isReps ? Math.max(1, (targetReps || 1) - 1) : Math.max(1, (targetSecs || 5) - 2));
+  var achieved = valPair[0]; var setAchieved = valPair[1];
+
+  var target = isReps ? targetReps : targetSecs;
+  var unit   = isReps ? "reps" : "sec";
+
+  return (
+    <div className="modal-overlay" onClick={function(e) { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal">
+        <div className="modal-title">Set {setNum} — what did you get?</div>
+        <div className="modal-lift" style={{ color: holdColor }}>{holdEmoji} {holdName}</div>
+
+        <div className="modal-row">
+          <div style={{flex:1}}>
+            <div className="modal-row-label">{isReps ? "Reps" : "Hold time"}</div>
+            <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
+              <div className="modal-row-val" style={{ color: achieved < target ? "var(--red)" : achieved > target ? "var(--green)" : holdColor }}>{achieved}</div>
+              <div className="modal-row-unit">{unit}</div>
+            </div>
+            <div className="modal-row-target">goal {target}{unit}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <button className="modal-dec" onClick={function() { setAchieved(function(v) { return v + 1; }) }}>↑</button>
+            <button className="modal-dec" onClick={function() { setAchieved(function(v) { return Math.max(0, v - 1); }) }} disabled={achieved <= 0}>↓</button>
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button className="modal-btn" onClick={onCancel}>CANCEL</button>
+          <button className="modal-btn modal-btn-confirm"
+            onClick={function() { onConfirm({ achieved: achieved }); }}>
+            LOG FAIL
+          </button>
+        </div>
+      </div>
+      {activeModal !== null && (
+        <HoldFailModal
+          holdName={hold.name}
+          holdColor={hold.color}
+          holdEmoji={hold.emoji}
+          targetSecs={cfg.secs}
+          targetReps={cfg.reps}
+          isReps={hold.isReps}
+          setNum={activeModal.setIdx + 1}
+          onCancel={function() { setActiveModal(null); }}
+          onConfirm={function(result) {
+            emitBurst(makeFailBurst(window.innerWidth / 2, window.innerHeight / 2));
+            onFail(activeModal.setIdx, result);
+            setActiveModal(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -985,7 +1052,7 @@ function LiftStats(props) {
 
 // ── HOLD STATS ────────────────────────────────────────────────────────────────
 function HoldStats(props) {
-  var id = props.id, history = props.history || [], holdCfg = props.holdCfg || {}, onCfg = props.onCfg;
+  var id = props.id, history = props.history || [], holdCfg = props.holdCfg || {}, onCfg = props.onCfg, holdFailLog = props.holdFailLog || {};
   var hold = HOLDS[id];
   var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
   var pair2 = useState("hold"); var ct = pair2[0]; var setCt = pair2[1];
@@ -997,6 +1064,17 @@ function HoldStats(props) {
   var chartD = ct === "hold" ? holdD : volD;
   var cfg = holdCfg[id] || {};
   var best = holdD.length ? Math.max.apply(null, holdD.map(function(d) { return d.y; })) : 0;
+
+  var holdFailEntries = [];
+  Object.keys(holdFailLog).forEach(function(key) {
+    var parts = key.split("-");
+    var hid = parts[1];
+    if (hid === id) {
+      var entry = holdFailLog[key];
+      holdFailEntries.push({ key:key, cycle:entry._cycle||1, si:entry._si||0, achieved:entry.achieved });
+    }
+  });
+  holdFailEntries.sort(function(a,b){ return a.cycle - b.cycle || a.si - b.si; });
 
   return (
     <div className="lac">
@@ -1069,8 +1147,35 @@ function HoldStats(props) {
                 <button className="cb" onClick={function() { onCfg(id, Object.assign({}, cfg, { sets: cfg.sets + 1 })); }}>+</button>
               </div>
             </div>
+            {!hold.isReps && (
+              <div className="crow">
+                <div className="clabel">Increment / session</div>
+                <div className="cst">
+                  <button className="cb" onClick={function() { onCfg(id, Object.assign({}, cfg, { inc: Math.max(1, (cfg.inc||hold.defInc) - 1) })); }}>−</button>
+                  <span className="cv">{cfg.inc || hold.defInc}s</span>
+                  <button className="cb" onClick={function() { onCfg(id, Object.assign({}, cfg, { inc: (cfg.inc||hold.defInc) + 1 })); }}>+</button>
+                </div>
+              </div>
+            )}
             <button className="crst" onClick={function() { onCfg(id, { secs:hold.defSecs, sets:hold.defSets, inc:hold.defInc, reps:hold.defReps || 1 }); }}>reset defaults</button>
           </div>
+          {holdFailEntries.length > 0 && (
+            <div className="fail-log">
+              <div className="fail-log-hd">Failed sets this cycle</div>
+              {holdFailEntries.map(function(entry) {
+                return (
+                  <div key={entry.key} className="fail-entry">
+                    <div className="fail-entry-set">S{entry.si + 1}</div>
+                    <div>
+                      <span className="fail-entry-val">{entry.achieved}</span>
+                      <span className="fail-entry-unit">{hold.isReps ? "reps" : "sec"}</span>
+                    </div>
+                    <div className="fail-entry-day">C{entry.cycle}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1409,11 +1514,17 @@ export default function App() {
     });
   }
 
-  function markHoldFail(hid, si) {
+  function markHoldFail(hid, si, result) {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
       var cur = next.holdSets[hid][si];
       next.holdSets[hid][si] = cur === "fail" ? "idle" : "fail";
+      if (result && cur !== "fail") {
+        if (!next.holdFailLog) next.holdFailLog = {};
+        var cycle = prev.cycle || 1;
+        var key = cycle + "-" + hid + "-" + si;
+        next.holdFailLog[key] = Object.assign({}, result, { _cycle: cycle, _hid: hid, _si: si });
+      }
       return upsertSession(next);
     });
   }
@@ -1663,13 +1774,20 @@ export default function App() {
                   <HoldCard key={id} id={id} cfg={st.holdCfg[id]}
                     sets={holdSets}
                     onDone={function(si) { markHoldDone(id, si); }}
-                    onFail={function(si) { markHoldFail(id, si); }} />
+                    onFail={function(si, result) { markHoldFail(id, si, result); }} />
                 );
               })}
             </div>
-            <div className="fh">
-              <span>SWIPE ← STATS</span>
-              <button className="fhb" style={{borderColor:"var(--orange)",color:"var(--orange)"}} onClick={function() { setAtab(1); }}>STATS ▶</button>
+            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--ink)"}}>
+              <button
+                onClick={finishSession}
+                disabled={celebrating}
+                style={{width:"100%",padding:"16px",background:"#8B5CF6",border:"3px solid var(--ink)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
+                ✓ FINISH SESSION
+              </button>
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+                <button className="fhb" style={{borderColor:"var(--orange)",color:"var(--orange)"}} onClick={function() { setAtab(1); }}>STATS ▶</button>
+              </div>
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
@@ -1698,7 +1816,7 @@ export default function App() {
             <div className="asec">
               <div className="at">Skills & Holds</div>
               {Object.keys(HOLDS).filter(function(id) { return !HOLDS[id].rehab; }).map(function(id) {
-                return <HoldStats key={id} id={id} history={holdHistory} holdCfg={st.holdCfg} onCfg={updateHoldCfg} />;
+                return <HoldStats key={id} id={id} history={holdHistory} holdCfg={st.holdCfg} onCfg={updateHoldCfg} holdFailLog={st.holdFailLog} />;
               })}
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
