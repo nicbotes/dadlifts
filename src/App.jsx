@@ -17,7 +17,7 @@ function plates(kg) {
   return used.length ? used.join(" + ") + " /side" : "bar only";
 }
 function epley(w, r) { return r === 1 ? w : snapW(w * (1 + r / 30)); }
-function w4from8(w8) { return snapW((w8 / 0.72) * 0.8); }
+function w4from8(w8) { var raw = (w8 / 0.72) * 0.8; return Math.max(BAR, Math.floor(raw / SNAP) * SNAP); }
 
 // ── LIFTS ─────────────────────────────────────────────────────────────────────
 const LIFTS = {
@@ -671,9 +671,16 @@ function BarbellCard(props) {
                     }}
                   >✕</button>
                   {(function() {
-                    var key = (cycle||1) + "-" + dayIdx + "-" + id + "-" + i;
-                    var legacyKey = dayIdx + "-" + id + "-" + i;
-                    var result = failLog[key] || failLog[legacyKey];
+                    // Try all key formats to handle cycle being undefined/null
+                    var result = null;
+                    var keysToTry = [
+                      (cycle||1) + "-" + dayIdx + "-" + id + "-" + i,
+                      "1-" + dayIdx + "-" + id + "-" + i,
+                      dayIdx + "-" + id + "-" + i,
+                    ];
+                    for (var ki = 0; ki < keysToTry.length; ki++) {
+                      if (failLog[keysToTry[ki]]) { result = failLog[keysToTry[ki]]; break; }
+                    }
                     if (!result || state !== "fail") return null;
                     var isDropSet = result.weight < wt;
                     if (!isDropSet) return null;
