@@ -746,6 +746,74 @@ function BarbellCard(props) {
 }
 
 // ── HOLD CARD ─────────────────────────────────────────────────────────────────
+// ── HOLD FAIL MODAL ───────────────────────────────────────────────────────────
+function HoldFailModal(props) {
+  var holdName   = props.holdName;
+  var holdColor  = props.holdColor;
+  var holdEmoji  = props.holdEmoji;
+  var targetSecs = props.targetSecs;
+  var targetReps = props.targetReps;
+  var isReps     = props.isReps;
+  var setNum     = props.setNum;
+  var onConfirm  = props.onConfirm;
+  var onCancel   = props.onCancel;
+
+  var valPair = useState(isReps ? Math.max(1, (targetReps || 1) - 1) : Math.max(1, (targetSecs || 5) - 2));
+  var achieved = valPair[0]; var setAchieved = valPair[1];
+
+  var target = isReps ? targetReps : targetSecs;
+  var unit   = isReps ? "reps" : "sec";
+
+  return (
+    <div className="modal-overlay" onClick={function(e) { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modal">
+        <div className="modal-title">Set {setNum} — what did you get?</div>
+        <div className="modal-lift" style={{ color: holdColor }}>{holdEmoji} {holdName}</div>
+
+        <div className="modal-row">
+          <div style={{flex:1}}>
+            <div className="modal-row-label">{isReps ? "Reps" : "Hold time"}</div>
+            <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
+              <div className="modal-row-val" style={{ color: achieved < target ? "var(--red)" : achieved > target ? "var(--green)" : holdColor }}>{achieved}</div>
+              <div className="modal-row-unit">{unit}</div>
+            </div>
+            <div className="modal-row-target">goal {target}{unit}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <button className="modal-dec" onClick={function() { setAchieved(function(v) { return v + 1; }) }}>↑</button>
+            <button className="modal-dec" onClick={function() { setAchieved(function(v) { return Math.max(0, v - 1); }) }} disabled={achieved <= 0}>↓</button>
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button className="modal-btn" onClick={onCancel}>CANCEL</button>
+          <button className="modal-btn modal-btn-confirm"
+            onClick={function() { onConfirm({ achieved: achieved }); }}>
+            LOG FAIL
+          </button>
+        </div>
+      </div>
+      {activeModal !== null && (
+        <HoldFailModal
+          holdName={hold.name}
+          holdColor={hold.color}
+          holdEmoji={hold.emoji}
+          targetSecs={cfg.secs}
+          targetReps={cfg.reps}
+          isReps={hold.isReps}
+          setNum={activeModal.setIdx + 1}
+          onCancel={function() { setActiveModal(null); }}
+          onConfirm={function(result) {
+            emitBurst(makeFailBurst(window.innerWidth / 2, window.innerHeight / 2));
+            onFail(activeModal.setIdx, result);
+            setActiveModal(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 function HoldCard(props) {
   var id = props.id, cfg = props.cfg || {}, sets = props.sets || [], onDone = props.onDone, onFail = props.onFail;
   var hold = HOLDS[id];
@@ -817,58 +885,6 @@ function HoldCard(props) {
           );
         })}
       </div>
-    </div>
-  );
-}
-
-
-// ── HOLD FAIL MODAL ───────────────────────────────────────────────────────────
-function HoldFailModal(props) {
-  var holdName   = props.holdName;
-  var holdColor  = props.holdColor;
-  var holdEmoji  = props.holdEmoji;
-  var targetSecs = props.targetSecs;
-  var targetReps = props.targetReps;
-  var isReps     = props.isReps;
-  var setNum     = props.setNum;
-  var onConfirm  = props.onConfirm;
-  var onCancel   = props.onCancel;
-
-  var valPair = useState(isReps ? Math.max(1, (targetReps || 1) - 1) : Math.max(1, (targetSecs || 5) - 2));
-  var achieved = valPair[0]; var setAchieved = valPair[1];
-
-  var target = isReps ? targetReps : targetSecs;
-  var unit   = isReps ? "reps" : "sec";
-
-  return (
-    <div className="modal-overlay" onClick={function(e) { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modal">
-        <div className="modal-title">Set {setNum} — what did you get?</div>
-        <div className="modal-lift" style={{ color: holdColor }}>{holdEmoji} {holdName}</div>
-
-        <div className="modal-row">
-          <div style={{flex:1}}>
-            <div className="modal-row-label">{isReps ? "Reps" : "Hold time"}</div>
-            <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
-              <div className="modal-row-val" style={{ color: achieved < target ? "var(--red)" : achieved > target ? "var(--green)" : holdColor }}>{achieved}</div>
-              <div className="modal-row-unit">{unit}</div>
-            </div>
-            <div className="modal-row-target">goal {target}{unit}</div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <button className="modal-dec" onClick={function() { setAchieved(function(v) { return v + 1; }) }}>↑</button>
-            <button className="modal-dec" onClick={function() { setAchieved(function(v) { return Math.max(0, v - 1); }) }} disabled={achieved <= 0}>↓</button>
-          </div>
-        </div>
-
-        <div className="modal-actions">
-          <button className="modal-btn" onClick={onCancel}>CANCEL</button>
-          <button className="modal-btn modal-btn-confirm"
-            onClick={function() { onConfirm({ achieved: achieved }); }}>
-            LOG FAIL
-          </button>
-        </div>
-      </div>
       {activeModal !== null && (
         <HoldFailModal
           holdName={hold.name}
@@ -889,6 +905,8 @@ function HoldFailModal(props) {
     </div>
   );
 }
+
+
 
 // ── LIFT STATS ────────────────────────────────────────────────────────────────
 function LiftStats(props) {
