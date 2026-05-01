@@ -561,31 +561,33 @@ function FailModal(props) {
         <div className="modal-lift" style={{ color: liftColor }}>{liftName}</div>
 
         <div className="modal-row">
-          <div>
+          <div style={{flex:1}}>
             <div className="modal-row-label">Weight</div>
             <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
-              <div className="modal-row-val" style={{ color: achievedWeight < targetWeight ? "var(--red)" : liftColor }}>{achievedWeight}</div>
+              <div className="modal-row-val" style={{ color: achievedWeight < targetWeight ? "var(--red)" : achievedWeight > targetWeight ? "var(--green)" : liftColor }}>{achievedWeight}</div>
               <div className="modal-row-unit">kg</div>
             </div>
             <div className="modal-row-target">goal {targetWeight}kg · {plates(achievedWeight)}</div>
           </div>
-          <button className="modal-dec"
-            onClick={function() { setAchievedWeight(function(w) { return prevPlateWeight(w); }) }}
-            disabled={achievedWeight <= BAR}>↓</button>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return snapW(w + SNAP); }) }}>↑</button>
+            <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return Math.max(BAR, snapW(w - SNAP)); }) }} disabled={achievedWeight <= BAR}>↓</button>
+          </div>
         </div>
 
         <div className="modal-row">
-          <div>
+          <div style={{flex:1}}>
             <div className="modal-row-label">Reps</div>
             <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
-              <div className="modal-row-val" style={{ color: achievedReps < targetReps ? "var(--red)" : liftColor }}>{achievedReps}</div>
+              <div className="modal-row-val" style={{ color: achievedReps < targetReps ? "var(--red)" : achievedReps > targetReps ? "var(--green)" : liftColor }}>{achievedReps}</div>
               <div className="modal-row-unit">reps</div>
             </div>
             <div className="modal-row-target">goal {targetReps} reps</div>
           </div>
-          <button className="modal-dec"
-            onClick={function() { setAchievedReps(function(r) { return Math.max(0, r - 1); }) }}
-            disabled={achievedReps <= 0}>↓</button>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <button className="modal-dec" onClick={function() { setAchievedReps(function(r) { return r + 1; }) }}>↑</button>
+            <button className="modal-dec" onClick={function() { setAchievedReps(function(r) { return Math.max(0, r - 1); }) }} disabled={achievedReps <= 0}>↓</button>
+          </div>
         </div>
 
         <div className="modal-actions">
@@ -670,16 +672,7 @@ function BarbellCard(props) {
                       setActiveModal({ setIdx: i });
                     }}
                   >✕</button>
-                  {state === "fail" && (
-                    <div style={{
-                      position:"absolute", top:-8, right:-4,
-                      background:"var(--orange)", color:"#fff",
-                      borderRadius:"100px", fontSize:9, fontWeight:900,
-                      padding:"1px 5px", lineHeight:1.4,
-                      border:"2px solid var(--ink)", letterSpacing:0.5,
-                      pointerEvents:"none"
-                    }}>↑</div>
-                  )}
+
                 </div>
               </div>
             </div>
