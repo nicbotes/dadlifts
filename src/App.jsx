@@ -771,7 +771,7 @@ function HoldCard(props) {
 
 // ── LIFT STATS ────────────────────────────────────────────────────────────────
 function LiftStats(props) {
-  var id = props.id, history = props.history || [], progs = props.progs || {}, onProg = props.onProg, failLog = props.failLog || {};
+  var id = props.id, history = props.history || [], progs = props.progs || {}, onProg = props.onProg, failLog = props.failLog || {}, weight = props.weight, onWeight = props.onWeight;
   var lift = LIFTS[id];
   var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
   var pair2 = useState("volume"); var ct = pair2[0]; var setCt = pair2[1];
@@ -868,6 +868,21 @@ function LiftStats(props) {
           </div>
           <div className="clbl">{ct === "volume" ? "Total volume (kg·reps)" : ct === "max" ? "Max weight (kg)" : "Estimated 1RM (kg)"}</div>
           <MiniChart data={chartD} color={lift.color} />
+          <div className="cdiv">
+            <div className="chd">Working weight (8-rep)</div>
+            <div className="crow">
+              <div className="clabel" style={{color:lift.color,fontWeight:900,fontSize:13}}>{lift.abbr}</div>
+              <div className="cst">
+                <button className="cb" onClick={function() { if (weight && weight > BAR) onWeight(id, snapW(weight - SNAP)); }}>−</button>
+                <span className="cv" style={{color:lift.color,fontWeight:900}}>{weight || "—"}<span style={{fontSize:9,opacity:0.6,marginLeft:2}}>kg</span></span>
+                <button className="cb" onClick={function() { onWeight(id, snapW((weight || lift.base8 || BAR) + SNAP)); }}>+</button>
+              </div>
+            </div>
+            <div style={{fontSize:9,color:"var(--mid)",letterSpacing:1,marginTop:-4,marginBottom:8}}>
+              4-rep auto: {weight ? w4from8(weight) : "—"}kg
+            </div>
+          </div>
+
           <div className="cdiv">
             <div className="chd">Progression / cycle</div>
             <div className="crow">
@@ -1366,6 +1381,15 @@ export default function App() {
     });
   }
 
+  function updateWeight(lid, kg) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      if (!next.weights) next.weights = {};
+      next.weights[lid] = kg;
+      return next;
+    });
+  }
+
   function doExport() {
     setShowExport(true);
     setImportText(JSON.stringify(st, null, 2));
@@ -1515,7 +1539,7 @@ export default function App() {
 <div className="asec">
               <div className="at">Barbell Performance</div>
               {Object.keys(LIFTS).filter(function(id) { return !LIFTS[id].rehab; }).map(function(id) {
-                return <LiftStats key={id} id={id} history={liftHistory} progs={st.progs} onProg={updateProg} failLog={st.failLog} />;
+                return <LiftStats key={id} id={id} history={liftHistory} progs={st.progs} onProg={updateProg} failLog={st.failLog} weight={(st.weights || {})[id]} onWeight={updateWeight} />;
               })}
             </div>
             <div className="asec">
