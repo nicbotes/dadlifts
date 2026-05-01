@@ -444,7 +444,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .bc-wrow{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}
 .bc-w{font-family:'Nunito',sans-serif;font-size:58px;font-weight:900;line-height:1;letter-spacing:-3px}
 .bc-kg{font-family:'Space Mono',monospace;font-size:15px;color:var(--mid);font-weight:700}
-.bc-plates{display:inline-flex;align-items:center;font-size:13px;font-weight:700;color:#fff;background:var(--ink);border-radius:6px;padding:3px 10px;letter-spacing:0.3px;white-space:nowrap}
+.bc-plates{display:inline-flex;align-items:center;font-size:12px;font-weight:700;color:#fff;background:var(--ink);border-radius:5px;padding:2px 7px;letter-spacing:0.3px;white-space:nowrap}
 .bc-sch{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;letter-spacing:-1px;display:flex;align-items:center;gap:8px;line-height:1}
 .bc-pct{font-family:'Space Mono',monospace;font-size:11px;color:var(--mid);font-weight:700;background:var(--light);border:2px solid var(--rule);border-radius:100px;padding:1px 8px}
 .amrap-tag{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--yellow);border:2px solid var(--ink);border-radius:100px;padding:2px 8px;color:var(--ink)}
@@ -671,12 +671,12 @@ function BarbellCard(props) {
         <div className="bc-dot" style={{ background: lift.color }} />
         <div className="bc-inf">
           <div className="bc-name">{lift.name}</div>
-          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:4}}>
-            <div className="bc-wrow" style={{margin:0}}>
-              <div className="bc-w" style={{ color: lift.color }}>{wt}</div>
+          <div className="bc-wrow">
+            <div className="bc-w" style={{ color: lift.color }}>{wt}</div>
+            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:3,paddingBottom:4}}>
               <div className="bc-kg">kg</div>
+              <div className="bc-plates">{plates(wt)}</div>
             </div>
-            <div className="bc-plates">{plates(wt)}</div>
           </div>
           <div className="bc-sch">
             <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>{tot} sets ×</span>
