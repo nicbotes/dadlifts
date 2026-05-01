@@ -25,7 +25,7 @@ const LIFTS = {
   squat:    { name:"Back Squat",    abbr:"BS",  color:"#F7B731", base8:80,  defInc:5, defIncD:10, rehab:false },
   bench:    { name:"Bench Press",   abbr:"BP",  color:"#48CAE4", base8:70,  defInc:5, defIncD:10, rehab:false },
   ohp:      { name:"OHP",           abbr:"OHP", color:"#74C69D", base8:45,  defInc:5, defIncD:5,  rehab:false },
-  rows:     { name:"Bent-Over Row", abbr:"ROW", color:"#9D8DF1", base8:null,defInc:5, defIncD:10, rehab:true  },
+  rows:     { name:"Bent-Over Row", abbr:"ROW", color:"#9D8DF1", base8:50,  defInc:5, defIncD:10, rehab:false },
 };
 
 const SCHED = [
@@ -44,7 +44,7 @@ const HOLDS = {
   handstand:  { name:"Wall Handstand",abbr:"WHS",  color:"#60A5FA", emoji:"🤸", progression:"Wall-facing → 60s → freestanding",      currentLevel:"Wall-facing holds", goal:"60s wall-facing → kick-up",  note:"Chest to wall. Correct alignment.",         defSecs:20, defSets:4, defInc:5, isReps:false, rehab:false },
   hspushup:   { name:"Wall HSPU",     abbr:"HSPU", color:"#FBBF24", emoji:"💪", progression:"Negatives → partial → full → strict",   currentLevel:"Negatives + partial",goal:"Strict from negatives",     note:"~55kg OHP threshold. Control descent.",    defSecs:0,  defSets:4, defInc:0, isReps:true, defReps:3,  rehab:false },
   lsit:       { name:"L-Sit",         abbr:"LS",   color:"#F472B6", emoji:"🪑", progression:"Tucked → One leg → Full → 20s",         currentLevel:"Tucked L-Sit",      goal:"Tucked to 20s → extend one", note:"Stay tucked. Build hip flexors + abs.",    defSecs:10, defSets:4, defInc:2, isReps:false, rehab:false },
-  muscleup:   { name:"Muscle-Up",     abbr:"MU",   color:"#9D8DF1", emoji:"🔝", progression:"False grip neg → kipping → strict",     currentLevel:"PAUSED",            goal:"Paused — brachioradialis",   note:"Resume when elbow clear.",                 defSecs:0,  defSets:0, defInc:0, isReps:true, defReps:0,  rehab:true  },
+  muscleup:   { name:"Muscle-Up",     abbr:"MU",   color:"#9D8DF1", emoji:"🔝", progression:"Negatives → kipping → strict → weighted", currentLevel:"Negatives",         goal:"3 clean kipping → strict",   note:"False grip. Pull to chest, push through.", defSecs:0,  defSets:4, defInc:0, isReps:true, defReps:3,  rehab:false },
 };
 
 // ── BENCHMARKS ────────────────────────────────────────────────────────────────
