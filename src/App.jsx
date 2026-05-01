@@ -57,43 +57,89 @@ const STANDARDS = {
 
 // ── MOTIVATIONS ───────────────────────────────────────────────────────────────
 const MOTIVATIONS = [
+  // Marcus Aurelius
   { q:"You have power over your mind, not outside events. Realise this, and you will find strength.", a:"Marcus Aurelius" },
   { q:"The impediment to action advances action. What stands in the way becomes the way.", a:"Marcus Aurelius" },
   { q:"Waste no more time arguing what a good man should be. Be one.", a:"Marcus Aurelius" },
   { q:"It is not death that a man should fear, but he should fear never beginning to live.", a:"Marcus Aurelius" },
   { q:"Confine yourself to the present.", a:"Marcus Aurelius" },
   { q:"Accept the things to which fate binds you, and love the people with whom fate brings you together.", a:"Marcus Aurelius" },
+  { q:"You have been allotted a short time here below — live as if on a steep and narrow mountain path.", a:"Marcus Aurelius" },
+  { q:"When you wake up in the morning, think about what a precious privilege it is to be alive.", a:"Marcus Aurelius" },
+  { q:"Do not indulge in dreams of what you have not, but reckon the blessings you actually possess.", a:"Marcus Aurelius" },
+  { q:"The first rule is to keep an untroubled spirit. The second is to look things in the face and know them for what they are.", a:"Marcus Aurelius" },
+  { q:"Never esteem anything as of advantage to you that will make you break your word or lose your self-respect.", a:"Marcus Aurelius" },
+  { q:"How much more grievous are the consequences of anger than the causes of it.", a:"Marcus Aurelius" },
+  // Epictetus
   { q:"Make the best use of what is in your power, and take the rest as it happens.", a:"Epictetus" },
   { q:"First say to yourself what you would be; then do what you have to do.", a:"Epictetus" },
   { q:"No man is free who is not master of himself.", a:"Epictetus" },
+  { q:"Seek not that the things which happen should happen as you wish; but wish the things which happen to be as they are, and you will have a tranquil flow of life.", a:"Epictetus" },
+  { q:"It's not what happens to you, but how you react to it that matters.", a:"Epictetus" },
+  { q:"Don't explain your philosophy. Embody it.", a:"Epictetus" },
+  { q:"He who laughs at himself never runs out of things to laugh at.", a:"Epictetus" },
+  { q:"Wealth consists not in having great possessions, but in having few wants.", a:"Epictetus" },
+  // Seneca
   { q:"We suffer more in imagination than in reality.", a:"Seneca" },
   { q:"Difficulties strengthen the mind, as labour does the body.", a:"Seneca" },
   { q:"Begin at once to live, and count each separate day as a separate life.", a:"Seneca" },
   { q:"Life is long if you know how to use it.", a:"Seneca" },
+  { q:"Luck is what happens when preparation meets opportunity.", a:"Seneca" },
+  { q:"If it is not right, do not do it; if it is not true, do not say it.", a:"Seneca" },
+  { q:"Retire into yourself as much as you can. Associate with people who are likely to improve you.", a:"Seneca" },
+  { q:"It is not that I am brave, it is just that I am busy.", a:"Seneca" },
+  { q:"The whole future lies in uncertainty: live immediately.", a:"Seneca" },
+  { q:"Hang on to your youthful enthusiasms — you'll be able to use them better when you're older.", a:"Seneca" },
+  // Alan Watts
   { q:"The only way to make sense out of change is to plunge into it, move with it, and join the dance.", a:"Alan Watts" },
   { q:"You are under no obligation to be the same person you were five minutes ago.", a:"Alan Watts" },
-  { q:"I must not fear. Fear is the mind-killer. Fear is the little-death that brings total obliteration. I will face my fear.", a:"Frank Herbert, Dune" },
+  { q:"No valid plans for the future can be made by those who have no capacity for living now.", a:"Alan Watts" },
+  { q:"The art of living is neither careless drifting on the one hand nor fearful clinging to the past on the other.", a:"Alan Watts" },
+  // Frank Herbert
+  { q:"I must not fear. Fear is the mind-killer. I will face my fear. I will let it pass through me.", a:"Frank Herbert, Dune" },
   { q:"Without change, something sleeps inside us and seldom awakens. The sleeper must awaken.", a:"Frank Herbert, Dune" },
   { q:"The slow blade penetrates the shield.", a:"Frank Herbert, Dune" },
+  { q:"Survival is the ability to swim in strange water.", a:"Frank Herbert, Dune" },
+  { q:"Deep in the human unconscious is a pervasive need for a logical universe that makes sense. But the real universe is always one step beyond logic.", a:"Frank Herbert, Dune" },
+  // Goggins
   { q:"You are stopping at 40% of what you actually have. The 40% rule.", a:"David Goggins" },
   { q:"The most important conversation you'll ever have is the one you have with yourself.", a:"David Goggins" },
+  { q:"Be more than motivated. Be more than driven. Become the hardest person you know.", a:"David Goggins" },
+  { q:"You are in danger of living a life so comfortable and soft that you will die without ever realising your true potential.", a:"David Goggins" },
+  // Nietzsche
   { q:"He who has a why to live can bear almost any how.", a:"Friedrich Nietzsche" },
   { q:"That which does not kill us makes us stronger.", a:"Friedrich Nietzsche" },
+  { q:"The secret for harvesting from existence the greatest fruitfulness is — to live dangerously.", a:"Friedrich Nietzsche" },
+  { q:"One must still have chaos within oneself to give birth to a dancing star.", a:"Friedrich Nietzsche" },
+  // Joseph Campbell
   { q:"The cave you fear to enter holds the treasure you seek.", a:"Joseph Campbell" },
   { q:"A hero is someone who has given his life to something bigger than himself.", a:"Joseph Campbell" },
+  { q:"Find a place inside where there's joy, and the joy will burn out the pain.", a:"Joseph Campbell" },
+  { q:"We must be willing to let go of the life we planned so as to have the life that is waiting for us.", a:"Joseph Campbell" },
+  // Dylan Thomas
   { q:"Do not go gentle into that good night. Rage, rage against the dying of the light.", a:"Dylan Thomas" },
+  // Cato
+  { q:"I will live as if every action of mine were to be inspected.", a:"Cato the Elder" },
+  // Zeno
+  { q:"Man conquers the world by conquering himself.", a:"Zeno of Citium" },
+  { q:"Well-being is attained little by little, and nevertheless is no little thing itself.", a:"Zeno of Citium" },
+  // Purpose
   { q:"You're not training to be impressive. You're training to still be there.", a:null },
   { q:"Three sessions a week. A few decades of being able to get on the floor with them.", a:null },
   { q:"The goal isn't to be the strongest in the room. It's to still be in the room at 60.", a:null },
   { q:"Health isn't a vanity project. It's how you stay present for the people who need you.", a:null },
   { q:"Participate. Don't just watch.", a:null },
+  { q:"Show up. That's most of it.", a:null },
+  { q:"Your body keeps the score. Train it well.", a:null },
+  { q:"The best time to start was years ago. The second best time is today.", a:null },
+  { q:"Consistency beats intensity every time.", a:null },
+  { q:"You don't rise to the level of your goals. You fall to the level of your systems.", a:null },
 ];
 
-function getWeeklyMotivation() {
-  var now = new Date();
-  var start = new Date(now.getFullYear(), 0, 1);
-  var week = Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000));
-  return MOTIVATIONS[week % MOTIVATIONS.length];
+// Random on every load — seeded by session so it doesn't flicker mid-session
+var _quoteIdx = Math.floor(Math.random() * MOTIVATIONS.length);
+function getMotivation() {
+  return MOTIVATIONS[_quoteIdx];
 }
 
 const FAIL_TEXTS = ["YOU GOT THIS","COME ON","NEXT ONE","STAY IN IT","FIGHT BACK","THAT'S GROWTH","GRIND TIME","RESET & GO"];
@@ -1432,7 +1478,7 @@ export default function App() {
     swipeX.current = null;
   }
 
-  var motiv = getWeeklyMotivation();
+  var motiv = getMotivation();
 
   var currentOrms = {
     deadlift: wts.deadlift.w8 ? epley(wts.deadlift.w8, 8) : 0,
