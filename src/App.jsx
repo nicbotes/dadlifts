@@ -681,7 +681,7 @@ function BarbellCard(props) {
             <span style={{color:lift.color,fontWeight:900,fontSize:32,letterSpacing:-1,lineHeight:1}}>{sl.amrap ? reg + "×" + sl.reps + "+ AMRAP" : sl.reps}</span>
             <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>reps</span>
             <span className="bc-pct">@ {pct}</span>
-            {sl.amrap && <span className="amrap-tag">AMRAP</span>}
+
           </div>
         </div>
         <div className="bc-sdots">
