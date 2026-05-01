@@ -5,40 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="DADLIFT" />
-    <meta name="theme-color" content="#0d0d0d" />
-    <title>D∆DLIFTS</title>
-    <link rel="apple-touch-icon" href="./icon.png" />
+    <meta name="apple-mobile-web-app-title" content="DΔDLIFTS" />
+    <meta name="theme-color" content="#FF5C00" />
+    <title>DΔDLIFTS</title>
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <script>
       (function () {
-        var token = window.location.pathname.split("/").filter(Boolean)[0] || "";
-        var base = token ? "/" + token + "/" : "/";
-        var icon = document.querySelector('link[rel="apple-touch-icon"]');
-        if (icon) icon.setAttribute("href", base + "icon.png");
+        // Build a manifest scoped to current path (works for VPS token URLs and GH Pages)
+        var path = window.location.pathname;
+        var base = path.endsWith('/') ? path : path.substring(0, path.lastIndexOf('/') + 1);
 
         var manifest = {
-          name: "D∆DLIFTS",
-          short_name: "D∆DLIFTS",
-          description: "Built between sets, to keep playing.",
+          name: "DΔDLIFTS",
+          short_name: "DΔDLIFTS",
+          description: "Stay in the game.",
           start_url: base,
           scope: base,
           id: base,
           display: "standalone",
-          background_color: "#0d0d0d",
-          theme_color: "#0d0d0d",
+          background_color: "#FAFAF5",
+          theme_color: "#FF5C00",
           orientation: "portrait",
           icons: [
-            { src: base + "icon.png", sizes: "192x192", type: "image/png" },
-            { src: base + "icon.png", sizes: "512x512", type: "image/png" }
+            { src: base + "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: base + "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            { src: base + "icon-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
           ]
         };
+        var blob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
+        var link = document.createElement("link");
+        link.rel = "manifest";
+        link.href = URL.createObjectURL(blob);
+        document.head.appendChild(link);
 
-        var manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" });
-        var manifestUrl = URL.createObjectURL(manifestBlob);
-        var manifestLink = document.createElement("link");
-        manifestLink.setAttribute("rel", "manifest");
-        manifestLink.setAttribute("href", manifestUrl);
-        document.head.appendChild(manifestLink);
+        // Register service worker for offline PWA
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function () {
+            navigator.serviceWorker.register(base + 'sw.js').catch(function () {});
+          });
+        }
       })();
     </script>
   </head>
