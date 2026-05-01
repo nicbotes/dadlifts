@@ -1,5 +1,5 @@
 // DADLIFTS Service Worker — cache-first for offline PWA
-const CACHE = 'dadlifts-v1';
+const CACHE = 'dadlifts-v2';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
