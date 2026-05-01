@@ -397,7 +397,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .bc-wrow{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}
 .bc-w{font-family:'Nunito',sans-serif;font-size:58px;font-weight:900;line-height:1;letter-spacing:-3px}
 .bc-kg{font-family:'Space Mono',monospace;font-size:15px;color:var(--mid);font-weight:700}
-.bc-plates{font-size:12px;color:var(--mid);margin-bottom:3px}
+.bc-plates{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px;letter-spacing:-0.3px}
 .bc-sch{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;letter-spacing:-1px;display:flex;align-items:center;gap:8px;line-height:1}
 .bc-pct{font-family:'Space Mono',monospace;font-size:11px;color:var(--mid);font-weight:700;background:var(--light);border:2px solid var(--rule);border-radius:100px;padding:1px 8px}
 .amrap-tag{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--yellow);border:2px solid var(--ink);border-radius:100px;padding:2px 8px;color:var(--ink)}
