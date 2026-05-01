@@ -133,6 +133,7 @@ const MOTIVATIONS = [
   { q:"Your body keeps the score. Train it well.", a:null },
   { q:"The best time to start was years ago. The second best time is today.", a:null },
   { q:"Consistency beats intensity every time.", a:null },
+  { q:"Hard times never last. Only tough people do.", a:null },
   { q:"You don't rise to the level of your goals. You fall to the level of your systems.", a:null },
 ];
 
