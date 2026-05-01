@@ -671,15 +671,16 @@ function BarbellCard(props) {
                     }}
                   >✕</button>
                   {(function() {
-                    // Try all key formats to handle cycle being undefined/null
+                    // Scan ALL failLog entries for this lift+set regardless of day/cycle
+                    // More robust than key matching — handles any key format
                     var result = null;
-                    var keysToTry = [
-                      (cycle||1) + "-" + dayIdx + "-" + id + "-" + i,
-                      "1-" + dayIdx + "-" + id + "-" + i,
-                      dayIdx + "-" + id + "-" + i,
-                    ];
-                    for (var ki = 0; ki < keysToTry.length; ki++) {
-                      if (failLog[keysToTry[ki]]) { result = failLog[keysToTry[ki]]; break; }
+                    var suffix = "-" + id + "-" + i;
+                    var fkeys = Object.keys(failLog || {});
+                    for (var ki = 0; ki < fkeys.length; ki++) {
+                      if (fkeys[ki].indexOf(suffix) !== -1) {
+                        result = failLog[fkeys[ki]];
+                        break;
+                      }
                     }
                     if (!result || state !== "fail") return null;
                     var isDropSet = result.weight < wt;
