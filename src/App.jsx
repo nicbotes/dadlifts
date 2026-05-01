@@ -671,12 +671,12 @@ function BarbellCard(props) {
         <div className="bc-dot" style={{ background: lift.color }} />
         <div className="bc-inf">
           <div className="bc-name">{lift.name}</div>
-          <div className="bc-wrow">
-            <div className="bc-w" style={{ color: lift.color }}>{wt}</div>
-            <div style={{display:"flex",flexDirection:"column",justifyContent:"flex-end",gap:3,paddingBottom:4}}>
+          <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:3,flexShrink:0}}>
+              <div className="bc-w" style={{ color: lift.color }}>{wt}</div>
               <div className="bc-kg">kg</div>
-              <div className="bc-plates">{plates(wt)}</div>
             </div>
+            <div className="bc-plates" style={{marginBottom:4}}>{plates(wt)}</div>
           </div>
           <div className="bc-sch">
             <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>{tot} sets ×</span>
