@@ -602,7 +602,7 @@ function FailModal(props) {
 
 // ── BARBELL CARD ──────────────────────────────────────────────────────────────
 function BarbellCard(props) {
-  var id = props.id, sl = props.sl, wt = props.wt, sets = props.sets, onDone = props.onDone, onFail = props.onFail, deload = props.deload;
+  var id = props.id, sl = props.sl, wt = props.wt, sets = props.sets, onDone = props.onDone, onFail = props.onFail, deload = props.deload, failLog = props.failLog || {}, dayIdx = props.dayIdx, cycle = props.cycle;
   var lift = LIFTS[id];
   var tot = sets.length;
   var reg = sl.amrap ? tot - 1 : tot;
@@ -661,13 +661,34 @@ function BarbellCard(props) {
                     onDone(i);
                   }}
                 >✓</button>
-                <button
-                  className={"sf" + (state === "fail" ? " on" : "")}
-                  onClick={function(e) {
-                    if (state === "fail") { onFail(i); return; } // toggle off
-                    setActiveModal({ setIdx: i });
-                  }}
-                >✕</button>
+                <div style={{position:"relative",flex:1}}>
+                  <button
+                    className={"sf" + (state === "fail" ? " on" : "")}
+                    style={{width:"100%",height:"100%"}}
+                    onClick={function(e) {
+                      if (state === "fail") { onFail(i); return; }
+                      setActiveModal({ setIdx: i });
+                    }}
+                  >✕</button>
+                  {(function() {
+                    var key = (cycle||1) + "-" + dayIdx + "-" + id + "-" + i;
+                    var legacyKey = dayIdx + "-" + id + "-" + i;
+                    var result = failLog[key] || failLog[legacyKey];
+                    if (!result || state !== "fail") return null;
+                    var isDropSet = result.weight < wt;
+                    if (!isDropSet) return null;
+                    return (
+                      <div style={{
+                        position:"absolute", top:-8, right:-4,
+                        background:"var(--orange)", color:"#fff",
+                        borderRadius:"100px", fontSize:9, fontWeight:900,
+                        padding:"1px 5px", lineHeight:1.4,
+                        border:"2px solid var(--ink)", letterSpacing:0.5,
+                        pointerEvents:"none", whiteSpace:"nowrap"
+                      }}>↑ REPS</div>
+                    );
+                  })()}
+                </div>
               </div>
             </div>
           );
@@ -1505,7 +1526,7 @@ export default function App() {
                   <BarbellCard key={sl.id} id={sl.id} sl={sl} wt={wt}
                     sets={todaySets[sl.id]}
                     onDone={function(si) { markLiftDone(sl.id, si); }}
-                    onFail={function(si, result) { markLiftFail(sl.id, si, result); }}
+                    onFail={function(si, result) { markLiftFail(sl.id, si, result); }} failLog={st.failLog} dayIdx={st.dayIdx} cycle={st.cycle}
                     deload={!!st.deloads[sl.id]} />
                 );
               })}
