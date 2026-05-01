@@ -793,23 +793,6 @@ function HoldFailModal(props) {
           </button>
         </div>
       </div>
-      {activeModal !== null && (
-        <HoldFailModal
-          holdName={hold.name}
-          holdColor={hold.color}
-          holdEmoji={hold.emoji}
-          targetSecs={cfg.secs}
-          targetReps={cfg.reps}
-          isReps={hold.isReps}
-          setNum={activeModal.setIdx + 1}
-          onCancel={function() { setActiveModal(null); }}
-          onConfirm={function(result) {
-            emitBurst(makeFailBurst(window.innerWidth / 2, window.innerHeight / 2));
-            onFail(activeModal.setIdx, result);
-            setActiveModal(null);
-          }}
-        />
-      )}
     </div>
   );
 }
