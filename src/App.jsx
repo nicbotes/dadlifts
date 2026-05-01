@@ -670,37 +670,16 @@ function BarbellCard(props) {
                       setActiveModal({ setIdx: i });
                     }}
                   >✕</button>
-                  {(function() {
-                    // Look up fail result for this exact set this cycle
-                    var result = null;
-                    var exactKey = (cycle||1) + "-" + dayIdx + "-" + id + "-" + i;
-                    if (failLog[exactKey]) {
-                      result = failLog[exactKey];
-                    } else {
-                      // Fallback: scan for entry with matching embedded metadata
-                      var fkeys = Object.keys(failLog || {});
-                      for (var ki = 0; ki < fkeys.length; ki++) {
-                        var entry = failLog[fkeys[ki]];
-                        if (entry && entry._lid === id && entry._si === i && entry._dayIdx === dayIdx) {
-                          result = entry;
-                          break;
-                        }
-                      }
-                    }
-                    if (!result || state !== "fail") return null;
-                    var isDropSet = result.weight < wt;
-                    if (!isDropSet) return null;
-                    return (
-                      <div style={{
-                        position:"absolute", top:-8, right:-4,
-                        background:"var(--orange)", color:"#fff",
-                        borderRadius:"100px", fontSize:9, fontWeight:900,
-                        padding:"1px 5px", lineHeight:1.4,
-                        border:"2px solid var(--ink)", letterSpacing:0.5,
-                        pointerEvents:"none", whiteSpace:"nowrap"
-                      }}>↑ REPS</div>
-                    );
-                  })()}
+                  {state === "fail" && (
+                    <div style={{
+                      position:"absolute", top:-8, right:-4,
+                      background:"var(--orange)", color:"#fff",
+                      borderRadius:"100px", fontSize:9, fontWeight:900,
+                      padding:"1px 5px", lineHeight:1.4,
+                      border:"2px solid var(--ink)", letterSpacing:0.5,
+                      pointerEvents:"none"
+                    }}>↑</div>
+                  )}
                 </div>
               </div>
             </div>
