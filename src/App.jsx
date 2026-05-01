@@ -671,15 +671,20 @@ function BarbellCard(props) {
                     }}
                   >✕</button>
                   {(function() {
-                    // Scan ALL failLog entries for this lift+set regardless of day/cycle
-                    // More robust than key matching — handles any key format
+                    // Look up fail result for this exact set this cycle
                     var result = null;
-                    var suffix = "-" + id + "-" + i;
-                    var fkeys = Object.keys(failLog || {});
-                    for (var ki = 0; ki < fkeys.length; ki++) {
-                      if (fkeys[ki].indexOf(suffix) !== -1) {
-                        result = failLog[fkeys[ki]];
-                        break;
+                    var exactKey = (cycle||1) + "-" + dayIdx + "-" + id + "-" + i;
+                    if (failLog[exactKey]) {
+                      result = failLog[exactKey];
+                    } else {
+                      // Fallback: scan for entry with matching embedded metadata
+                      var fkeys = Object.keys(failLog || {});
+                      for (var ki = 0; ki < fkeys.length; ki++) {
+                        var entry = failLog[fkeys[ki]];
+                        if (entry && entry._lid === id && entry._si === i && entry._dayIdx === dayIdx) {
+                          result = entry;
+                          break;
+                        }
                       }
                     }
                     if (!result || state !== "fail") return null;
@@ -1368,8 +1373,9 @@ export default function App() {
       next.deloads[lid] = failCount >= 2;
       if (result && cur !== "fail") {
         if (!next.failLog) next.failLog = {};
-        var key = (prev.cycle || 1) + "-" + prev.dayIdx + "-" + lid + "-" + si;
-        next.failLog[key] = result;
+        var cycle = prev.cycle || 1;
+        var key = cycle + "-" + prev.dayIdx + "-" + lid + "-" + si;
+        next.failLog[key] = Object.assign({}, result, { _cycle: cycle, _dayIdx: prev.dayIdx, _lid: lid, _si: si });
       }
       return upsertSession(next);
     });
