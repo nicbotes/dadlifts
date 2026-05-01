@@ -14,7 +14,7 @@ function plates(kg) {
   PLATE_SIZES.forEach(function(p) {
     while (load >= p - 0.01) { used.push(p); load = Math.round((load - p) * 10) / 10; }
   });
-  return used.length ? used.join(" + ") + " /side" : "bar only";
+  return used.length ? used.join(" + ") : "bar only";
 }
 function epley(w, r) { return r === 1 ? w : snapW(w * (1 + r / 30)); }
 function w4from8(w8) { var raw = (w8 / 0.72) * 0.8; return Math.max(BAR, Math.floor(raw / SNAP) * SNAP); }
