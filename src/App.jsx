@@ -627,8 +627,10 @@ function BarbellCard(props) {
             <div className="bc-kg">kg</div>
           </div>
           <div className="bc-plates" style={{color:lift.color}}>{plates(wt)}</div>
-          <div className="bc-sch" style={{ color: lift.color }}>
-            {sl.amrap ? reg + "×" + sl.reps + " + AMRAP" : tot + "×" + sl.reps}
+          <div className="bc-sch">
+            <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>{tot} sets ×</span>
+            <span style={{color:lift.color,fontWeight:900,fontSize:32,letterSpacing:-1,lineHeight:1}}>{sl.amrap ? reg + "×" + sl.reps + "+ AMRAP" : sl.reps}</span>
+            <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>reps</span>
             <span className="bc-pct">@ {pct}</span>
             {sl.amrap && <span className="amrap-tag">AMRAP</span>}
           </div>
