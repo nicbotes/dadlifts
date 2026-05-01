@@ -1115,6 +1115,7 @@ export default function App() {
   var celebratePair = useState(false); var celebrating = celebratePair[0]; var setCelebrating = celebratePair[1];
   var importTextPair = useState(""); var importText = importTextPair[0]; var setImportText = importTextPair[1];
   var importMsgPair = useState(""); var importMsg = importMsgPair[0]; var setImportMsg = importMsgPair[1];
+  var copiedPair = useState(false); var copied = copiedPair[0]; var setCopied = copiedPair[1];
 
   useEffect(function() {
     loadState().then(function(saved) {
@@ -1400,8 +1401,15 @@ export default function App() {
   }
 
   function doExport() {
+    var json = JSON.stringify(st, null, 2);
     setShowExport(true);
-    setImportText(JSON.stringify(st, null, 2));
+    setImportText(json);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(json).then(function() {
+        setCopied(true);
+        setTimeout(function() { setCopied(false); }, 2500);
+      }).catch(function() {});
+    }
   }
 
   function doImport() {
@@ -1575,7 +1583,7 @@ export default function App() {
               <div className="xhd">Data · Export / Import</div>
               <div style={{ fontSize:11, color:"var(--mid)", marginBottom:10, lineHeight:1.6, fontWeight:700 }}>Export copies all your data as JSON. Paste to restore on any device.</div>
               <div className="xrow">
-                <button className="xbtn pri" onClick={doExport}>EXPORT</button>
+                <button className="xbtn pri" onClick={doExport} style={copied ? {background:"var(--green)",borderColor:"var(--green)"} : {}}>{copied ? "✓ COPIED!" : "EXPORT"}</button>
                 <button className="xbtn" onClick={function() { setShowExport(true); setImportText(""); }}>IMPORT</button>
               </div>
               {showExport && (
