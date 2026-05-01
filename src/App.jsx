@@ -23,7 +23,7 @@ function w4from8(w8) { return snapW((w8 / 0.72) * 0.8); }
 const LIFTS = {
   deadlift: { name:"Deadlift",      abbr:"DL",  color:"#E85D04", base8:100, defInc:5, defIncD:10, rehab:false },
   squat:    { name:"Back Squat",    abbr:"BS",  color:"#F7B731", base8:80,  defInc:5, defIncD:10, rehab:false },
-  bench:    { name:"Bench Press",   abbr:"BP",  color:"#48CAE4", base8:60,  defInc:5, defIncD:10, rehab:false },
+  bench:    { name:"Bench Press",   abbr:"BP",  color:"#48CAE4", base8:70,  defInc:5, defIncD:10, rehab:false },
   ohp:      { name:"OHP",           abbr:"OHP", color:"#74C69D", base8:45,  defInc:5, defIncD:5,  rehab:false },
   rows:     { name:"Bent-Over Row", abbr:"ROW", color:"#9D8DF1", base8:null,defInc:5, defIncD:10, rehab:true  },
 };
