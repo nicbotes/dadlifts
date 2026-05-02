@@ -251,7 +251,7 @@ function makeDefaultHoldSets(holdCfg) {
 function makeDefault() {
   var holdCfg = makeDefaultHoldCfg();
   return {
-    mode: 0, bbTab: 0, caliTab: 0, dayIdx: 0, cycle: 1, sessionLog: [],
+    mode: 0, bbTab: 0, caliTab: 0, dayIdx: 0, cycle: 1, sessionLog: [], amrapLog: {},
     weights: makeDefaultWeights(),
     progs: makeDefaultProgs(),
     liftSets: makeDefaultLiftSets(),
@@ -556,6 +556,13 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .celebrate-title{font-family:'Nunito',sans-serif;font-size:42px;font-weight:900;line-height:1;letter-spacing:-1px;margin-bottom:6px}
 .celebrate-sub{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid)}
 @keyframes popIn{0%{transform:scale(0.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.amrap-row{display:flex;gap:5px;width:100%}
+.amrap-btn{flex:1;padding:8px 2px;border:2.5px solid var(--ink);border-radius:10px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;line-height:1.3;text-align:center}
+.amrap-btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.amrap-btn.crushed{background:var(--green);border-color:var(--green);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+.amrap-btn.done{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+.amrap-btn.failed{background:var(--red);border-color:var(--red);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px}
 .modal{background:var(--card);border:3px solid var(--ink);border-radius:20px 20px 16px 16px;width:100%;max-width:390px;padding:20px 20px 24px;box-shadow:0 -4px 0 var(--ink)}
 .modal-title{font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:4px}
@@ -651,7 +658,7 @@ function FailModal(props) {
 
 // ── BARBELL CARD ──────────────────────────────────────────────────────────────
 function BarbellCard(props) {
-  var id = props.id, sl = props.sl, wt = props.wt, sets = props.sets, onDone = props.onDone, onFail = props.onFail, deload = props.deload, failLog = props.failLog || {}, dayIdx = props.dayIdx, cycle = props.cycle;
+  var id = props.id, sl = props.sl, wt = props.wt, sets = props.sets, onDone = props.onDone, onFail = props.onFail, onAmrap = props.onAmrap || function(){}, deload = props.deload, failLog = props.failLog || {}, dayIdx = props.dayIdx, cycle = props.cycle;
   var lift = LIFTS[id];
   var tot = sets.length;
   var reg = sl.amrap ? tot - 1 : tot;
@@ -700,29 +707,45 @@ function BarbellCard(props) {
           return (
             <div key={i} className="sblk">
               <div className={"slbl" + (isAmrap ? " am" : "")}>{isAmrap ? "AMRP" : "S" + (i + 1)}</div>
-              <div className="spair">
-                <button
-                  className={"sd" + (state === "done" ? " on" : "")}
-                  onClick={function(e) {
-                    if (state !== "done") {
-                      var rect = e.currentTarget.getBoundingClientRect();
-                      emitBurst(makeDoneBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, DONE_EMOJIS));
-                    }
-                    onDone(i);
-                  }}
-                >✓</button>
-                <div style={{position:"relative",flex:1}}>
-                  <button
-                    className={"sf" + (state === "fail" ? " on" : "")}
-                    style={{width:"100%",height:"100%"}}
+              {isAmrap ? (
+                <div className="amrap-row">
+                  <button className={"amrap-btn" + (state === "crushed" ? " crushed" : "")}
                     onClick={function(e) {
-                      if (state === "fail") { onFail(i); return; }
+                      if (state !== "crushed") { emitBurst(makeDoneBurst(e.currentTarget.getBoundingClientRect().left + 30, e.currentTarget.getBoundingClientRect().top, ["🔥","💥","⚡","🏆","🎊"])); }
+                      onAmrap(i, state === "crushed" ? "idle" : "crushed");
+                    }}>🔥<br/>CRUSHED<br/>≥8</button>
+                  <button className={"amrap-btn" + (state === "done" ? " done" : "")}
+                    onClick={function() { onAmrap(i, state === "done" ? "idle" : "done"); }}>✓<br/>DONE<br/>4–7</button>
+                  <button className={"amrap-btn" + (state === "fail" ? " failed" : "")}
+                    onClick={function() {
+                      if (state === "fail") { onAmrap(i, "idle"); return; }
                       setActiveModal({ setIdx: i });
-                    }}
-                  >✕</button>
-
+                    }}>✕<br/>FAIL<br/>&lt;4</button>
                 </div>
-              </div>
+              ) : (
+                <div className="spair">
+                  <button
+                    className={"sd" + (state === "done" ? " on" : "")}
+                    onClick={function(e) {
+                      if (state !== "done") {
+                        var rect = e.currentTarget.getBoundingClientRect();
+                        emitBurst(makeDoneBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, DONE_EMOJIS));
+                      }
+                      onDone(i);
+                    }}
+                  >✓</button>
+                  <div style={{position:"relative",flex:1}}>
+                    <button
+                      className={"sf" + (state === "fail" ? " on" : "")}
+                      style={{width:"100%",height:"100%"}}
+                      onClick={function(e) {
+                        if (state === "fail") { onFail(i); return; }
+                        setActiveModal({ setIdx: i });
+                      }}
+                    >✕</button>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -1452,17 +1475,45 @@ export default function App() {
     }, 1800);
   }
 
+
+  function markAmrap(lid, si, result) {
+    // result: "crushed" | "done" | "idle"
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      next.liftSets[prev.dayIdx][lid][si] = result;
+      // Store amrap result for progression at cycle end
+      if (!next.amrapLog) next.amrapLog = {};
+      var key = (prev.cycle||1) + "-" + prev.dayIdx + "-" + lid;
+      if (result === "idle") {
+        delete next.amrapLog[key];
+      } else {
+        next.amrapLog[key] = result; // "crushed" | "done"
+      }
+      return upsertSession(next);
+    });
+  }
+
   function advanceCycle() {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
+      var amrapLog = next.amrapLog || {};
       Object.keys(LIFTS).forEach(function(id) {
         var lift = LIFTS[id];
         if (lift.rehab || !next.weights || !next.weights[id]) return;
-        if (!next.deloads[id]) {
-          var prog = next.progs[id] || { inc:lift.defInc, incD:lift.defIncD };
-          next.weights[id] = snapW(next.weights[id] + prog.inc);
-        }
+        if (next.deloads[id]) return; // hold weight — deload
+        var prog = next.progs[id] || { inc:lift.defInc, incD:lift.defIncD };
+        // Check AMRAP result for this lift this cycle
+        var amrapResult = null;
+        Object.keys(amrapLog).forEach(function(key) {
+          var parts = key.split("-");
+          if (parts[2] === id) amrapResult = amrapLog[key];
+        });
+        var inc = amrapResult === "crushed"
+          ? (prog.incD || lift.defIncD)  // big AMRAP jump
+          : (prog.inc  || lift.defInc);  // normal jump (done or no AMRAP)
+        next.weights[id] = snapW(next.weights[id] + inc);
       });
+      next.amrapLog = {};
       next.deloads = {};
       next.liftSets = makeDefaultLiftSets();
       next.dayIdx = 0;
@@ -1680,7 +1731,7 @@ export default function App() {
                   <BarbellCard key={sl.id} id={sl.id} sl={sl} wt={wt}
                     sets={todaySets[sl.id]}
                     onDone={function(si) { markLiftDone(sl.id, si); }}
-                    onFail={function(si, result) { markLiftFail(sl.id, si, result); }} failLog={st.failLog} dayIdx={st.dayIdx} cycle={st.cycle}
+                    onFail={function(si, result) { markLiftFail(sl.id, si, result); }} onAmrap={function(si, result) { markAmrap(sl.id, si, result); }} failLog={st.failLog} dayIdx={st.dayIdx} cycle={st.cycle}
                     deload={!!st.deloads[sl.id]} />
                 );
               })}
