@@ -1509,7 +1509,6 @@ export default function App() {
       Object.keys(LIFTS).forEach(function(id) {
         var lift = LIFTS[id];
         if (lift.rehab || !next.weights || !next.weights[id]) return;
-        if (next.deloads[id]) return; // hold weight — deload
         var prog = next.progs[id] || { inc:lift.defInc, incD:lift.defIncD };
         // Check AMRAP result for this lift this cycle
         var amrapResult = null;
@@ -1517,9 +1516,14 @@ export default function App() {
           var parts = key.split("-");
           if (parts[2] === id) amrapResult = amrapLog[key];
         });
+        // Deload + CRUSHED = normal increment (strength proven, just a bad set)
+        // Deload + anything else = hold weight
+        if (next.deloads[id] && amrapResult !== "crushed") return;
         var inc = amrapResult === "crushed"
-          ? (prog.incD || lift.defIncD)  // big AMRAP jump
-          : (prog.inc  || lift.defInc);  // normal jump (done or no AMRAP)
+          ? (next.deloads[id]
+            ? (prog.inc  || lift.defInc)   // conflict: crushed but had fails → normal
+            : (prog.incD || lift.defIncD)) // clean crushed → big jump
+          : (prog.inc || lift.defInc);     // done or no amrap → normal
         next.weights[id] = snapW(next.weights[id] + inc);
       });
       next.amrapLog = {};
