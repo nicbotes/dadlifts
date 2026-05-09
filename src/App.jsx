@@ -708,19 +708,28 @@ function BarbellCard(props) {
             <div key={i} className="sblk">
               <div className={"slbl" + (isAmrap ? " am" : "")}>{isAmrap ? "AMRP" : "S" + (i + 1)}</div>
               {isAmrap ? (
-                <div className="amrap-row">
-                  <button className={"amrap-btn" + (state === "crushed" ? " crushed" : "")}
+                <div style={{display:"flex",border:"2.5px solid var(--ink)",borderRadius:12,overflow:"hidden",boxShadow:"2px 2px 0 var(--ink)",width:"100%"}}>
+                  <button
                     onClick={function(e) {
                       if (state !== "crushed") { emitBurst(makeDoneBurst(e.currentTarget.getBoundingClientRect().left + 30, e.currentTarget.getBoundingClientRect().top, ["🔥","💥","⚡","🏆","🎊"])); }
                       onAmrap(i, state === "crushed" ? "idle" : "crushed");
-                    }}>🔥<br/>CRUSHED<br/>≥8</button>
-                  <button className={"amrap-btn" + (state === "done" ? " done" : "")}
-                    onClick={function() { onAmrap(i, state === "done" ? "idle" : "done"); }}>✓<br/>DONE<br/>4–7</button>
-                  <button className={"amrap-btn" + (state === "fail" ? " failed" : "")}
+                    }}
+                    style={{flex:1,padding:"7px 2px",borderRight:"2px solid var(--ink)",background:state==="crushed"?"var(--green)":"var(--card)",color:state==="crushed"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>
+                    🔥<br/>CRUSHED<br/>≥8
+                  </button>
+                  <button
+                    onClick={function() { onAmrap(i, state === "done" ? "idle" : "done"); }}
+                    style={{flex:1,padding:"7px 2px",borderRight:"2px solid var(--ink)",background:state==="done"?"var(--ink)":"var(--card)",color:state==="done"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>
+                    ✓<br/>DONE<br/>4–7
+                  </button>
+                  <button
                     onClick={function() {
                       if (state === "fail") { onAmrap(i, "idle"); return; }
                       setActiveModal({ setIdx: i });
-                    }}>✕<br/>FAIL<br/>&lt;4</button>
+                    }}
+                    style={{flex:1,padding:"7px 2px",background:state==="fail"?"var(--red)":"var(--card)",color:state==="fail"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none"}}>
+                    ✕<br/>FAIL<br/>&lt;4
+                  </button>
                 </div>
               ) : (
                 <div className="spair">
