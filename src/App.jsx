@@ -429,6 +429,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .dot{width:11px;height:11px;border-radius:50%;border:3px solid var(--light);background:transparent;transition:all .1s}
 .dot.done{background:var(--green);border-color:var(--green)}
 .dot.fail{background:var(--red);border-color:var(--red)}
+.dot.pr{background:var(--orange);border-color:var(--orange)}
 .dot.sq{border-radius:4px}
 .sets-row{display:flex;gap:5px;padding:0 10px 12px;border-top:2px solid var(--light);padding-top:8px;margin-top:2px}
 .sblk{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
@@ -441,6 +442,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .sf:active{background:var(--red-bg);color:var(--red)}
 .sd.on{background:var(--green-bg);color:var(--green)}
 .sf.on{background:var(--red-bg);color:var(--red)}
+.sf.pr{background:#FFF3E0;color:var(--orange)}
 .hc{background:var(--card);border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--ink);transition:box-shadow .12s,border-color .12s}
 .hc.isdone{border-color:var(--green);box-shadow:5px 5px 0 var(--green)}
 .hc.isfail{border-color:var(--red);box-shadow:5px 5px 0 var(--red)}
@@ -624,8 +626,9 @@ function FailModal(props) {
         <div className="modal-actions">
           <button className="modal-btn" onClick={onCancel}>CANCEL</button>
           <button className="modal-btn modal-btn-confirm"
-            onClick={function() { onConfirm({ weight: achievedWeight, reps: achievedReps }); }}>
-            LOG FAIL
+            style={achievedWeight > targetWeight ? {background:"var(--orange)",borderColor:"var(--orange)"} : {}}
+            onClick={function() { onConfirm({ weight: achievedWeight, reps: achievedReps, isPR: achievedWeight > targetWeight }); }}>
+            {achievedWeight > targetWeight ? "🟠 LOG PR" : "LOG FAIL"}
           </button>
         </div>
       </div>
@@ -672,7 +675,7 @@ function BarbellCard(props) {
         <div className="bc-sdots">
           {sets.map(function(s, i) {
             var isAmrap = sl.amrap && i === tot - 1;
-            var cls = "dot" + (isAmrap ? " sq" : "") + (s === "done" ? " done" : s === "fail" ? " fail" : "");
+            var cls = "dot" + (isAmrap ? " sq" : "") + (s === "done" ? " done" : s === "fail" ? " fail" : s === "pr" ? " pr" : "");
             var extraStyle = isAmrap && s === "idle" ? { borderColor: "#FFD93D" } : {};
             return <div key={i} className={cls} style={extraStyle} />;
           })}
@@ -722,7 +725,7 @@ function BarbellCard(props) {
                   >✓</button>
                   <div style={{position:"relative",flex:1}}>
                     <button
-                      className={"sf" + (state === "fail" ? " on" : "")}
+                      className={"sf" + (state === "fail" ? " on" : state === "pr" ? " pr" : "")}
                       style={{width:"100%",height:"100%"}}
                       onClick={function(e) {
                         if (state === "fail") { onFail(i); return; }
@@ -847,7 +850,7 @@ function HoldCard(props) {
         </div>
         <div className="bc-sdots">
           {sets.map(function(s, i) {
-            return <div key={i} className={"dot" + (s === "done" ? " done" : s === "fail" ? " fail" : "")} />;
+            return <div key={i} className={"dot" + (s === "done" ? " done" : s === "fail" ? " fail" : s === "pr" ? " pr" : "")} />;
           })}
         </div>
       </div>
@@ -1535,11 +1538,17 @@ export default function App() {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
       var cur = next.liftSets[prev.dayIdx][lid][si];
-      next.liftSets[prev.dayIdx][lid][si] = cur === "fail" ? "idle" : "fail";
+      var isPR = result && result.isPR;
+      if ((isPR && cur === "pr") || (!isPR && cur === "fail")) {
+        next.liftSets[prev.dayIdx][lid][si] = "idle";
+      } else {
+        next.liftSets[prev.dayIdx][lid][si] = isPR ? "pr" : "fail";
+      }
+      // Only actual fails (not PRs) count toward deload
       var failCount = next.liftSets[prev.dayIdx][lid].filter(function(s) { return s === "fail"; }).length;
       next.deloads = Object.assign({}, next.deloads);
       next.deloads[lid] = failCount >= 2;
-      if (result && cur !== "fail") {
+      if (result && cur !== "fail" && cur !== "pr") {
         if (!next.failLog) next.failLog = {};
         var cycle = prev.cycle || 1;
         var key = cycle + "-" + prev.dayIdx + "-" + lid + "-" + si;
