@@ -601,6 +601,7 @@ function FailModal(props) {
               <div className="modal-row-unit">kg</div>
             </div>
             <div className="modal-row-target">goal {targetWeight}kg · {plates(achievedWeight)}</div>
+            <div className="modal-row-target" style={{color:"var(--orange)",fontWeight:700}}>est 1RM: {epley(achievedWeight, achievedReps)}kg</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return snapW(w + SNAP); }) }}>↑</button>
@@ -1341,22 +1342,56 @@ export default function App() {
       var sets = (state.liftSets[dayIdx] || {})[sl.id] || [];
       var doneSets = sets.filter(function(s) { return s === "done"; }).length;
       var failSets = sets.filter(function(s) { return s === "fail"; }).length;
-      if (doneSets === 0 && failSets === 0) return;
+      var prSets   = sets.filter(function(s) { return s === "pr"; }).length;
+      if (doneSets === 0 && failSets === 0 && prSets === 0) return;
       var wEntry = curWts[sl.id];
       var wt = sl.type === "4rep" ? wEntry.w4 : wEntry.w8;
       if (!wt) return;
       var volume = wt * doneSets * sl.reps;
+      var maxWeight = wt;
+      var bestOrm = epley(wt, sl.reps);
+      // Find failLog entry by scanning for matching lift+set in this cycle
+      function findLogEntry(si) {
+        var flog = state.failLog || {};
+        var cycle = state.cycle || 1;
+        // Try cycle-based key first, then legacy
+        var keys = [
+          cycle + "-" + dayIdx + "-" + sl.id + "-" + si,
+          dayIdx + "-" + sl.id + "-" + si,
+        ];
+        for (var ki = 0; ki < keys.length; ki++) {
+          if (flog[keys[ki]]) return flog[keys[ki]];
+        }
+        // Scan by metadata
+        var fkeys = Object.keys(flog);
+        for (var fi = 0; fi < fkeys.length; fi++) {
+          var entry = flog[fkeys[fi]];
+          if (entry && entry._lid === sl.id && entry._si === si && entry._dayIdx === dayIdx) return entry;
+        }
+        return null;
+      }
       sets.forEach(function(setState, si) {
-        if (setState !== "fail") return;
-        var key = dayIdx + "-" + sl.id + "-" + si;
-        var failResult = (state.failLog || {})[key];
-        if (failResult) {
-          volume += failResult.weight * failResult.reps;
-        } else {
-          volume += wt * Math.floor(sl.reps / 2);
+        if (setState === "fail") {
+          var result = findLogEntry(si);
+          if (result) {
+            volume += result.weight * result.reps;
+            if (result.weight > maxWeight) maxWeight = result.weight;
+            var orm = epley(result.weight, result.reps);
+            if (orm > bestOrm) bestOrm = orm;
+          } else {
+            volume += wt * Math.floor(sl.reps / 2);
+          }
+        } else if (setState === "pr") {
+          var result = findLogEntry(si);
+          if (result) {
+            volume += result.weight * result.reps;
+            if (result.weight > maxWeight) maxWeight = result.weight;
+            var orm = epley(result.weight, result.reps);
+            if (orm > bestOrm) bestOrm = orm;
+          }
         }
       });
-      lifts[sl.id] = { weight:wt, volume:volume, maxWeight:wt, orm:epley(wt, sl.reps) };
+      lifts[sl.id] = { weight:wt, volume:volume, maxWeight:maxWeight, orm:bestOrm };
     });
     Object.keys(HOLDS).forEach(function(id) {
       if (HOLDS[id].rehab) return;
@@ -1392,22 +1427,56 @@ export default function App() {
       var sets = (state.liftSets[dayIdx] || {})[sl.id] || [];
       var doneSets = sets.filter(function(s) { return s === "done"; }).length;
       var failSets = sets.filter(function(s) { return s === "fail"; }).length;
-      if (doneSets === 0 && failSets === 0) return;
+      var prSets   = sets.filter(function(s) { return s === "pr"; }).length;
+      if (doneSets === 0 && failSets === 0 && prSets === 0) return;
       var wEntry = curWts[sl.id];
       var wt = sl.type === "4rep" ? wEntry.w4 : wEntry.w8;
       if (!wt) return;
       var volume = wt * doneSets * sl.reps;
+      var maxWeight = wt;
+      var bestOrm = epley(wt, sl.reps);
+      // Find failLog entry by scanning for matching lift+set in this cycle
+      function findLogEntry(si) {
+        var flog = state.failLog || {};
+        var cycle = state.cycle || 1;
+        // Try cycle-based key first, then legacy
+        var keys = [
+          cycle + "-" + dayIdx + "-" + sl.id + "-" + si,
+          dayIdx + "-" + sl.id + "-" + si,
+        ];
+        for (var ki = 0; ki < keys.length; ki++) {
+          if (flog[keys[ki]]) return flog[keys[ki]];
+        }
+        // Scan by metadata
+        var fkeys = Object.keys(flog);
+        for (var fi = 0; fi < fkeys.length; fi++) {
+          var entry = flog[fkeys[fi]];
+          if (entry && entry._lid === sl.id && entry._si === si && entry._dayIdx === dayIdx) return entry;
+        }
+        return null;
+      }
       sets.forEach(function(setState, si) {
-        if (setState !== "fail") return;
-        var key = dayIdx + "-" + sl.id + "-" + si;
-        var failResult = (state.failLog || {})[key];
-        if (failResult) {
-          volume += failResult.weight * failResult.reps;
-        } else {
-          volume += wt * Math.floor(sl.reps / 2);
+        if (setState === "fail") {
+          var result = findLogEntry(si);
+          if (result) {
+            volume += result.weight * result.reps;
+            if (result.weight > maxWeight) maxWeight = result.weight;
+            var orm = epley(result.weight, result.reps);
+            if (orm > bestOrm) bestOrm = orm;
+          } else {
+            volume += wt * Math.floor(sl.reps / 2);
+          }
+        } else if (setState === "pr") {
+          var result = findLogEntry(si);
+          if (result) {
+            volume += result.weight * result.reps;
+            if (result.weight > maxWeight) maxWeight = result.weight;
+            var orm = epley(result.weight, result.reps);
+            if (orm > bestOrm) bestOrm = orm;
+          }
         }
       });
-      lifts[sl.id] = { weight:wt, volume:volume, maxWeight:wt, orm:epley(wt, sl.reps) };
+      lifts[sl.id] = { weight:wt, volume:volume, maxWeight:maxWeight, orm:bestOrm };
     });
     Object.keys(HOLDS).forEach(function(id) {
       if (HOLDS[id].rehab) return;
@@ -1644,12 +1713,19 @@ export default function App() {
 
   var motiv = getMotivation();
 
-  var currentOrms = {
-    deadlift: wts.deadlift.w8 ? epley(wts.deadlift.w8, 8) : 0,
-    squat:    wts.squat.w8    ? epley(wts.squat.w8,    8) : 0,
-    bench:    wts.bench.w8    ? epley(wts.bench.w8,    8) : 0,
-    ohp:      wts.ohp.w8      ? epley(wts.ohp.w8,      8) : 0,
-  };
+  // currentOrms: use best all-time 1RM from session log (captures PRs)
+  // Fall back to working weight estimate if no history yet
+  var currentOrms = {};
+  ["deadlift","squat","bench","ohp"].forEach(function(id) {
+    var fromWeight = wts[id] && wts[id].w8 ? epley(wts[id].w8, 8) : 0;
+    var fromHistory = 0;
+    (st.sessionLog || []).forEach(function(session) {
+      if (session.lifts && session.lifts[id] && session.lifts[id].orm > fromHistory) {
+        fromHistory = session.lifts[id].orm;
+      }
+    });
+    currentOrms[id] = Math.max(fromWeight, fromHistory);
+  });
 
   if (!ready) {
     return (
