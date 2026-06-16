@@ -122,6 +122,7 @@ function getMotivation() {
 
 const FAIL_TEXTS = ["YOU GOT THIS","COME ON","NEXT ONE","STAY IN IT","FIGHT BACK","THAT'S GROWTH","GRIND TIME","RESET & GO"];
 const DONE_EMOJIS = ["💪","🔥","⚡","🏋️","💥","🦾","👊","🎯","🚀","🔱","💫","🏆"];
+const PR_EMOJIS = ["🔥","🔥","🔥","💥","⚡","🏆","👑","🎉","😤","🦾","🙌","✨"];
 const HOLD_EMOJIS = ["🧘","⏱️","🫁","🔥","💪","⚡","🎯","🏔️","🦅","🌊"];
 
 function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -732,7 +733,7 @@ function BarbellCard(props) {
                         if (state === "fail") { onFail(i); return; }
                         setActiveModal({ setIdx: i });
                       }}
-                    >✕</button>
+                    >{state === "pr" ? "🔥" : "✕"}</button>
                   </div>
                 </div>
               )}
@@ -749,8 +750,11 @@ function BarbellCard(props) {
           setNum={activeModal.setIdx + 1}
           onCancel={function() { setActiveModal(null); }}
           onConfirm={function(result) {
-            var rect = { left: window.innerWidth / 2, top: window.innerHeight / 2 };
-            emitBurst(makeFailBurst(rect.left, rect.top));
+            if (result.isPR) {
+              emitBurst(makeDoneBurst(window.innerWidth / 2, window.innerHeight / 2, PR_EMOJIS));
+            } else {
+              emitBurst(makeFailBurst(window.innerWidth / 2, window.innerHeight / 2));
+            }
             onFail(activeModal.setIdx, result);
             setActiveModal(null);
           }}
