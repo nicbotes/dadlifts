@@ -39,13 +39,28 @@ const SCHED = [
 
 // ── CALISTHENICS ──────────────────────────────────────────────────────────────
 const HOLDS = {
-  frontlever: { name:"Front Lever",   abbr:"FL",   color:"#F87171", emoji:"🦅", progression:"Tuck → Adv Tuck → Straddle → Full",    currentLevel:"Advanced Tuck",     goal:"Build to 15s → Straddle",    note:"Hips extended, near horizontal.",          defSecs:7,  defSets:5, defInc:1, isReps:false, rehab:false },
-  deadhang:   { name:"Dead Hang",     abbr:"HNG",  color:"#34D399", emoji:"🪝", progression:"30s → 60s → weighted",                  currentLevel:"Building to 60s",   goal:"60s continuous hold",        note:"Full hang, active shoulders.",             defSecs:30, defSets:4, defInc:5, isReps:false, rehab:false },
-  handstand:  { name:"Wall Handstand",abbr:"WHS",  color:"#60A5FA", emoji:"🤸", progression:"Wall-facing → 60s → freestanding",      currentLevel:"Wall-facing holds", goal:"60s wall-facing → kick-up",  note:"Chest to wall. Correct alignment.",         defSecs:20, defSets:4, defInc:5, isReps:false, rehab:false },
-  hspushup:   { name:"Wall HSPU",     abbr:"HSPU", color:"#FBBF24", emoji:"💪", progression:"Negatives → partial → full → strict",   currentLevel:"Negatives + partial",goal:"Strict from negatives",     note:"~55kg OHP threshold. Control descent.",    defSecs:0,  defSets:4, defInc:0, isReps:true, defReps:3,  rehab:false },
-  lsit:       { name:"L-Sit",         abbr:"LS",   color:"#F472B6", emoji:"🪑", progression:"Tucked → One leg → Full → 20s",         currentLevel:"Tucked L-Sit",      goal:"Tucked to 20s → extend one", note:"Stay tucked. Build hip flexors + abs.",    defSecs:10, defSets:4, defInc:2, isReps:false, rehab:false },
-  muscleup:   { name:"Muscle-Up",     abbr:"MU",   color:"#9D8DF1", emoji:"🔝", progression:"Negatives → kipping → strict → weighted", currentLevel:"Negatives",         goal:"3 clean kipping → strict",   note:"False grip. Pull to chest, push through.", defSecs:0,  defSets:4, defInc:0, isReps:true, defReps:3,  rehab:false },
+  frontlever: { name:"Front Lever",   abbr:"FL",   color:"#F87171", emoji:"🦅", kind:"static",  ladder:["Tuck","Advanced Tuck","One-Leg","Straddle","Full"], currentLevel:"Advanced Tuck",     goal:"Build to 12s → Straddle",   note:"Scapula depressed. Straight arms. Hollow body.", defSecs:7,  defSets:5, defInc:1, isReps:false, rehab:false },
+  handstand:  { name:"Wall Handstand",abbr:"WHS",  color:"#60A5FA", emoji:"🤸", kind:"static",  ladder:["Wall-facing","Chest-to-wall","Freestanding kick-up","Freestanding"], currentLevel:"Wall-facing holds", goal:"60s wall → kick-up",  note:"Chest to wall. Stack shoulders over wrists.", defSecs:20, defSets:4, defInc:5, isReps:false, rehab:false },
+  lsit:       { name:"L-Sit",         abbr:"LS",   color:"#F472B6", emoji:"🪑", kind:"static",  ladder:["Tucked","One-Leg","Full","Hanging"], currentLevel:"Tucked L-Sit",      goal:"Full to 20s",         note:"Depress shoulders. Compress hip flexors + abs.", defSecs:10, defSets:4, defInc:2, isReps:false, rehab:false },
+  hspushup:   { name:"Wall HSPU",     abbr:"HSPU", color:"#FBBF24", emoji:"💪", kind:"dynamic", ladder:["Wall negative","Wall partial","Wall full","Deficit"], currentLevel:"Negatives + partial",goal:"Strict from negatives",     note:"Control the descent. ~55kg OHP threshold.", defSecs:0,  defSets:4, defInc:0, isReps:true, defReps:3,  rehab:false },
+  muscleup:   { name:"Muscle-Up",     abbr:"MU",   color:"#9D8DF1", emoji:"🔝", kind:"dynamic", ladder:["False-grip hold","Negative","Kipping","Strict","Weighted"], currentLevel:"Negatives",         goal:"3 clean kipping → strict",   note:"False grip. Explode, turn over, press out.", defSecs:0,  defSets:4, defInc:0, isReps:true, defReps:3,  rehab:false },
 };
+
+// Weighted calisthenics strength — tracked in kg like barbell (added weight)
+const CALI_LIFTS = {
+  wpullup: { name:"Weighted Pull-up", abbr:"W-PU", color:"#A78BFA", base:10, defInc:2.5, note:"Added kg. Full hang to chin over bar." },
+  wdip:    { name:"Weighted Dip",     abbr:"W-DIP",color:"#22D3EE", base:15, defInc:2.5, note:"Added kg. Full depth, lock out top." },
+};
+
+// Cali schedule — 3 days/week, 2-week cycle (6 sessions). PULL / PUSH / MIXED rotation.
+const CALI_SCHED = [
+  { label:"C1·PULL",  focus:"PULL",  holds:["frontlever","lsit"],        dyn:["muscleup"], lifts:[{id:"wpullup",sets:4,reps:5}] },
+  { label:"C1·PUSH",  focus:"PUSH",  holds:["handstand","lsit"],         dyn:["hspushup"], lifts:[{id:"wdip",sets:4,reps:6}] },
+  { label:"C1·MIXED", focus:"SKILL", holds:["frontlever","handstand"],   dyn:["muscleup"], lifts:[{id:"wpullup",sets:3,reps:5,amrap:true}] },
+  { label:"C2·PULL",  focus:"PULL",  holds:["frontlever","lsit"],        dyn:["muscleup"], lifts:[{id:"wpullup",sets:4,reps:5}] },
+  { label:"C2·PUSH",  focus:"PUSH",  holds:["handstand","lsit"],         dyn:["hspushup"], lifts:[{id:"wdip",sets:4,reps:6}] },
+  { label:"C2·MIXED", focus:"SKILL", holds:["frontlever","handstand"],   dyn:["hspushup"], lifts:[{id:"wpullup",sets:3,reps:5,amrap:true}] },
+];
 
 // ── BENCHMARKS ────────────────────────────────────────────────────────────────
 const STANDARDS = {
@@ -217,25 +232,82 @@ function makeDefaultHoldCfg() {
 }
 
 function makeDefaultHoldSets(holdCfg) {
+  // Per cali-day: { caliDayIdx: { holdId: [states] } }
   var result = {};
-  Object.keys(HOLDS).forEach(function(id) {
-    var h = HOLDS[id];
-    var count = h.rehab ? 0 : (holdCfg[id] ? holdCfg[id].sets : h.defSets);
-    result[id] = Array(count).fill("idle");
+  CALI_SCHED.forEach(function(day, di) {
+    result[di] = {};
+    day.holds.forEach(function(id) {
+      var count = holdCfg[id] ? holdCfg[id].sets : HOLDS[id].defSets;
+      result[di][id] = Array(count).fill("idle");
+    });
   });
   return result;
+}
+
+function makeDefaultCaliDynSets() {
+  // Dynamic skill reps per cali-day: { caliDayIdx: { dynId: [states] } }
+  var result = {};
+  CALI_SCHED.forEach(function(day, di) {
+    result[di] = {};
+    day.dyn.forEach(function(id) {
+      result[di][id] = Array(HOLDS[id].defSets).fill("idle");
+    });
+  });
+  return result;
+}
+
+function makeDefaultCaliLiftSets() {
+  // Weighted cali lifts per cali-day: { caliDayIdx: { liftId: [states] } }
+  var result = {};
+  CALI_SCHED.forEach(function(day, di) {
+    result[di] = {};
+    day.lifts.forEach(function(sl) {
+      result[di][sl.id] = Array(sl.sets + (sl.amrap ? 1 : 0)).fill("idle");
+    });
+  });
+  return result;
+}
+
+function makeDefaultCaliWeights() {
+  var w = {};
+  Object.keys(CALI_LIFTS).forEach(function(id) { w[id] = CALI_LIFTS[id].base; });
+  return w;
+}
+
+function makeDefaultCaliProgs() {
+  var p = {};
+  Object.keys(CALI_LIFTS).forEach(function(id) { p[id] = { inc: CALI_LIFTS[id].defInc }; });
+  return p;
+}
+
+function makeDefaultHoldLevels() {
+  // Current ladder index per hold/dyn skill
+  var lv = {};
+  Object.keys(HOLDS).forEach(function(id) {
+    var h = HOLDS[id];
+    var idx = h.ladder ? h.ladder.indexOf(h.currentLevel) : 0;
+    lv[id] = idx < 0 ? 0 : idx;
+  });
+  return lv;
 }
 
 function makeDefault() {
   var holdCfg = makeDefaultHoldCfg();
   return {
-    mode: 0, bbTab: 0, caliTab: 0, dayIdx: 0, cycle: 1, sessionLog: [], amrapLog: {},
+    mode: 0, bbTab: 0, caliTab: 0, dayIdx: 0, caliDayIdx: 0, cycle: 1, caliCycle: 1, sessionLog: [], caliLog: [], amrapLog: {}, caliAmrapLog: {},
     weights: makeDefaultWeights(),
     progs: makeDefaultProgs(),
     liftSets: makeDefaultLiftSets(),
     deloads: {},
     holdCfg: holdCfg,
     holdSets: makeDefaultHoldSets(holdCfg),
+    caliDynSets: makeDefaultCaliDynSets(),
+    caliLiftSets: makeDefaultCaliLiftSets(),
+    caliWeights: makeDefaultCaliWeights(),
+    caliProgs: makeDefaultCaliProgs(),
+    holdLevels: makeDefaultHoldLevels(),
+    holdFailLog: {},
+    caliFailLog: {},
   };
 }
 
@@ -247,14 +319,28 @@ function normalizeState(raw) {
   state.liftSets = Object.assign({}, base.liftSets, state.liftSets || {});
   state.deloads = Object.assign({}, base.deloads, state.deloads || {});
   state.holdCfg = Object.assign({}, base.holdCfg, state.holdCfg || {});
-  state.holdSets = Object.assign({}, base.holdSets, state.holdSets || {});
+  // Migrate old flat holdSets ({holdId:[...]}) to per-cali-day shape
+  var hsValid = state.holdSets && typeof state.holdSets === "object" && state.holdSets[0] && typeof state.holdSets[0] === "object" && !Array.isArray(state.holdSets[0]);
+  if (!hsValid) state.holdSets = makeDefaultHoldSets(state.holdCfg);
+  state.caliDynSets = (state.caliDynSets && state.caliDynSets[0]) ? state.caliDynSets : makeDefaultCaliDynSets();
+  state.caliLiftSets = (state.caliLiftSets && state.caliLiftSets[0]) ? state.caliLiftSets : makeDefaultCaliLiftSets();
+  state.caliWeights = Object.assign({}, base.caliWeights, state.caliWeights || {});
+  state.caliProgs = Object.assign({}, base.caliProgs, state.caliProgs || {});
+  state.holdLevels = Object.assign({}, base.holdLevels, state.holdLevels || {});
+  state.holdFailLog = Object.assign({}, state.holdFailLog || {});
+  state.caliFailLog = Object.assign({}, state.caliFailLog || {});
+  state.caliAmrapLog = Object.assign({}, state.caliAmrapLog || {});
   state.failLog = Object.assign({}, state.failLog || {});
+  state.amrapLog = Object.assign({}, state.amrapLog || {});
   state.sessionLog = Array.isArray(state.sessionLog) ? state.sessionLog : [];
+  state.caliLog = Array.isArray(state.caliLog) ? state.caliLog : [];
   if (!Number.isFinite(Number(state.mode))) state.mode = base.mode;
   if (!Number.isFinite(Number(state.bbTab))) state.bbTab = base.bbTab;
   if (!Number.isFinite(Number(state.caliTab))) state.caliTab = base.caliTab;
   if (!Number.isFinite(Number(state.dayIdx)) || !SCHED[state.dayIdx]) state.dayIdx = base.dayIdx;
+  if (!Number.isFinite(Number(state.caliDayIdx)) || !CALI_SCHED[state.caliDayIdx]) state.caliDayIdx = base.caliDayIdx;
   if (!Number.isFinite(Number(state.cycle))) state.cycle = base.cycle;
+  if (!Number.isFinite(Number(state.caliCycle))) state.caliCycle = base.caliCycle;
   return state;
 }
 
@@ -543,6 +629,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .amrap-btn.done{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:2px 2px 0 var(--ink)}
 .amrap-btn.failed{background:var(--red);border-color:var(--red);color:#fff;box-shadow:2px 2px 0 var(--ink)}
 
+.ladder-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:2px dashed #E5E5DD}
+.lad-btn{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:5px 8px;border:2px solid var(--ink);border-radius:8px;background:var(--card);cursor:pointer;color:var(--ink);white-space:nowrap}
+.lad-btn:disabled{opacity:0.3;cursor:default}
+.lad-btn.grad{background:var(--green);color:#fff;border-color:var(--green)}
+.lad-btn.grad:disabled{background:var(--card);color:var(--ink);border-color:var(--ink)}
+.lad-track{display:flex;gap:4px;flex:1;justify-content:center}
+.lad-pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);background:var(--card)}
+.lad-pip.on{border-color:var(--ink)}
+
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px}
 .modal{background:var(--card);border:3px solid var(--ink);border-radius:20px 20px 16px 16px;width:100%;max-width:390px;padding:20px 20px 24px;box-shadow:0 -4px 0 var(--ink)}
 .modal-title{font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:4px}
@@ -579,6 +674,10 @@ function FailModal(props) {
   var setNum = props.setNum;
   var onConfirm = props.onConfirm;
   var onCancel = props.onCancel;
+  var cali = props.cali;
+  var step = cali ? 2.5 : SNAP;
+  var floorW = cali ? 0 : BAR;
+  function stepW(w, dir) { var nv = w + dir * step; return Math.max(floorW, Math.round(nv / step) * step); }
 
   var weightPair = useState(targetWeight);
   var achievedWeight = weightPair[0];
@@ -601,12 +700,12 @@ function FailModal(props) {
               <div className="modal-row-val" style={{ color: achievedWeight < targetWeight ? "var(--red)" : achievedWeight > targetWeight ? "var(--green)" : liftColor }}>{achievedWeight}</div>
               <div className="modal-row-unit">kg</div>
             </div>
-            <div className="modal-row-target">goal {targetWeight}kg · {plates(achievedWeight)}</div>
+            <div className="modal-row-target">goal {cali ? "+" : ""}{targetWeight}kg{cali ? "" : " · " + plates(achievedWeight)}</div>
             <div className="modal-row-target" style={{color:"var(--orange)",fontWeight:700}}>est 1RM: {epley(achievedWeight, achievedReps)}kg</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return snapW(w + SNAP); }) }}>↑</button>
-            <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return Math.max(BAR, snapW(w - SNAP)); }) }} disabled={achievedWeight <= BAR}>↓</button>
+            <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return stepW(w, 1); }) }}>↑</button>
+            <button className="modal-dec" onClick={function() { setAchievedWeight(function(w) { return stepW(w, -1); }) }} disabled={achievedWeight <= floorW}>↓</button>
           </div>
         </div>
 
@@ -634,6 +733,146 @@ function FailModal(props) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── SKILL CARD (dynamic reps: muscle-up, HSPU) ────────────────────────────────
+function SkillCard(props) {
+  var id = props.id, sets = props.sets || [], onDone = props.onDone, onFail = props.onFail, level = props.level, onGraduate = props.onGraduate, cfg = props.cfg || {};
+  var h = HOLDS[id];
+  var tot = sets.length;
+  var doneN = sets.filter(function(s) { return s === "done"; }).length;
+  var failN = sets.filter(function(s) { return s === "fail"; }).length;
+  var allDone = doneN === tot && failN === 0 && tot > 0;
+  var ladder = h.ladder || [];
+  var lvlIdx = ladder.indexOf(level);
+  var reps = cfg.reps || h.defReps || 3;
+  return (
+    <div className={"bc" + (allDone ? " isdone" : failN ? " isfail" : "")}>
+      <div className="bc-top">
+        <div className="bc-dot" style={{ background: h.color }} />
+        <div className="bc-inf">
+          <div className="bc-name">{h.emoji} {h.name}</div>
+          <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
+            <div className="bc-w" style={{ color:h.color, fontSize:38 }}>{reps}</div>
+            <div className="bc-kg">reps</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            <span style={{fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:"#fff",background:h.color,borderRadius:6,padding:"2px 8px"}}>{level}</span>
+            <span style={{color:"var(--mid)",fontWeight:700,fontSize:11}}>{tot} sets</span>
+          </div>
+        </div>
+        <div className="bc-sdots">
+          {sets.map(function(s, i) {
+            return <div key={i} className={"dot" + (s === "done" ? " done" : s === "fail" ? " fail" : "")} />;
+          })}
+        </div>
+      </div>
+      <div className="sets-row">
+        {sets.map(function(state, i) {
+          return (
+            <div key={i} className="sblk">
+              <div className="slbl">S{i + 1}</div>
+              <div className="spair">
+                <button className={"sd" + (state === "done" ? " on" : "")}
+                  onClick={function(e) {
+                    if (state !== "done") { var r=e.currentTarget.getBoundingClientRect(); emitBurst(makeDoneBurst(r.left+r.width/2, r.top+r.height/2, HOLD_EMOJIS)); }
+                    onDone(i);
+                  }}>✓</button>
+                <button className={"sf" + (state === "fail" ? " on" : "")} style={{flex:1}}
+                  onClick={function() { onFail(i); }}>✕</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="ladder-row">
+        <button className="lad-btn" disabled={lvlIdx <= 0} onClick={function() { onGraduate(id, -1); }}>← regress</button>
+        <div className="lad-track">
+          {ladder.map(function(step, i) {
+            return <div key={i} className={"lad-pip" + (i <= lvlIdx ? " on" : "")} style={i <= lvlIdx ? {background:h.color} : {}} title={step} />;
+          })}
+        </div>
+        <button className="lad-btn grad" disabled={lvlIdx >= ladder.length - 1} onClick={function() { onGraduate(id, 1); }}>graduate →</button>
+      </div>
+    </div>
+  );
+}
+
+// ── CALI LIFT CARD (weighted pull-up / dip — kg tracked) ──────────────────────
+function CaliLiftCard(props) {
+  var id = props.id, sl = props.sl, wt = props.wt, sets = props.sets, onDone = props.onDone, onFail = props.onFail, onAmrap = props.onAmrap || function(){};
+  var lift = CALI_LIFTS[id];
+  var tot = sets.length;
+  var reg = sl.amrap ? tot - 1 : tot;
+  var doneN = sets.filter(function(s) { return s === "done"; }).length;
+  var failN = sets.filter(function(s) { return s === "fail"; }).length;
+  var allDone = doneN === tot && failN === 0;
+  var modalPair = useState(null); var activeModal = modalPair[0]; var setActiveModal = modalPair[1];
+  return (
+    <div className={"bc" + (allDone ? " isdone" : failN ? " isfail" : "")}>
+      <div className="bc-top">
+        <div className="bc-dot" style={{ background: lift.color }} />
+        <div className="bc-inf">
+          <div className="bc-name">{lift.name}</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:8,marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:3}}>
+              <div className="bc-w" style={{ color: lift.color }}>+{wt}</div>
+              <div className="bc-kg">kg</div>
+            </div>
+          </div>
+          <div className="bc-sch">
+            <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>{reg} sets ×</span>
+            <span style={{color:lift.color,fontWeight:900,fontSize:32,letterSpacing:-1,lineHeight:1}}>{sl.amrap ? sl.reps + " + AMRAP" : sl.reps}</span>
+            <span style={{color:"var(--mid)",fontWeight:700,fontSize:15}}>reps</span>
+          </div>
+        </div>
+        <div className="bc-sdots">
+          {sets.map(function(s, i) {
+            var isAmrap = sl.amrap && i === tot - 1;
+            var cls = "dot" + (isAmrap ? " sq" : "") + (s === "done" ? " done" : s === "fail" ? " fail" : s === "pr" ? " pr" : s === "crushed" ? " done" : "");
+            return <div key={i} className={cls} style={isAmrap && s === "idle" ? {borderColor:"#FFD93D"} : {}} />;
+          })}
+        </div>
+      </div>
+      <div className="sets-row">
+        {sets.map(function(state, i) {
+          var isAmrap = sl.amrap && i === tot - 1;
+          return (
+            <div key={i} className="sblk">
+              <div className={"slbl" + (isAmrap ? " am" : "")}>{isAmrap ? "AMRP" : "S" + (i + 1)}</div>
+              {isAmrap ? (
+                <div style={{display:"flex",border:"2.5px solid var(--ink)",borderRadius:12,overflow:"hidden",boxShadow:"2px 2px 0 var(--ink)",width:"100%"}}>
+                  <button onClick={function(e) { if (state !== "crushed") { emitBurst(makeDoneBurst(e.currentTarget.getBoundingClientRect().left+30, e.currentTarget.getBoundingClientRect().top, ["🔥","💥","⚡","🏆","🎊"])); } onAmrap(i, state === "crushed" ? "idle" : "crushed"); }}
+                    style={{flex:1,padding:"7px 2px",background:state==="crushed"?"var(--green)":"var(--card)",color:state==="crushed"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>🔥<br/>CRUSHED</button>
+                  <button onClick={function() { onAmrap(i, state === "done" ? "idle" : "done"); }}
+                    style={{flex:1,padding:"7px 2px",background:state==="done"?"var(--ink)":"var(--card)",color:state==="done"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>✓<br/>DONE</button>
+                  <button onClick={function() { if (state === "fail") { onAmrap(i, "idle"); return; } setActiveModal({ setIdx: i }); }}
+                    style={{flex:1,padding:"7px 2px",background:state==="fail"?"var(--red)":"var(--card)",color:state==="fail"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none"}}>✕<br/>FAIL</button>
+                </div>
+              ) : (
+                <div className="spair">
+                  <button className={"sd" + (state === "done" ? " on" : "")}
+                    onClick={function(e) { if (state !== "done") { var r=e.currentTarget.getBoundingClientRect(); emitBurst(makeDoneBurst(r.left+r.width/2, r.top+r.height/2, DONE_EMOJIS)); } onDone(i); }}>✓</button>
+                  <button className={"sf" + (state === "fail" ? " on" : state === "pr" ? " pr" : "")} style={{flex:1}}
+                    onClick={function() { if (state === "fail") { onFail(i); return; } setActiveModal({ setIdx: i }); }}>{state === "pr" ? "🔥" : "✕"}</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {activeModal !== null && (
+        <FailModal cali={true} liftName={lift.name} liftColor={lift.color} targetWeight={wt} targetReps={sl.reps} setNum={activeModal.setIdx + 1}
+          onCancel={function() { setActiveModal(null); }}
+          onConfirm={function(result) {
+            if (result.isPR) { emitBurst(makeDoneBurst(window.innerWidth/2, window.innerHeight/2, PR_EMOJIS)); }
+            else { emitBurst(makeFailBurst(window.innerWidth/2, window.innerHeight/2)); }
+            onFail(activeModal.setIdx, result);
+            setActiveModal(null);
+          }} />
+      )}
     </div>
   );
 }
@@ -817,7 +1056,7 @@ function HoldFailModal(props) {
 }
 
 function HoldCard(props) {
-  var id = props.id, cfg = props.cfg || {}, sets = props.sets || [], onDone = props.onDone, onFail = props.onFail;
+  var id = props.id, cfg = props.cfg || {}, sets = props.sets || [], onDone = props.onDone, onFail = props.onFail, level = props.level, onGraduate = props.onGraduate;
   var hold = HOLDS[id];
   var tot = sets.length;
   var doneN = sets.filter(function(s) { return s === "done"; }).length;
@@ -850,7 +1089,7 @@ function HoldCard(props) {
             <div className="hc-val" style={{ color: hold.color }}>{displayVal}</div>
             <div className="hc-unit">{displayUnit}</div>
           </div>
-          <div className="hc-goal">{hold.goal}</div>
+          {level && <div style={{display:"inline-block",fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,color:"#fff",background:hold.color,borderRadius:6,padding:"2px 8px",marginBottom:4}}>{level}</div>}
           <div className="hc-note">{hold.note}</div>
         </div>
         <div className="bc-sdots">
@@ -904,11 +1143,83 @@ function HoldCard(props) {
           }}
         />
       )}
+      {onGraduate && hold.ladder && (function() {
+        var lvlIdx = hold.ladder.indexOf(level);
+        return (
+          <div className="ladder-row">
+            <button className="lad-btn" disabled={lvlIdx <= 0} onClick={function() { onGraduate(id, -1); }}>← regress</button>
+            <div className="lad-track">
+              {hold.ladder.map(function(step, i) {
+                return <div key={i} className={"lad-pip" + (i <= lvlIdx ? " on" : "")} style={i <= lvlIdx ? {background:hold.color} : {}} title={step} />;
+              })}
+            </div>
+            <button className="lad-btn grad" disabled={lvlIdx >= hold.ladder.length - 1} onClick={function() { onGraduate(id, 1); }}>graduate →</button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
 
 
+
+// ── CALI LIFT STATS (weighted pull-up / dip) ──────────────────────────────────
+function CaliLiftStats(props) {
+  var id = props.id, history = props.history || [], weight = props.weight, onWeight = props.onWeight;
+  var lift = CALI_LIFTS[id];
+  var pair1 = useState(false); var open = pair1[0]; var setOpen = pair1[1];
+  var pair2 = useState("max"); var ct = pair2[0]; var setCt = pair2[1];
+  var ls = history.filter(function(e) { return e && e.lifts && e.lifts[id]; }).map(function(e) { return e.lifts[id]; });
+  var volD = ls.map(function(x, i) { return { x:i, y:x.volume }; });
+  var maxD = ls.map(function(x, i) { return { x:i, y:x.maxWeight }; });
+  var ormD = ls.map(function(x, i) { return { x:i, y:x.orm }; });
+  var chartD = ct === "volume" ? volD : ct === "max" ? maxD : ormD;
+  var maxMax = maxD.length ? Math.max.apply(null, maxD.map(function(d){return d.y;})) : null;
+  var lastVol = volD.length ? Math.round(volD[volD.length-1].y) : null;
+  var lastOrm = ormD.length ? ormD[ormD.length-1].y : null;
+  var cur = weight != null ? weight : lift.base;
+  return (
+    <div className="lac">
+      <div className="lach" onClick={function() { setOpen(function(o){return !o;}); }}>
+        <div style={{ width:3, alignSelf:"stretch", background:lift.color, flexShrink:0, borderRadius:2 }} />
+        <div style={{ marginLeft:7, flex:1 }}>
+          <div style={{ display:"flex", alignItems:"baseline", gap:6 }}>
+            <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:20, color:lift.color, letterSpacing:-0.5 }}>+{cur}<span style={{fontSize:12,color:"var(--mid)"}}>kg</span></span>
+            <span style={{ fontSize:11, fontWeight:700, color:"var(--mid)", letterSpacing:0.5 }}>{lift.name}</span>
+          </div>
+          <div style={{ display:"flex", gap:10, marginTop:3 }}>
+            <span style={{fontSize:10,fontWeight:700,color:"var(--mid)"}}>1RM <strong style={{color:"var(--ink)"}}>{lastOrm?lastOrm+"kg":"—"}</strong></span>
+            <span style={{fontSize:10,fontWeight:700,color:"var(--mid)"}}>MAX <strong style={{color:"var(--ink)"}}>{maxMax?maxMax+"kg":"—"}</strong></span>
+            <span style={{fontSize:10,fontWeight:700,color:"var(--mid)"}}>VOL <strong style={{color:"var(--ink)"}}>{lastVol||"—"}</strong></span>
+          </div>
+        </div>
+        <div style={{ fontSize:14, color:"var(--mid)" }}>{open ? "▾" : "▸"}</div>
+      </div>
+      {open && (
+        <div style={{ padding:"4px 14px 14px" }}>
+          <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+            {["volume","max","1rm"].map(function(t) {
+              return <button key={t} className={"ctab" + (ct===t?" on":"")} style={ct===t?{background:lift.color,borderColor:lift.color,color:"#fff"}:{}} onClick={function(){setCt(t);}}>{t==="volume"?"VOL":t==="max"?"MAX WT":"1RM"}</button>;
+            })}
+          </div>
+          <MiniChart data={chartD} color={lift.color} />
+          <div style={{ marginTop:14, paddingTop:12, borderTop:"2px dashed #E5E5DD" }}>
+            <div style={{ fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:1, color:"var(--mid)", fontWeight:700, marginBottom:8 }}>ADDED WEIGHT</div>
+            <div className="crow">
+              <div className="clabel" style={{color:lift.color}}>{lift.abbr}</div>
+              <div className="cst">
+                <button className="cb" onClick={function(){onWeight(-2.5);}}>−</button>
+                <span className="cv">+{cur} kg</span>
+                <button className="cb" onClick={function(){onWeight(2.5);}}>+</button>
+              </div>
+            </div>
+            <div style={{fontSize:11,color:"var(--mid)",fontWeight:700,marginTop:6}}>{lift.note}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── LIFT STATS ────────────────────────────────────────────────────────────────
 function LiftStats(props) {
@@ -1267,9 +1578,15 @@ function buildLiftHistory(sessionLog) {
   });
 }
 
-function buildHoldHistory(sessionLog) {
-  return (sessionLog || []).map(function(entry, idx) {
+function buildHoldHistory(caliLog) {
+  return (caliLog || []).map(function(entry, idx) {
     return { idx: idx, holds: entry.holds || {} };
+  });
+}
+
+function buildCaliLiftHistory(caliLog) {
+  return (caliLog || []).map(function(entry, idx) {
+    return { idx: idx, lifts: entry.caliLifts || {} };
   });
 }
 
@@ -1326,7 +1643,8 @@ export default function App() {
   });
 
   var liftHistory = buildLiftHistory(st.sessionLog);
-  var holdHistory = buildHoldHistory(st.sessionLog);
+  var holdHistory = buildHoldHistory(st.caliLog);
+  var caliLiftHistory = buildCaliLiftHistory(st.caliLog);
 
 
   // Build session snapshot from a given state — used to update log live
@@ -1340,7 +1658,6 @@ export default function App() {
       curWts[id] = w8 ? { w8:w8, w4:w4from8(w8) } : { w8:null, w4:null };
     });
     var lifts = {};
-    var holds = {};
     daySchedule.lifts.forEach(function(sl) {
       if (LIFTS[sl.id].rehab) return;
       var sets = (state.liftSets[dayIdx] || {})[sl.id] || [];
@@ -1397,15 +1714,7 @@ export default function App() {
       });
       lifts[sl.id] = { weight:wt, volume:volume, maxWeight:maxWeight, orm:bestOrm };
     });
-    Object.keys(HOLDS).forEach(function(id) {
-      if (HOLDS[id].rehab) return;
-      var sets = state.holdSets[id] || [];
-      var doneSets = sets.filter(function(s) { return s === "done"; }).length;
-      if (doneSets === 0) return;
-      var cfg = state.holdCfg[id] || {};
-      holds[id] = { secs:cfg.secs||0, sets:doneSets, totalTime:(cfg.secs||0)*doneSets };
-    });
-    if (Object.keys(lifts).length === 0 && Object.keys(holds).length === 0) return null;
+    if (Object.keys(lifts).length === 0) return null;
     return { cycle:state.cycle||1, dayIdx:dayIdx, lifts:lifts, holds:holds };
   }
 
@@ -1425,7 +1734,6 @@ export default function App() {
       curWts[id] = w8 ? { w8:w8, w4:w4from8(w8) } : { w8:null, w4:null };
     });
     var lifts = {};
-    var holds = {};
     daySchedule.lifts.forEach(function(sl) {
       if (LIFTS[sl.id].rehab) return;
       var sets = (state.liftSets[dayIdx] || {})[sl.id] || [];
@@ -1482,16 +1790,8 @@ export default function App() {
       });
       lifts[sl.id] = { weight:wt, volume:volume, maxWeight:maxWeight, orm:bestOrm };
     });
-    Object.keys(HOLDS).forEach(function(id) {
-      if (HOLDS[id].rehab) return;
-      var sets = state.holdSets[id] || [];
-      var doneSets = sets.filter(function(s) { return s === "done"; }).length;
-      if (doneSets === 0) return;
-      var cfg = state.holdCfg[id] || {};
-      holds[id] = { secs:cfg.secs||0, sets:doneSets, totalTime:(cfg.secs||0)*doneSets };
-    });
-    if (Object.keys(lifts).length === 0 && Object.keys(holds).length === 0) return state;
-    var snapshot = { cycle:state.cycle||1, dayIdx:dayIdx, lifts:lifts, holds:holds };
+    if (Object.keys(lifts).length === 0) return state;
+    var snapshot = { cycle:state.cycle||1, dayIdx:dayIdx, lifts:lifts };
     var log = (state.sessionLog || []).slice();
     // Deduplicate: replace existing entry for same cycle+day, else append
     var existingIdx = -1;
@@ -1598,6 +1898,161 @@ export default function App() {
     });
   }
 
+  // ── CALI SESSION + CYCLE ──────────────────────────────────────────────────
+  function upsertCaliSession(state) {
+    var di = state.caliDayIdx;
+    var day = CALI_SCHED[di];
+    if (!day) return state;
+    var holds = {};
+    var caliLifts = {};
+    var dyns = {};
+    // Static holds
+    day.holds.forEach(function(id) {
+      var sets = ((state.holdSets[di] || {})[id]) || [];
+      var doneSets = sets.filter(function(s) { return s === "done"; }).length;
+      if (doneSets === 0) return;
+      var cfg = state.holdCfg[id] || {};
+      var lvl = (state.holdLevels && state.holdLevels[id] != null) ? HOLDS[id].ladder[state.holdLevels[id]] : "";
+      holds[id] = { secs:cfg.secs||0, sets:doneSets, totalTime:(cfg.secs||0)*doneSets, level:lvl };
+    });
+    // Dynamic skills
+    day.dyn.forEach(function(id) {
+      var sets = ((state.caliDynSets[di] || {})[id]) || [];
+      var doneSets = sets.filter(function(s) { return s === "done"; }).length;
+      if (doneSets === 0) return;
+      var lvl = (state.holdLevels && state.holdLevels[id] != null) ? HOLDS[id].ladder[state.holdLevels[id]] : "";
+      dyns[id] = { sets:doneSets, reps:(state.holdCfg[id] && state.holdCfg[id].reps) || HOLDS[id].defReps || 0, level:lvl };
+    });
+    // Weighted lifts
+    day.lifts.forEach(function(sl) {
+      var sets = ((state.caliLiftSets[di] || {})[sl.id]) || [];
+      var doneSets = sets.filter(function(s) { return s === "done"; }).length;
+      var prSets = sets.filter(function(s) { return s === "pr"; }).length;
+      var crushed = sets.filter(function(s) { return s === "crushed"; }).length;
+      var amrapDone = sets.filter(function(s) { return s === "done" || s === "crushed"; }).length;
+      if (doneSets === 0 && prSets === 0 && crushed === 0) return;
+      var wt = (state.caliWeights && state.caliWeights[sl.id] != null) ? state.caliWeights[sl.id] : CALI_LIFTS[sl.id].base;
+      var totalReps = (doneSets + crushed) * sl.reps;
+      var volume = wt * totalReps;
+      var maxWeight = wt, bestOrm = epley(wt, sl.reps);
+      sets.forEach(function(s, si) {
+        if (s === "pr" || s === "fail") {
+          var key = (state.caliCycle||1) + "-" + di + "-" + sl.id + "-" + si;
+          var r = (state.caliFailLog || {})[key];
+          if (r) {
+            volume += r.weight * r.reps;
+            if (r.weight > maxWeight) maxWeight = r.weight;
+            var o = epley(r.weight, r.reps); if (o > bestOrm) bestOrm = o;
+          }
+        }
+      });
+      caliLifts[sl.id] = { weight:wt, volume:volume, maxWeight:maxWeight, orm:bestOrm };
+    });
+    if (Object.keys(holds).length === 0 && Object.keys(caliLifts).length === 0 && Object.keys(dyns).length === 0) return state;
+    var snapshot = { caliCycle:state.caliCycle||1, caliDayIdx:di, holds:holds, dyns:dyns, caliLifts:caliLifts, isCali:true };
+    var log = (state.caliLog || []).slice();
+    var existingIdx = -1;
+    log.forEach(function(entry, i) {
+      if (entry.caliCycle === snapshot.caliCycle && entry.caliDayIdx === snapshot.caliDayIdx) existingIdx = i;
+    });
+    if (existingIdx >= 0) log[existingIdx] = snapshot; else log.push(snapshot);
+    if (log.length > 200) log = log.slice(log.length - 200);
+    var ns = Object.assign({}, state);
+    ns.caliLog = log;
+    return ns;
+  }
+
+  function logCurrentCaliSession() {
+    setSt(function(prev) { return upsertCaliSession(prev); });
+  }
+
+  function finishCaliSession() {
+    logCurrentCaliSession();
+    var isLastDay = st.caliDayIdx === CALI_SCHED.length - 1;
+    setCelebrating(true);
+    emitBurst(Array.from({ length: 24 }, function() {
+      return {
+        id: burstId++, type: "done",
+        emoji: pickRandom(["🎉","💪","🔥","⚡","🏆","🎊","💥","🦾","🚀","⭐","🏅","✨"]),
+        x: window.innerWidth / 2, y: window.innerHeight / 2,
+        dx: (Math.random() - 0.5) * 400,
+        dy: -(Math.random() * 350 + 100),
+        rot: (Math.random() - 0.5) * 720,
+        sc: 0.8 + Math.random() * 1.2,
+      };
+    }));
+    setTimeout(function() {
+      setCelebrating(false);
+      if (isLastDay) { advanceCaliCycle(); }
+      else { setSt(function(prev) { return Object.assign({}, prev, { caliDayIdx: prev.caliDayIdx + 1 }); }); }
+    }, 1800);
+  }
+
+  function advanceCaliCycle() {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      var amrapLog = next.caliAmrapLog || {};
+      // Weighted lifts: progress by AMRAP result or normal increment
+      Object.keys(CALI_LIFTS).forEach(function(id) {
+        var prog = next.caliProgs[id] || { inc:CALI_LIFTS[id].defInc };
+        var amrapResult = null;
+        Object.keys(amrapLog).forEach(function(key) {
+          var parts = key.split("-");
+          if (parts[2] === id) amrapResult = amrapLog[key];
+        });
+        var inc = amrapResult === "crushed" ? (prog.inc * 2) : prog.inc;
+        if (next.caliWeights[id] != null) next.caliWeights[id] = next.caliWeights[id] + inc;
+      });
+      // Static holds: if hit target across the cycle, bump seconds; graduate at top of range
+      Object.keys(HOLDS).forEach(function(id) {
+        if (HOLDS[id].isReps) return;
+        var cfg = next.holdCfg[id]; if (!cfg) return;
+        // Did all logged sets for this hold succeed this cycle?
+        var anyFail = false, anyDone = false;
+        Object.keys(next.holdSets).forEach(function(di) {
+          var sets = (next.holdSets[di] || {})[id];
+          if (!sets) return;
+          sets.forEach(function(s) {
+            if (s === "fail") anyFail = true;
+            if (s === "done") anyDone = true;
+          });
+        });
+        if (anyDone && !anyFail) {
+          var newSecs = cfg.secs + (cfg.inc || HOLDS[id].defInc);
+          // Graduate if at top of typical range (12s)
+          if (newSecs >= 12 && next.holdLevels[id] < HOLDS[id].ladder.length - 1) {
+            next.holdLevels[id] = next.holdLevels[id] + 1;
+            cfg.secs = Math.max(3, Math.round(HOLDS[id].defSecs * 0.7));
+          } else {
+            cfg.secs = newSecs;
+          }
+        }
+      });
+      // Reset all cali set tracking
+      next.holdSets = makeDefaultHoldSets(next.holdCfg);
+      next.caliDynSets = makeDefaultCaliDynSets();
+      next.caliLiftSets = makeDefaultCaliLiftSets();
+      next.caliAmrapLog = {};
+      next.caliDayIdx = 0;
+      next.caliCycle = (next.caliCycle || 1) + 1;
+      // Clear old cali fail logs
+      var newCycle = next.caliCycle;
+      var cleaned = {};
+      Object.keys(next.caliFailLog || {}).forEach(function(key) {
+        var kc = parseInt(key.split("-")[0]);
+        if (kc >= newCycle) cleaned[key] = next.caliFailLog[key];
+      });
+      next.caliFailLog = cleaned;
+      var cleanedH = {};
+      Object.keys(next.holdFailLog || {}).forEach(function(key) {
+        var kc = parseInt(key.split("-")[0]);
+        if (kc >= newCycle) cleanedH[key] = next.holdFailLog[key];
+      });
+      next.holdFailLog = cleanedH;
+      return next;
+    });
+  }
+
   function markLiftDone(lid, si) {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
@@ -1634,24 +2089,118 @@ export default function App() {
   function markHoldDone(hid, si) {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
-      var cur = next.holdSets[hid][si];
-      next.holdSets[hid][si] = cur === "done" ? "idle" : "done";
-      return upsertSession(next);
+      var di = prev.caliDayIdx;
+      if (!next.holdSets[di]) next.holdSets[di] = {};
+      if (!next.holdSets[di][hid]) next.holdSets[di][hid] = [];
+      var cur = next.holdSets[di][hid][si];
+      next.holdSets[di][hid][si] = cur === "done" ? "idle" : "done";
+      return upsertCaliSession(next);
     });
   }
 
   function markHoldFail(hid, si, result) {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
-      var cur = next.holdSets[hid][si];
-      next.holdSets[hid][si] = cur === "fail" ? "idle" : "fail";
+      var di = prev.caliDayIdx;
+      if (!next.holdSets[di]) next.holdSets[di] = {};
+      if (!next.holdSets[di][hid]) next.holdSets[di][hid] = [];
+      var cur = next.holdSets[di][hid][si];
+      next.holdSets[di][hid][si] = cur === "fail" ? "idle" : "fail";
       if (result && cur !== "fail") {
         if (!next.holdFailLog) next.holdFailLog = {};
-        var cycle = prev.cycle || 1;
-        var key = cycle + "-" + hid + "-" + si;
-        next.holdFailLog[key] = Object.assign({}, result, { _cycle: cycle, _hid: hid, _si: si });
+        var cycle = prev.caliCycle || 1;
+        var key = cycle + "-" + di + "-" + hid + "-" + si;
+        next.holdFailLog[key] = Object.assign({}, result, { _cycle: cycle, _di: di, _hid: hid, _si: si });
       }
-      return upsertSession(next);
+      return upsertCaliSession(next);
+    });
+  }
+
+  // Dynamic skill reps (muscle-up, HSPU) — done/fail per cali day
+  function markCaliDyn(did, si, isFail) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      var di = prev.caliDayIdx;
+      if (!next.caliDynSets[di]) next.caliDynSets[di] = {};
+      if (!next.caliDynSets[di][did]) next.caliDynSets[di][did] = [];
+      var cur = next.caliDynSets[di][did][si];
+      var target = isFail ? "fail" : "done";
+      next.caliDynSets[di][did][si] = cur === target ? "idle" : target;
+      return upsertCaliSession(next);
+    });
+  }
+
+  // Weighted cali lift sets (pull-up, dip)
+  function markCaliLift(lid, si) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      var di = prev.caliDayIdx;
+      if (!next.caliLiftSets[di]) next.caliLiftSets[di] = {};
+      if (!next.caliLiftSets[di][lid]) next.caliLiftSets[di][lid] = [];
+      var cur = next.caliLiftSets[di][lid][si];
+      next.caliLiftSets[di][lid][si] = cur === "done" ? "idle" : "done";
+      return upsertCaliSession(next);
+    });
+  }
+
+  function markCaliLiftFail(lid, si, result) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      var di = prev.caliDayIdx;
+      if (!next.caliLiftSets[di]) next.caliLiftSets[di] = {};
+      if (!next.caliLiftSets[di][lid]) next.caliLiftSets[di][lid] = [];
+      var cur = next.caliLiftSets[di][lid][si];
+      var isPR = result && result.isPR;
+      if ((isPR && cur === "pr") || (!isPR && cur === "fail")) {
+        next.caliLiftSets[di][lid][si] = "idle";
+      } else {
+        next.caliLiftSets[di][lid][si] = isPR ? "pr" : "fail";
+      }
+      if (result && cur !== "fail" && cur !== "pr") {
+        if (!next.caliFailLog) next.caliFailLog = {};
+        var cycle = prev.caliCycle || 1;
+        var key = cycle + "-" + di + "-" + lid + "-" + si;
+        next.caliFailLog[key] = Object.assign({}, result, { _cycle: cycle, _di: di, _lid: lid, _si: si });
+      }
+      return upsertCaliSession(next);
+    });
+  }
+
+  function markCaliAmrap(lid, si, result) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      var di = prev.caliDayIdx;
+      if (!next.caliLiftSets[di]) next.caliLiftSets[di] = {};
+      next.caliLiftSets[di][lid][si] = result;
+      if (!next.caliAmrapLog) next.caliAmrapLog = {};
+      var key = (prev.caliCycle||1) + "-" + di + "-" + lid;
+      if (result === "idle") { delete next.caliAmrapLog[key]; }
+      else { next.caliAmrapLog[key] = result; }
+      return upsertCaliSession(next);
+    });
+  }
+
+  function updateCaliWeight(id, delta) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      next.caliWeights[id] = Math.max(0, (next.caliWeights[id] || CALI_LIFTS[id].base) + delta);
+      return next;
+    });
+  }
+
+  // Graduate a skill up its ladder
+  function graduateSkill(id, dir) {
+    setSt(function(prev) {
+      var next = JSON.parse(JSON.stringify(prev));
+      var ladder = HOLDS[id].ladder || [];
+      var cur = next.holdLevels[id] || 0;
+      var nv = Math.max(0, Math.min(ladder.length - 1, cur + dir));
+      next.holdLevels[id] = nv;
+      // When graduating up, reset hold time to a lower starting point
+      if (dir > 0 && !HOLDS[id].isReps && next.holdCfg[id]) {
+        next.holdCfg[id].secs = Math.max(3, Math.round(HOLDS[id].defSecs * 0.7));
+      }
+      return next;
     });
   }
 
@@ -1659,9 +2208,6 @@ export default function App() {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
       next.holdCfg[id] = val;
-      var count = val.sets != null ? val.sets : prev.holdCfg[id].sets;
-      var oldSets = next.holdSets[id] || [];
-      next.holdSets[id] = Array(count).fill("idle").map(function(_, i) { return oldSets[i] || "idle"; });
       return next;
     });
   }
@@ -1892,52 +2438,123 @@ export default function App() {
         )}
 
         {/* CALI TRAIN */}
-        {st.mode === 1 && atab === 0 && (
+        {st.mode === 1 && atab === 0 && (function() {
+          var cday = CALI_SCHED[st.caliDayIdx] || CALI_SCHED[0];
+          var purple = "#8B5CF6";
+          return (
           <div className="pg">
-            <div className="shead" style={{ color:"#8B5CF6" }}>HOLDS & SKILLS <span style={{ color:"var(--mid)", fontSize:14, fontFamily:"'Space Mono',monospace", fontWeight:700 }}>/ {Object.keys(HOLDS).length}</span></div>
-            <div className="motd" style={{ background:"#EDE9FE", borderColor:"#8B5CF6" }}>
+            <div className="wtag">CALI CYCLE <strong>{st.caliCycle || 1}</strong> · <strong>{cday.focus}</strong></div>
+            <div className="motd" style={{ background:"#EDE9FE", borderColor:purple }}>
               <div className="motd-q">"{motiv.q}"</div>
               {motiv.a && <div className="motd-a" style={{ color:"#7C3AED" }}>— {motiv.a}</div>}
             </div>
-            <div style={{ fontSize:12, color:"var(--mid)", letterSpacing:"1px", marginBottom:12, lineHeight:1.6, fontWeight:700 }}>✓ completed · ✕ dropped early</div>
-            <div className="stack">
-              {Object.keys(HOLDS).map(function(id) {
-                var holdSets = st.holdSets[id] || Array(st.holdCfg[id] ? st.holdCfg[id].sets : 0).fill("idle");
+            <div className="drow">
+              {CALI_SCHED.map(function(day, i) {
+                var hs = st.holdSets[i] || {}, ds = st.caliDynSets[i] || {}, ls = st.caliLiftSets[i] || {};
+                var flat = [];
+                [hs, ds, ls].forEach(function(grp) { Object.keys(grp).forEach(function(k) { (grp[k]||[]).forEach(function(s){ flat.push(s); }); }); });
+                var hasDone = flat.some(function(s) { return s === "done" || s === "pr" || s === "crushed"; });
+                var isCurrent = i === st.caliDayIdx;
+                var btnStyle = isCurrent ? { background:purple, borderColor:purple, color:"#fff" }
+                  : hasDone ? { background:"var(--green-bg)", borderColor:"var(--green)", color:"var(--green)" } : {};
                 return (
-                  <HoldCard key={id} id={id} cfg={st.holdCfg[id]}
-                    sets={holdSets}
+                  <button key={i} className="dbt" style={btnStyle}
+                    onClick={function() { logCurrentCaliSession(); setSt({ caliDayIdx:i }); }}>
+                    {hasDone && !isCurrent ? "✓ " : ""}{day.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="shead" style={{ color:purple }}>{cday.label} <span style={{ color:"var(--mid)", fontSize:14, fontFamily:"'Space Mono',monospace", fontWeight:700 }}>/ {cday.focus}</span></div>
+
+            <div style={{fontSize:11,color:"var(--mid)",letterSpacing:1,fontWeight:700,margin:"4px 0 10px"}}>SKILL — fresh CNS first</div>
+            <div className="stack">
+              {cday.holds.map(function(id) {
+                var sets = (st.holdSets[st.caliDayIdx] || {})[id] || [];
+                var lvl = HOLDS[id].ladder[st.holdLevels[id] || 0];
+                return (
+                  <HoldCard key={"h-"+id} id={id} cfg={st.holdCfg[id]} sets={sets} level={lvl}
+                    onGraduate={graduateSkill}
                     onDone={function(si) { markHoldDone(id, si); }}
                     onFail={function(si, result) { markHoldFail(id, si, result); }} />
                 );
               })}
+              {cday.dyn.map(function(id) {
+                var sets = (st.caliDynSets[st.caliDayIdx] || {})[id] || [];
+                var lvl = HOLDS[id].ladder[st.holdLevels[id] || 0];
+                return (
+                  <SkillCard key={"d-"+id} id={id} sets={sets} level={lvl} cfg={st.holdCfg[id]}
+                    onGraduate={graduateSkill}
+                    onDone={function(si) { markCaliDyn(id, si, false); }}
+                    onFail={function(si) { markCaliDyn(id, si, true); }} />
+                );
+              })}
             </div>
+
+            <div style={{fontSize:11,color:"var(--mid)",letterSpacing:1,fontWeight:700,margin:"16px 0 10px"}}>STRENGTH — weighted</div>
+            <div className="stack">
+              {cday.lifts.map(function(sl) {
+                var sets = (st.caliLiftSets[st.caliDayIdx] || {})[sl.id] || [];
+                var wt = st.caliWeights[sl.id] != null ? st.caliWeights[sl.id] : CALI_LIFTS[sl.id].base;
+                return (
+                  <CaliLiftCard key={"l-"+sl.id} id={sl.id} sl={sl} wt={wt} sets={sets}
+                    onDone={function(si) { markCaliLift(sl.id, si); }}
+                    onFail={function(si, result) { markCaliLiftFail(sl.id, si, result); }}
+                    onAmrap={function(si, result) { markCaliAmrap(sl.id, si, result); }} />
+                );
+              })}
+            </div>
+
             <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--ink)"}}>
-              <button
-                onClick={finishSession}
-                disabled={celebrating}
-                style={{width:"100%",padding:"16px",background:"#8B5CF6",border:"3px solid var(--ink)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
-                ✓ FINISH SESSION
+              <button onClick={finishCaliSession} disabled={celebrating}
+                style={{width:"100%",padding:"16px",background:purple,border:"3px solid var(--ink)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
+                {st.caliDayIdx === CALI_SCHED.length - 1 ? "🏆 FINISH CALI CYCLE ↑" : "✓ FINISH SESSION → " + (CALI_SCHED[st.caliDayIdx + 1] ? CALI_SCHED[st.caliDayIdx + 1].label : "")}
               </button>
-              <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+              <div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
+                {!confirmCycle
+                  ? <button className="fhb" style={{borderColor:"var(--mid)",color:"var(--mid)",fontSize:9}} onClick={function(){setConfirmCycle(true);}}>end cycle early ↑</button>
+                  : <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                      <span style={{fontSize:9,fontWeight:700,color:"var(--ink)",letterSpacing:1}}>Sure?</span>
+                      <button className="fhb" style={{borderColor:"var(--green)",color:"#fff",background:"var(--green)",padding:"6px 10px"}} onClick={function(){advanceCaliCycle();setConfirmCycle(false);}}>YES ↑</button>
+                      <button className="fhb" style={{padding:"6px 10px"}} onClick={function(){setConfirmCycle(false);}}>NO</button>
+                    </div>
+                }
+                <div style={{flex:1}}/>
                 <button className="fhb" style={{borderColor:"var(--orange)",color:"var(--orange)"}} onClick={function() { setAtab(1); }}>STATS ▶</button>
               </div>
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
-        )}
+          );
+        })()}
 
         {/* CELEBRATION OVERLAY */}
         {celebrating && (
           <div className="celebrate-banner">
             <div className="celebrate-card">
-              <div className="celebrate-title" style={{color:"var(--orange)"}}>
-                {st.dayIdx === SCHED.length - 1 ? "CYCLE DONE!" : "SESSION DONE!"}
-              </div>
-              <div className="celebrate-sub">
-                {st.dayIdx === SCHED.length - 1
-                  ? "weights advancing ↑"
-                  : "next up: " + (SCHED[st.dayIdx + 1] ? SCHED[st.dayIdx + 1].label : "")}
-              </div>
+              {st.mode === 1 ? (
+                <>
+                  <div className="celebrate-title" style={{color:"#8B5CF6"}}>
+                    {st.caliDayIdx === CALI_SCHED.length - 1 ? "CALI CYCLE DONE!" : "SESSION DONE!"}
+                  </div>
+                  <div className="celebrate-sub">
+                    {st.caliDayIdx === CALI_SCHED.length - 1
+                      ? "skills advancing ↑"
+                      : "next up: " + (CALI_SCHED[st.caliDayIdx + 1] ? CALI_SCHED[st.caliDayIdx + 1].label : "")}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="celebrate-title" style={{color:"var(--orange)"}}>
+                    {st.dayIdx === SCHED.length - 1 ? "CYCLE DONE!" : "SESSION DONE!"}
+                  </div>
+                  <div className="celebrate-sub">
+                    {st.dayIdx === SCHED.length - 1
+                      ? "weights advancing ↑"
+                      : "next up: " + (SCHED[st.dayIdx + 1] ? SCHED[st.dayIdx + 1].label : "")}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -1947,9 +2564,15 @@ export default function App() {
           <div className="pg">
             <div style={{ fontSize:10, color:"var(--mid)", letterSpacing:"1.5px", marginBottom:14, fontWeight:700 }}>TAP TO EXPAND · SWIPE → TRAIN</div>
             <div className="asec">
+              <div className="at">Weighted Strength</div>
+              {Object.keys(CALI_LIFTS).map(function(id) {
+                return <CaliLiftStats key={id} id={id} history={caliLiftHistory} weight={st.caliWeights[id]} onWeight={function(d){updateCaliWeight(id, d);}} />;
+              })}
+            </div>
+            <div className="asec">
               <div className="at">Skills & Holds</div>
               {Object.keys(HOLDS).filter(function(id) { return !HOLDS[id].rehab; }).map(function(id) {
-                return <HoldStats key={id} id={id} history={holdHistory} holdCfg={st.holdCfg} onCfg={updateHoldCfg} holdFailLog={st.holdFailLog} />;
+                return <HoldStats key={id} id={id} history={holdHistory} holdCfg={st.holdCfg} onCfg={updateHoldCfg} holdFailLog={st.holdFailLog} level={HOLDS[id].ladder[st.holdLevels[id]||0]} />;
               })}
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
