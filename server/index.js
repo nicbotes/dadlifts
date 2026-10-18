@@ -34,6 +34,7 @@ userRouter.use('/api/lifts', require('./routes/lifts'));
 userRouter.use('/api/holds', require('./routes/holds'));
 userRouter.use('/api/state', require('./routes/state'));
 userRouter.use('/api/beer',  require('./routes/beer'));
+userRouter.use('/api/push',  require('./routes/push'));
 userRouter.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Agent snapshot — reads app_state blob and returns parsed summary
@@ -104,7 +105,7 @@ userRouter.get('/api/agent/snapshot', async (req, res) => {
       current_cycle_fails: failsByLift,
       hold_config:    state.holdCfg || {},
       // Beer tracker — precalculated insights (streaks, volume, triggers, time-of-day, flags)
-      beer: await beerMod().then(B => B.computeBeerInsights(state.beerLog, state.beerCfg)).catch(e => ({ error: e.message })),
+      beer: await beerMod().then(B => B.computeBeerInsights(state.beerLog, state.beerCfg, undefined, state.beerCheckins)).catch(e => ({ error: e.message })),
     });
   } catch(err) {
     res.status(500).json({ error: err.message });
@@ -120,4 +121,8 @@ userRouter.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
 app.use('/:token', userRouter);
 app.use('*', (_req, res) => res.status(404).end());
 
-app.listen(PORT, () => console.log(`DADLIFTS :${PORT} — multi-tenant`));
+app.listen(PORT, () => {
+  console.log(`DADLIFTS :${PORT} — multi-tenant`);
+  // Daily beer nudges (Web Push). Set PUSH_SCHEDULER=off to disable.
+  require('./push').startScheduler();
+});

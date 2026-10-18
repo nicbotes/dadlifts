@@ -199,10 +199,54 @@ node cli/dadlift.js beer-export > beer.csv     # or: beer-export json
 
 ---
 
-## 11. Follow-ups ⏳ (not in this branch)
+## 11. Daily nudge ✅ (Web Push)
 
-* **Reminders**: a scheduled nudge 30 min before the danger window ("walk first?") via
-  the OpenClaw agent reading `beer.timeOfDay.dangerBand`.
+A push notification at `beerCfg.notifyTime` (default **17:00**) in `beerCfg.notifyTz`
+(default **Africa/Johannesburg**), suggesting something to do instead of a beer.
+
+* **Copy** — `composeBeerNudge(insights, ctx, seed)` in `src/beer.mjs`. Title reflects
+  the state (day N dry, close to a milestone, fresh start, already had one). Body pairs a
+  drink swap (sparkling water from the fridge, the thirst rule, ice and lemon) or a
+  personal line (best swap that beat an urge, top trigger) with a movement option (next
+  barbell day, kettlebell circuit, handstand practice, walk, cold shower) based on which
+  modes are enabled. Rotates daily by the local day number; never names the same swap twice.
+* **Server** — `server/push.js`: VAPID keys generated once into `server_kv` (or env),
+  `push_subscriptions` table, 30-second scheduler that sends once per local day within the
+  hour after the nudge time, retries transient failures every 10 min, drops 404/410
+  subscriptions, and skips users who hid the beer tracker. Routes: `GET /api/push/key`,
+  `GET /api/push/status`, `POST /api/push/subscribe`, `POST /api/push/unsubscribe`,
+  `POST /api/push/test`, `GET /api/push/preview`.
+* **Service worker** — `public/sw.js` now handles `push` and `notificationclick` only.
+  No fetch handler, so pages are never cached (the old iOS white-page fix still holds);
+  it still clears old caches on activate. Tapping opens `?beer=log`.
+* **App** — *Daily nudge* card on the beer LOG tab: live preview of today's message,
+  ±30 min time stepper, TURN ON / SEND TEST / TURN OFF, and a plain reason when push
+  can't work (GitHub Pages copy, plain http, iPhone not installed to Home Screen, blocked).
+* **Requirement** — HTTPS. See DEPLOY.md → HTTPS.
+* **CLI** — `beer-nudge [checkin]` (preview), `beer-nudge-send [checkin]`.
+
+### Evening check-in ✅ (19:30)
+
+* **Notification** — `composeBeerCheckin(insights, seed)`: "Evening check-in · Day N dry?"
+  or "Evening check-in · 440ml logged" ("Anything since?"). Tag `beer-checkin` so it never
+  replaces the nudge. Tap opens `?beer=checkin`. Sent once per evening in the hour after
+  `beerCfg.checkinTime`; skipped if the user already checked in that day.
+  `beerCfg.nudgeOn` / `checkinOn` switch each one off independently.
+* **Card** — on the LOG tab after `checkinTime` (until the 04:00 rollover), or when the
+  notification is tapped. **Stayed dry** (or **That's all** if beer was already logged)
+  records the evening; **Had beer** takes count × size, "last one around" time (entries are
+  spaced 20 min apart ending then) and an optional trigger, then logs them all.
+  Works without push, so it is useful before HTTPS exists.
+* **Data** — `beerCheckins: { "YYYY-MM-DD": "dry" | "drank" }` in the blob. Insights gain
+  `checkins.today`, `confirmedDry7`, `confirmedDry30`, and a win for 2+ confirmed dry
+  evenings a week. Included in the beer JSON export and the full-state export.
+* **Server** — `push_subscriptions` gains `last_checkin_day` / `last_checkin_attempt_at`
+  (added with ALTER on existing databases).
+
+## 12. Follow-ups ⏳ (not in this branch)
+
+* **Smarter timing**: move the nudge 30 min before the measured danger window
+  (`beer.timeOfDay.dangerBand`) instead of a fixed time.
 * **Sleep / mood check-in** each morning (1–5) to correlate with the previous night's ml.
 * **Weekly review card**: auto-generated Monday summary from `weekly8` + flags.
 * **Concurrency**: the app writes the whole blob on save; an agent `beer-log` while the

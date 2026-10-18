@@ -52,6 +52,46 @@ pm2 save
 pm2 logs dadlifts --lines 30
 ```
 
+## HTTPS — required for the beer notifications (5pm nudge, 7:30pm check-in)
+
+Push notifications only work when the app is opened over **https://**. Phones
+block them on plain `http://13.245.82.245/...`. On iPhone the app must also be
+added to the Home Screen and opened from the icon (iOS 16.4 or later).
+
+One-time setup on the VPS:
+
+1. **Get a hostname.** Free option: create `dadlifts` at https://www.duckdns.org
+   and point it at `13.245.82.245` → `dadlifts.duckdns.org`. Any domain with an
+   A record works.
+2. **Open port 443** in the EC2 security group (inbound TCP 443 from anywhere).
+3. **Get a certificate** (nginx is already the reverse proxy). First find the
+   live copy of `deploy/nginx-dadlifts.conf` and set its `server_name`:
+   ```bash
+   CONF=$(grep -rl "proxy_pass http://127.0.0.1:3001" /etc/nginx/ | head -1); echo "$CONF"
+   sudo sed -i 's/server_name _;/server_name dadlifts.duckdns.org;/' "$CONF"
+   sudo nginx -t && sudo systemctl reload nginx
+   sudo apt install -y certbot python3-certbot-nginx
+   sudo certbot --nginx -d dadlifts.duckdns.org --redirect
+   ```
+   Certbot adds the 443 block, the http→https redirect and auto-renewal.
+4. **Deploy** so the server has `web-push`: `node cli/deploy.js`.
+5. **New links.** Each user's link becomes `https://dadlifts.duckdns.org/<token>/`.
+   Their data is on the server, so nothing is lost. On iPhone, delete the old
+   Home Screen icon and add the https one. Use the https base for new users:
+   `DADLIFT_BASE_URL=https://dadlifts.duckdns.org node cli/setup.js --name "Name"`.
+6. **Turn it on.** Open the app → 🍺 → LOG → *Notifications* → TURN ON → TEST NUDGE / TEST CHECK-IN.
+
+Notes:
+- Signing (VAPID) keys are generated on first start and stored in the
+  `server_kv` table. If the database is lost, everyone re-taps TURN ON.
+  To pin keys instead, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (and
+  optionally `VAPID_SUBJECT`) in `.env`.
+- `PUSH_SCHEDULER=off` disables the daily send loop.
+- `node cli/dadlift.js beer-nudge [checkin]` previews today's message;
+  `beer-nudge-send [checkin]` sends it now.
+- The evening check-in card also appears in the app after 19:30 without
+  notifications, so it works before HTTPS is set up.
+
 ## Adding a new user
 
 ```bash
