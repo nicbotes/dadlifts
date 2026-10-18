@@ -1,5 +1,7 @@
 # AGENTS.md
 
+> ⚠️ **Legacy.** The backend API, CLI and VPS described here are no longer used. The app runs on GitHub Pages with data in the browser, and deploys only by merging to `main`. See CLAUDE.md and DEPLOY.md.
+
 How AI agents should interact with DADLIFTS.
 
 ---

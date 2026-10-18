@@ -2,33 +2,22 @@
 
 ## ⚠️ READ THIS FIRST
 
-The SQLite tables `weights`, `set_logs`, `sessions` etc. are **EMPTY**.
-Do NOT query them. You will get null/empty results every time.
+- **The app is a static PWA on GitHub Pages** (https://nicbotes.github.io/dadlifts/),
+  built with `VITE_STANDALONE=true`. All data lives in the phone's browser
+  (localStorage key `dadlift-standalone-state`).
+- **The backend API is no longer used.** Do not build on, query, or deploy the
+  Express server (`server/`), the CLI (`cli/`), or the VPS (13.245.82.245).
+  Those files are legacy.
+- **Deploy only by merging to `main`.** `.github/workflows/pages.yml` builds and
+  publishes the site. Never deploy any other way (no `cli/deploy.js`, no SSH).
 
-ALL training data is in the `app_state` table as a JSON blob.
+## Beer notifications
 
-## The ONE command to run for any training question
+`.github/workflows/beer-notify.yml` sends Web Push at ~17:00 (nudge) and ~19:30
+(check-in) SAST. Setup and how it works: DEPLOY.md and docs/BEER_TRACKER_PLAN.md.
 
-```bash
-cd /home/black_thorn/apps/dadlift
-export DADLIFT_API_URL=http://13.245.82.245/$(node -e "const db=require('better-sqlite3')('server/dadlift.db'); console.log(db.prepare('SELECT token FROM users WHERE name=?').get('Nic').token)")
-node cli/dadlift.js snapshot
-```
-
-This gives you weights, history, PRs, deloads, recent sessions — everything,
-including a `beer` block (beer tracker insights). For beer-only questions:
-`node cli/dadlift.js beer`. To log for Nic: `beer-log <ml> <trigger>` /
-`beer-resist <swap>`. Details: docs/BEER_TRACKER_PLAN.md
-
-## Redeploy
+## Before merging
 
 ```bash
-cd /home/black_thorn/apps/dadlift && node cli/deploy.js
-```
-
-## Add a user
-
-```bash
-cd /home/black_thorn/apps/dadlift
-DADLIFT_BASE_URL=http://13.245.82.245 node cli/setup.js --name "Name"
+VITE_STANDALONE=true npm run build   # must pass — it is what Pages builds
 ```

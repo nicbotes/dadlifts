@@ -8,7 +8,7 @@ import {
   BEER_COLOR, SIZES, TRIGGERS, SWAPS, STD_DRINK_OPTIONS, MILESTONES, WITHDRAWAL, RED_FLAGS,
   beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge, composeBeerCheckin,
 } from "./beer.mjs";
-import { pushStatus, enablePush, disablePush, testPush, deviceTimeZone } from "./push.js";
+import { pushStatus, enablePush, disablePush, showSample } from "./push.js";
 
 var AMBER = "#D97706";
 var AMBER_BG = "#FEF3C7";
@@ -153,29 +153,8 @@ function SurfTimer(props) {
 }
 
 // ── DAILY NUDGE (push notification) ───────────────────────────────────────────
-function shiftTime(hhmm, deltaMin) {
-  var p = String(hhmm || "17:00").split(":").map(Number);
-  var m = (((p[0] * 60 + p[1] + deltaMin) % 1440) + 1440) % 1440;
-  var h = Math.floor(m / 60), mm = m % 60;
-  return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
-}
-
-function TimeRow(props) {
-  return (
-    <div className="crow" style={{ opacity: props.on ? 1 : 0.55 }}>
-      <div className="clabel" style={{ width:84 }}>{props.label}</div>
-      <div className="cst">
-        <button className="cb" onClick={function() { props.onTime(shiftTime(props.value, -30)); }}>−</button>
-        <span className="cv">{props.value}</span>
-        <button className="cb" onClick={function() { props.onTime(shiftTime(props.value, 30)); }}>+</button>
-      </div>
-      <button className={"bz-chip" + (props.on ? " on" : "")} style={props.on ? { background: BEER_COLOR, borderColor: BEER_COLOR, marginLeft: "auto" } : { marginLeft: "auto" }} onClick={function() { props.onToggle(!props.on); }}>{props.on ? "ON" : "OFF"}</button>
-    </div>
-  );
-}
-
 export function NudgeCard(props) {
-  var cfg = props.cfg, ins = props.ins, onCfg = props.onCfg, ctx = props.ctx || {};
+  var ins = props.ins, ctx = props.ctx || {};
   var stPair = useState({ state: "loading", reason: "" }); var status = stPair[0]; var setStatus = stPair[1];
   var busyPair = useState(false); var busy = busyPair[0]; var setBusy = busyPair[1];
   var msgPair = useState(""); var msg = msgPair[0]; var setMsg = msgPair[1];
@@ -186,20 +165,20 @@ export function NudgeCard(props) {
 
   function enable() {
     setBusy(true);
-    var tz = deviceTimeZone();
     enablePush()
-      .then(function() { if (tz !== cfg.notifyTz) onCfg({ notifyTz: tz }); flash("On for this device."); refresh(); })
+      .then(function() { flash("On. Now copy the device key into GitHub (steps below)."); refresh(); })
       .catch(function(e) { flash("✕ " + e.message); refresh(); })
       .finally(function() { setBusy(false); });
   }
   function disable() {
     setBusy(true);
-    disablePush().then(function() { flash("Off on this device."); refresh(); }).catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
+    disablePush().then(function() { flash("Off on this device. Remove its key from PUSH_SUBSCRIPTIONS too."); refresh(); }).catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
   }
-  function test(kind) {
-    setBusy(true);
-    testPush(kind).then(function(r) { flash(r.sent ? "Sent. Check your notifications." : "✕ Not delivered" + (r.results && r.results[0] && r.results[0].status ? " (" + r.results[0].status + ")" : "")); })
-      .catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
+  function sample(kind) {
+    showSample(kind).then(function() { flash("Sample shown. Check your notifications."); }).catch(function(e) { flash("✕ " + e.message); });
+  }
+  function copyKey() {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(status.deviceKey).then(function() { flash("Device key copied."); }).catch(function() { flash("✕ Copy failed. Select the text and copy it."); });
   }
 
   var now = new Date();
@@ -209,12 +188,11 @@ export function NudgeCard(props) {
   var on = status.state === "on";
   var canEnable = status.state === "off";
   var blocked = !on && !canEnable && status.state !== "loading";
-  var tzLabel = cfg.notifyTz === "Africa/Johannesburg" ? "SAST" : cfg.notifyTz;
 
   return (
     <div className="bz-card" style={{ borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
-      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Notifications · {tzLabel}{on ? " · ON HERE" : ""}</div>
-      <div className="bz-p"><b>Nudge</b> at your danger hour with something to do instead. <b>Check-in</b> later to log whether you stayed dry or had beer. Today's would read:</div>
+      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Notifications · 17:00 & 19:30 SAST{on ? " · ON HERE" : ""}</div>
+      <div className="bz-p"><b>5pm nudge</b> with something to do instead of a beer. <b>7:30pm check-in</b> to log whether you stayed dry or had beer. Today's would read:</div>
       <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 6 }}>
         <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>{preview.title}</div>
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 3 }}>{preview.body}</div>
@@ -223,17 +201,28 @@ export function NudgeCard(props) {
         <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 13, lineHeight: 1.2 }}>{previewCk.title}</div>
         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 2 }}>{previewCk.body}</div>
       </div>
-      <TimeRow label="Nudge" value={cfg.notifyTime} on={cfg.nudgeOn} onTime={function(v) { onCfg({ notifyTime: v }); }} onToggle={function(v) { onCfg({ nudgeOn: v }); }} />
-      <TimeRow label="Check-in" value={cfg.checkinTime} on={cfg.checkinOn} onTime={function(v) { onCfg({ checkinTime: v }); }} onToggle={function(v) { onCfg({ checkinOn: v }); }} />
       {blocked && <div className="bz-flag mid" style={{ marginTop: 4 }}>ℹ️ <span>{status.reason}</span></div>}
+      {on && (
+        <div>
+          <div className="bz-hd" style={{ marginTop: 4 }}>This device's key</div>
+          <textarea className="xtxt" readOnly value={status.deviceKey} onFocus={function(e) { e.target.select(); }} style={{ minHeight: 64, fontSize: 9, marginTop: 0 }} />
+          <div className="bz-p" style={{ marginTop: 6 }}>
+            One-time setup in GitHub → <b>nicbotes/dadlifts</b> → Settings → Secrets and variables → Actions:<br />
+            1. <b>VAPID_PRIVATE_KEY</b>: the private key you were given.<br />
+            2. <b>PUSH_SUBSCRIPTIONS</b>: paste this device key. For a second phone, put both objects in one [ … ] list.<br />
+            Then Actions → <b>Beer notifications</b> → Run workflow sends one now.
+          </div>
+        </div>
+      )}
       <div className="xrow" style={{ marginTop: 8 }}>
         {canEnable && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={enable}>{busy ? "…" : "TURN ON"}</button>}
-        {on && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={function() { test("nudge"); }}>{busy ? "…" : "TEST NUDGE"}</button>}
-        {on && <button className="xbtn" disabled={busy} onClick={function() { test("checkin"); }}>TEST CHECK-IN</button>}
+        {on && <button className="xbtn pri" style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={copyKey}>COPY KEY</button>}
+        {on && <button className="xbtn" onClick={function() { sample("nudge"); }}>SAMPLE 5PM</button>}
+        {on && <button className="xbtn" onClick={function() { sample("checkin"); }}>SAMPLE 7:30</button>}
         {on && <button className="xbtn" disabled={busy} onClick={disable}>TURN OFF</button>}
       </div>
       {msg && <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", color: msg.charAt(0) === "✕" ? "var(--red)" : "var(--green)" }}>{msg}</div>}
-      <div className="bz-src">Each phone or browser you turn it on from gets them. The check-in is skipped if you've already checked in that evening. Hiding the beer tracker stops both.</div>
+      <div className="bz-src">Sent by GitHub Actions, so they can land a few minutes either side of the hour. The message itself is built on this phone from your log; nothing personal leaves it.</div>
     </div>
   );
 }
@@ -450,7 +439,7 @@ export function BeerLogTab(props) {
         <div className="bz-p" style={{ marginTop:8, marginBottom:0 }}>Teal = dry. Amber = beer (number is ml ÷ 100). Grey = before tracking. {ins.month.dryDays}/{ins.month.trackedDays} dry days in the last 30.</div>
       </div>
 
-      {props.onCfg && <NudgeCard cfg={cfg} ins={ins} onCfg={props.onCfg} ctx={props.nudgeCtx} />}
+      <NudgeCard ins={ins} ctx={props.nudgeCtx} />
 
       <div style={{ display:"flex", justifyContent:"flex-end", marginTop:4 }}>
         <button className="fhb" style={{ borderColor:BEER_COLOR, color:BEER_COLOR }} onClick={props.onInsights}>INSIGHTS ▶</button>
