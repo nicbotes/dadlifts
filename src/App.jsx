@@ -269,6 +269,7 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 // API-backed persistence — token read from URL path at runtime
 import api from './api.js';
 import { BeerLogTab, BeerInsightsTab, beerCss } from './Beer.jsx';
+import { saveNudgeContext } from './push.js';
 import { BEER_COLOR, computeBeerInsights, normalizeBeerCfg, normalizeBeerLog, normalizeBeerCheckins, makeEntry, makeDefaultBeerCfg, dayKey as beerDayKey } from './beer.mjs';
 
 async function loadState() {
@@ -1863,6 +1864,11 @@ function buildCaliLiftHistory(caliLog) {
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
+// Extra context for notification copy (next barbell day, bell weight)
+function nudgeExtras(state) {
+  return { barbellDay: (SCHED[state.dayIdx] || SCHED[0]).label, kbBellKg: state.kbWeight };
+}
+
 // ── WORKOUT SHOW/HIDE ────────────────────────────────────────────────────────
 function WorkoutToggles(props) {
   var st = props.st, acc = props.acc, onToggle = props.onToggle;
@@ -1909,6 +1915,8 @@ export default function App() {
   useEffect(function() {
     loadState().then(function(saved) {
       if (saved) { _setSt(function(prev) { return normalizeState(Object.assign({}, prev, saved)); }); }
+      var forNudge = normalizeState(saved || {});
+      saveNudgeContext(forNudge, nudgeExtras(forNudge)); // refresh the week of notification text on every open
       // Notification tap opens ?beer=log or ?beer=checkin → beer LOG tab, then clean the URL
       var beerLink = (window.location.search.match(/[?&]beer=(log|checkin)\b/) || [])[1];
       if (beerLink === "checkin") setForceCheckin(true);
@@ -1933,6 +1941,7 @@ export default function App() {
       setSaving(true);
       saveTimer.current = setTimeout(function() {
         saveState(next).then(function() { setSaving(false); });
+        saveNudgeContext(next, nudgeExtras(next)); // today + 6 days of notification text for the service worker
       }, 800);
       return next;
     });
@@ -3178,7 +3187,7 @@ export default function App() {
               {motiv.a && <div className="motd-a" style={{ color:"#0F766E" }}>— {motiv.a}</div>}
             </div>
             <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }}
-              onCfg={updateBeerCfg} nudgeCtx={{ enabledModes: st.enabledModes, barbellDay: (SCHED[st.dayIdx] || SCHED[0]).label, kbBellKg: st.kbWeight }}
+              nudgeCtx={Object.assign({ enabledModes: st.enabledModes }, nudgeExtras(st))}
               showCheckin={showCheckin} onCheckinDry={checkinDry} onCheckinLog={checkinLog} />
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>

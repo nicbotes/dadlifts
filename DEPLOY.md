@@ -1,103 +1,59 @@
 # DEPLOY.md
 
-**For agents: how to redeploy DΔDLIFTS.**
+## How DΔDLIFTS deploys
 
-## When to redeploy
+**Merge to `main`. That's the only way.**
 
-- Nic says "redeploy", "update the app", "push the latest", "deploy dadlifts"
-- After any code change is pushed to GitHub
-- After updating a user's config or cali progression
+`.github/workflows/pages.yml` runs on every push to `main`: it builds the
+standalone PWA (`VITE_STANDALONE=true npm run build`) and publishes `dist/` to
+GitHub Pages at https://nicbotes.github.io/dadlifts/.
 
-## How to redeploy
+The Express backend, CLI and VPS are no longer used — never deploy to them.
 
-```bash
-cd /home/black_thorn/apps/dadlift
-node cli/deploy.js
-```
+If a deploy fails, open the repo's **Actions** tab, find the failed
+"Deploy PWA to GitHub Pages" run, fix the error it shows, and merge the fix.
 
-That's it. The script:
-1. Pulls latest `main` from GitHub
-2. Installs dependencies
-3. Builds the frontend
-4. Restarts PM2
-5. Health checks the server
-6. Reports success or failure
+---
 
-Read the `message` field from the JSON output and forward it to Nic.
+## Beer notifications (5pm nudge, 7:30pm check-in)
 
-## If deploy fails
+No backend. `.github/workflows/beer-notify.yml` sends a tiny push
+(`{ "kind": "nudge" }` or `{ "kind": "checkin" }`) on a schedule; the phone's
+service worker shows today's message, which the app pre-computed on the phone.
 
-Check what step failed in the output. Common issues:
+| Run (UTC cron) | SAST  | What |
+|----------------|-------|------|
+| `55 14 * * *`  | 16:55 | 5pm nudge — something to do instead of a beer |
+| `25 17 * * *`  | 19:25 | 7:30pm check-in — stayed dry or had beer? |
 
-**Git pull fails** — merge conflict or network issue
-```bash
-git status
-git fetch origin
-git reset --hard origin/main  # nuclear option — discards local changes
-```
+Scheduled runs often start a few minutes late, so both fire 5 minutes early.
+To change a time, edit the cron lines (UTC = SAST − 2h) and merge.
 
-**Build fails** — syntax error in a recent commit
-```bash
-npm run build  # run manually to see the error
-```
+### One-time setup
 
-**PM2 restart fails** — process not registered
-```bash
-pm2 start server/index.js --name dadlifts
-pm2 save
-```
+1. **Phone:** open https://nicbotes.github.io/dadlifts/ → on iPhone, Share →
+   Add to Home Screen and open it from the icon (iOS 16.4+).
+2. **App:** 🍺 → LOG → *Notifications* → **TURN ON** → **COPY KEY**.
+3. **GitHub:** nicbotes/dadlifts → Settings → Secrets and variables → Actions →
+   New repository secret:
+   - `VAPID_PRIVATE_KEY` — the private key you were given (pairs with the
+     public key in `src/push.js`).
+   - `PUSH_SUBSCRIPTIONS` — paste the copied device key. It is a JSON list; for a
+     second phone, put both objects in the same `[ … ]`.
+4. **Test:** Actions → *Beer notifications* → **Run workflow** → pick nudge or
+   checkin.
 
-**Health check fails** — server crashed on start
-```bash
-pm2 logs dadlifts --lines 30
-```
+### Notes
 
-## HTTPS — required for the beer notifications (5pm nudge, 7:30pm check-in)
-
-Push notifications only work when the app is opened over **https://**. Phones
-block them on plain `http://13.245.82.245/...`. On iPhone the app must also be
-added to the Home Screen and opened from the icon (iOS 16.4 or later).
-
-One-time setup on the VPS:
-
-1. **Get a hostname.** Free option: create `dadlifts` at https://www.duckdns.org
-   and point it at `13.245.82.245` → `dadlifts.duckdns.org`. Any domain with an
-   A record works.
-2. **Open port 443** in the EC2 security group (inbound TCP 443 from anywhere).
-3. **Get a certificate** (nginx is already the reverse proxy). First find the
-   live copy of `deploy/nginx-dadlifts.conf` and set its `server_name`:
-   ```bash
-   CONF=$(grep -rl "proxy_pass http://127.0.0.1:3001" /etc/nginx/ | head -1); echo "$CONF"
-   sudo sed -i 's/server_name _;/server_name dadlifts.duckdns.org;/' "$CONF"
-   sudo nginx -t && sudo systemctl reload nginx
-   sudo apt install -y certbot python3-certbot-nginx
-   sudo certbot --nginx -d dadlifts.duckdns.org --redirect
-   ```
-   Certbot adds the 443 block, the http→https redirect and auto-renewal.
-4. **Deploy** so the server has `web-push`: `node cli/deploy.js`.
-5. **New links.** Each user's link becomes `https://dadlifts.duckdns.org/<token>/`.
-   Their data is on the server, so nothing is lost. On iPhone, delete the old
-   Home Screen icon and add the https one. Use the https base for new users:
-   `DADLIFT_BASE_URL=https://dadlifts.duckdns.org node cli/setup.js --name "Name"`.
-6. **Turn it on.** Open the app → 🍺 → LOG → *Notifications* → TURN ON → TEST NUDGE / TEST CHECK-IN.
-
-Notes:
-- Signing (VAPID) keys are generated on first start and stored in the
-  `server_kv` table. If the database is lost, everyone re-taps TURN ON.
-  To pin keys instead, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (and
-  optionally `VAPID_SUBJECT`) in `.env`.
-- `PUSH_SCHEDULER=off` disables the daily send loop.
-- `node cli/dadlift.js beer-nudge [checkin]` previews today's message;
-  `beer-nudge-send [checkin]` sends it now.
-- The evening check-in card also appears in the app after 19:30 without
-  notifications, so it works before HTTPS is set up.
-
-## Adding a new user
-
-```bash
-cd /home/black_thorn/apps/dadlift
-DADLIFT_BASE_URL=http://13.245.82.245 node cli/setup.js --name "Friend Name"
-```
-
-Read the `message` field and send it to the new user.
-No redeploy needed — users are stored in the database, not the code.
+- Until both secrets exist, the workflow logs a notice and exits green.
+- A device that turns notifications off or reinstalls gets a new key; the run
+  log warns "expired". Copy the new key into `PUSH_SUBSCRIPTIONS`.
+- Messages are pre-computed for today and the next 6 days each time the app is
+  opened or saved. If the app isn't opened for a week, a generic message is shown.
+- GitHub disables scheduled workflows in a public repo after 60 days without
+  any commits. Re-enable it from the Actions tab if that happens.
+- The 7:30pm check-in card also appears in the app on its own after 19:30.
+- To rotate keys: generate a new pair (`npx web-push generate-vapid-keys`),
+  put the public key in `src/push.js`, the private key in `VAPID_PRIVATE_KEY`,
+  merge, then turn notifications off and on again on each phone and update
+  `PUSH_SUBSCRIPTIONS`.

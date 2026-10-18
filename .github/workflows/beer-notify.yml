@@ -1,0 +1,41 @@
+name: Beer notifications
+
+# Daily beer pushes to the phone — no backend.
+#   16:55 SAST  5pm nudge: something to do instead of a beer
+#   19:25 SAST  7:30pm check-in: stayed dry or had beer?
+# Cron is UTC (SAST = UTC+2, no daylight saving). Scheduled runs often start a
+# few minutes late, so both fire 5 minutes early.
+# Setup: add repo secrets VAPID_PRIVATE_KEY and PUSH_SUBSCRIPTIONS (DEPLOY.md).
+on:
+  schedule:
+    - cron: '55 14 * * *'
+    - cron: '25 17 * * *'
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: Which notification to send now
+        type: choice
+        options: [nudge, checkin]
+        default: nudge
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install web-push
+        run: npm install --prefix "$RUNNER_TEMP/wp" --no-audit --no-fund web-push@3.6.7
+      - name: Send
+        env:
+          KIND: ${{ github.event_name == 'workflow_dispatch' && inputs.kind || (github.event.schedule == '25 17 * * *' && 'checkin' || 'nudge') }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_SUBSCRIPTIONS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
+          WEBPUSH_DIR: ${{ runner.temp }}/wp
+        run: node scripts/send-beer-push.cjs

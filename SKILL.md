@@ -1,5 +1,7 @@
 # dadlifts
 
+> ⚠️ **Legacy.** The backend API, CLI and VPS described here are no longer used. The app runs on GitHub Pages with data in the browser, and deploys only by merging to `main`. See CLAUDE.md and DEPLOY.md.
+
 Multi-user training tracker for Nic and friends.
 
 ---
@@ -52,9 +54,6 @@ node cli/dadlift.js beer-log 440 winddown        # Nic had a 440ml beer now, aft
 node cli/dadlift.js beer-log 330 social --at 2026-10-17T20:30:00+02:00
 node cli/dadlift.js beer-resist walk bored       # Nic beat an urge by going for a walk
 node cli/dadlift.js beer-export > beer.csv       # or: beer-export json
-node cli/dadlift.js beer-nudge                   # preview today's 5pm nudge
-node cli/dadlift.js beer-nudge checkin           # preview the 7:30pm check-in
-node cli/dadlift.js beer-nudge-send [checkin]    # send it now to Nic's devices
 ```
 
 Triggers: `bored` `winddown` `thirsty` `social` `stress` `craving`
