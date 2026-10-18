@@ -105,7 +105,7 @@ userRouter.get('/api/agent/snapshot', async (req, res) => {
       current_cycle_fails: failsByLift,
       hold_config:    state.holdCfg || {},
       // Beer tracker — precalculated insights (streaks, volume, triggers, time-of-day, flags)
-      beer: await beerMod().then(B => B.computeBeerInsights(state.beerLog, state.beerCfg)).catch(e => ({ error: e.message })),
+      beer: await beerMod().then(B => B.computeBeerInsights(state.beerLog, state.beerCfg, undefined, state.beerCheckins)).catch(e => ({ error: e.message })),
     });
   } catch(err) {
     res.status(500).json({ error: err.message });

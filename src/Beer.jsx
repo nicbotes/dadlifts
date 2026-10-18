@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   BEER_COLOR, SIZES, TRIGGERS, SWAPS, STD_DRINK_OPTIONS, MILESTONES, WITHDRAWAL, RED_FLAGS,
-  beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge,
+  beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge, composeBeerCheckin,
 } from "./beer.mjs";
 import { pushStatus, enablePush, disablePush, testPush, deviceTimeZone } from "./push.js";
 
@@ -160,6 +160,20 @@ function shiftTime(hhmm, deltaMin) {
   return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
 }
 
+function TimeRow(props) {
+  return (
+    <div className="crow" style={{ opacity: props.on ? 1 : 0.55 }}>
+      <div className="clabel" style={{ width:84 }}>{props.label}</div>
+      <div className="cst">
+        <button className="cb" onClick={function() { props.onTime(shiftTime(props.value, -30)); }}>−</button>
+        <span className="cv">{props.value}</span>
+        <button className="cb" onClick={function() { props.onTime(shiftTime(props.value, 30)); }}>+</button>
+      </div>
+      <button className={"bz-chip" + (props.on ? " on" : "")} style={props.on ? { background: BEER_COLOR, borderColor: BEER_COLOR, marginLeft: "auto" } : { marginLeft: "auto" }} onClick={function() { props.onToggle(!props.on); }}>{props.on ? "ON" : "OFF"}</button>
+    </div>
+  );
+}
+
 export function NudgeCard(props) {
   var cfg = props.cfg, ins = props.ins, onCfg = props.onCfg, ctx = props.ctx || {};
   var stPair = useState({ state: "loading", reason: "" }); var status = stPair[0]; var setStatus = stPair[1];
@@ -174,7 +188,7 @@ export function NudgeCard(props) {
     setBusy(true);
     var tz = deviceTimeZone();
     enablePush()
-      .then(function() { if (tz !== cfg.notifyTz) onCfg({ notifyTz: tz }); flash("On. First nudge at " + cfg.notifyTime + " today or tomorrow."); refresh(); })
+      .then(function() { if (tz !== cfg.notifyTz) onCfg({ notifyTz: tz }); flash("On for this device."); refresh(); })
       .catch(function(e) { flash("✕ " + e.message); refresh(); })
       .finally(function() { setBusy(false); });
   }
@@ -182,15 +196,16 @@ export function NudgeCard(props) {
     setBusy(true);
     disablePush().then(function() { flash("Off on this device."); refresh(); }).catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
   }
-  function test() {
+  function test(kind) {
     setBusy(true);
-    testPush().then(function(r) { flash(r.sent ? "Sent. Check your notifications." : "✕ Not delivered" + (r.results && r.results[0] && r.results[0].status ? " (" + r.results[0].status + ")" : "")); })
+    testPush(kind).then(function(r) { flash(r.sent ? "Sent. Check your notifications." : "✕ Not delivered" + (r.results && r.results[0] && r.results[0].status ? " (" + r.results[0].status + ")" : "")); })
       .catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
   }
 
   var now = new Date();
   var dayNum = Math.floor((now.getTime() - now.getTimezoneOffset() * 60000) / 86400000);
   var preview = composeBeerNudge(ins, ctx, dayNum);
+  var previewCk = composeBeerCheckin(ins, dayNum);
   var on = status.state === "on";
   var canEnable = status.state === "off";
   var blocked = !on && !canEnable && status.state !== "loading";
@@ -198,28 +213,103 @@ export function NudgeCard(props) {
 
   return (
     <div className="bz-card" style={{ borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
-      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Daily nudge · {cfg.notifyTime} {tzLabel}{on ? " · ON" : ""}</div>
-      <div className="bz-p">A notification at your danger hour with something to do instead: sparkling water from the fridge, a training session, a walk. Today's would read:</div>
-      <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 10 }}>
+      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Notifications · {tzLabel}{on ? " · ON HERE" : ""}</div>
+      <div className="bz-p"><b>Nudge</b> at your danger hour with something to do instead. <b>Check-in</b> later to log whether you stayed dry or had beer. Today's would read:</div>
+      <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 6 }}>
         <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>{preview.title}</div>
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 3 }}>{preview.body}</div>
       </div>
-      <div className="crow">
-        <div className="clabel" style={{ width:110 }}>Nudge time</div>
-        <div className="cst">
-          <button className="cb" onClick={function() { onCfg({ notifyTime: shiftTime(cfg.notifyTime, -30) }); }}>−</button>
-          <span className="cv">{cfg.notifyTime}</span>
-          <button className="cb" onClick={function() { onCfg({ notifyTime: shiftTime(cfg.notifyTime, 30) }); }}>+</button>
-        </div>
+      <div style={{ border: "2px solid var(--rule)", borderRadius: 12, padding: "7px 11px", background: "var(--bg)", marginBottom: 10 }}>
+        <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 13, lineHeight: 1.2 }}>{previewCk.title}</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 2 }}>{previewCk.body}</div>
       </div>
+      <TimeRow label="Nudge" value={cfg.notifyTime} on={cfg.nudgeOn} onTime={function(v) { onCfg({ notifyTime: v }); }} onToggle={function(v) { onCfg({ nudgeOn: v }); }} />
+      <TimeRow label="Check-in" value={cfg.checkinTime} on={cfg.checkinOn} onTime={function(v) { onCfg({ checkinTime: v }); }} onToggle={function(v) { onCfg({ checkinOn: v }); }} />
       {blocked && <div className="bz-flag mid" style={{ marginTop: 4 }}>ℹ️ <span>{status.reason}</span></div>}
       <div className="xrow" style={{ marginTop: 8 }}>
         {canEnable && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={enable}>{busy ? "…" : "TURN ON"}</button>}
-        {on && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={test}>{busy ? "…" : "SEND TEST"}</button>}
+        {on && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={function() { test("nudge"); }}>{busy ? "…" : "TEST NUDGE"}</button>}
+        {on && <button className="xbtn" disabled={busy} onClick={function() { test("checkin"); }}>TEST CHECK-IN</button>}
         {on && <button className="xbtn" disabled={busy} onClick={disable}>TURN OFF</button>}
       </div>
       {msg && <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", color: msg.charAt(0) === "✕" ? "var(--red)" : "var(--green)" }}>{msg}</div>}
-      <div className="bz-src">Each phone or browser you turn it on from gets the nudge. Hiding the beer tracker stops them.</div>
+      <div className="bz-src">Each phone or browser you turn it on from gets them. The check-in is skipped if you've already checked in that evening. Hiding the beer tracker stops both.</div>
+    </div>
+  );
+}
+
+// ── EVENING CHECK-IN ──────────────────────────────────────────────────────────
+// Shown on the LOG tab after checkinTime (or when the check-in notification is
+// tapped) until you answer: stayed dry, or log what you had.
+export function CheckinCard(props) {
+  var cfg = props.cfg, ins = props.ins, onDry = props.onDry, onLogMany = props.onLogMany, burst = props.burst;
+  var openPair = useState(false); var open = openPair[0]; var setOpen = openPair[1];
+  var cPair = useState(1); var count = cPair[0]; var setCount = cPair[1];
+  var mPair = useState(cfg.sizeMl); var ml = mPair[0]; var setMl = mPair[1];
+  var tPair = useState(null); var trig = tPair[0]; var setTrig = tPair[1];
+  var aPair = useState("now"); var around = aPair[0]; var setAround = aPair[1];
+  var already = ins.today.ml;
+  var total = count * ml;
+  var std = Math.round(total * cfg.abv / 100 * 0.789 / cfg.stdDrinkG * 10) / 10;
+
+  function endTs() {
+    var now = new Date();
+    if (around === "now") return now;
+    var d = new Date(now); d.setHours(Number(around), 0, 0, 0);
+    if (d.getTime() > now.getTime()) d.setDate(d.getDate() - 1);
+    return d;
+  }
+  function dry(e) {
+    var q = e.currentTarget.getBoundingClientRect();
+    if (burst && !already) burst(q.left + q.width / 2, q.top, ["💧","🔥","💪","🏆","✨","🧠","🙌","⚡"]);
+    onDry();
+  }
+  function logIt() {
+    var end = endTs().getTime();
+    var entries = [];
+    for (var i = 0; i < count; i++) entries.push({ ml: ml, trigger: trig, ts: new Date(end - (count - 1 - i) * 20 * 60000).toISOString() });
+    onLogMany(entries);
+  }
+
+  return (
+    <div className="bz-card" style={{ borderColor: "#6366F1", boxShadow: "4px 4px 0 #6366F1" }}>
+      <div className="bz-hd" style={{ color: "#4F46E5" }}>🌙 Evening check-in</div>
+      <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 20, lineHeight: 1.15, marginBottom: 10 }}>
+        {already ? "You've logged " + already + "ml today. Anything since?" : "Did you have beer today?"}
+      </div>
+      {!open && (
+        <div className="xrow">
+          <button className="xbtn pri" style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={dry}>{already ? "✓ THAT'S ALL" : "💧 STAYED DRY"}</button>
+          <button className="xbtn" style={{ background: AMBER_BG, borderColor: AMBER, color: "#92400E" }} onClick={function() { setOpen(true); }}>🍺 {already ? "HAD MORE" : "HAD BEER"}</button>
+        </div>
+      )}
+      {open && (
+        <div>
+          <div className="crow">
+            <div className="clabel" style={{ width:84 }}>How many</div>
+            <div className="cst">
+              <button className="cb" onClick={function() { setCount(Math.max(1, count - 1)); }}>−</button>
+              <span className="cv">{count}</span>
+              <button className="cb" onClick={function() { setCount(Math.min(12, count + 1)); }}>+</button>
+            </div>
+          </div>
+          <div className="bz-chips" style={{ marginBottom: 8 }}>
+            {SIZES.map(function(sz) { return <button key={sz.ml} className={"bz-chip" + (ml === sz.ml ? " on" : "")} onClick={function() { setMl(sz.ml); }}>{sz.label}{sz.label === "PINT" ? "" : "ml"}</button>; })}
+          </div>
+          <div className="bz-hd">Last one around</div>
+          <div className="bz-chips" style={{ marginBottom: 8 }}>
+            {["17","18","19","20","now"].map(function(h) { return <button key={h} className={"bz-chip" + (around === h ? " on" : "")} onClick={function() { setAround(h); }}>{h === "now" ? "NOW" : h + ":00"}</button>; })}
+          </div>
+          <div className="bz-hd">Why?</div>
+          <div className="bz-chips" style={{ marginBottom: 10 }}>
+            {Object.keys(TRIGGERS).map(function(t) { return <button key={t} className={"bz-chip" + (trig === t ? " on" : "")} onClick={function() { setTrig(trig === t ? null : t); }}>{TRIGGERS[t].emoji} {TRIGGERS[t].label}</button>; })}
+          </div>
+          <button className="bz-big" style={{ background: AMBER }} onClick={logIt}>🍺 LOG {count > 1 ? count + " × " + ml + "ml = " : ""}{total}ml · {std} std</button>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
+            <button className="fhb" onClick={function() { setOpen(false); }}>CANCEL</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -293,6 +383,9 @@ export function BeerLogTab(props) {
 
       {ins.wins.slice(0, 2).map(function(w, i) { return <div key={i} className="bz-win">🏆 <span>{w}</span></div>; })}
       {ins.flags.slice(0, 1).map(function(f, i) { return <div key={i} className={"bz-flag " + f.level}>⚠️ <span>{f.text}</span></div>; })}
+
+      {props.showCheckin && <div style={{ marginTop: 12 }}><CheckinCard cfg={cfg} ins={ins} onDry={props.onCheckinDry} onLogMany={props.onCheckinLog} burst={burst} /></div>}
+      {ins.checkins && ins.checkins.today && <div className="bz-win" style={{ marginTop: 8 }}>🌙 <span>{ins.checkins.today === "dry" ? "Checked in dry tonight." : "Checked in for tonight."}</span></div>}
 
       <div className="bz-card" style={{ marginTop:12 }}>
         <div className="bz-hd">Log a beer</div>
@@ -407,12 +500,12 @@ export function BeerInsightsTab(props) {
     setCopyMsg("CSV exported"); setTimeout(function() { setCopyMsg(""); }, 2500);
   }
   function exportJson() {
-    var json = JSON.stringify(beerExportJson(log, cfg), null, 2);
+    var json = JSON.stringify(beerExportJson(log, cfg, undefined, props.checkins), null, 2);
     if (!downloadFile("beer-log-" + ins.todayKey + ".json", json, "application/json")) { navigator.clipboard && navigator.clipboard.writeText(json); }
     setCopyMsg("JSON exported"); setTimeout(function() { setCopyMsg(""); }, 2500);
   }
   function copyJson() {
-    var json = JSON.stringify(beerExportJson(log, cfg), null, 2);
+    var json = JSON.stringify(beerExportJson(log, cfg, undefined, props.checkins), null, 2);
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(json).then(function() { setCopyMsg("JSON copied"); setTimeout(function() { setCopyMsg(""); }, 2500); });
   }
 
@@ -436,6 +529,7 @@ export function BeerInsightsTab(props) {
           <div className="bz-tile"><div className="bz-tile-v">{s.dryPctAll}<span className="bz-tile-u">%</span></div><div className="bz-tile-l">dry since {ins.startDate}</div></div>
         </div>
         {s.lastDrinkAt && <div className="bz-p" style={{ marginTop:8 }}>Last beer: <b>{s.lastDrinkAt.slice(0, 10)} {fmtHM(s.lastDrinkAt, cfg.tzOff)}</b> · {Math.floor(s.hoursSinceLastDrink)}h ago.{s.currentDrinkingRun > 0 ? " Currently " + s.currentDrinkingRun + " drinking day" + (s.currentDrinkingRun > 1 ? "s" : "") + " in a row." : ""}</div>}
+        {ins.checkins && ins.checkins.confirmedDry30 > 0 && <div className="bz-p">Confirmed dry at check-in: <b>{ins.checkins.confirmedDry7}</b> this week, <b>{ins.checkins.confirmedDry30}</b> in 30 days.</div>}
         {ins.wins.map(function(x, i) { return <div key={i} className="bz-win">🏆 <span>{x}</span></div>; })}
       </div>
 

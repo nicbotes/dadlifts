@@ -29,7 +29,7 @@ A home screen PWA for tracking the [Ivysaur 4-4-8](https://www.liftosaur.com/pro
 **Barbell:** Deadlift · Back Squat · Bench Press · OHP · Bent-Over Row  
 **Calisthenics:** Front Lever · Dead Hang · Wall Handstand · Wall HSPU · L-Sit · Muscle-Up
 
-**Beer tracker (🍺):** log millilitres with time and trigger, beat urges with a 20-minute surf timer, see streaks, danger windows, triggers, a research-based brain-rewiring timeline and a withdrawal guide. CSV/JSON export. A daily 5pm (SAST) push notification suggests an alternative: sparkling water from the fridge, tonight's training session, a walk. Notifications need the server version over HTTPS (see [DEPLOY.md](DEPLOY.md#https--required-for-the-5pm-beer-nudge)). See [docs/BEER_TRACKER_PLAN.md](docs/BEER_TRACKER_PLAN.md).
+**Beer tracker (🍺):** log millilitres with time and trigger, beat urges with a 20-minute surf timer, see streaks, danger windows, triggers, a research-based brain-rewiring timeline and a withdrawal guide. CSV/JSON export. A 5pm (SAST) push notification suggests an alternative: sparkling water from the fridge, tonight's training session, a walk. A 7:30pm check-in asks whether you stayed dry or had beer, and logs the volume. Notifications need the server version over HTTPS (see [DEPLOY.md](DEPLOY.md#https--required-for-the-beer-notifications-5pm-nudge-730pm-check-in)). See [docs/BEER_TRACKER_PLAN.md](docs/BEER_TRACKER_PLAN.md).
 
 **Install:** Open https://nicbotes.github.io/dadlifts/ in Safari → Share → Add to Home Screen
 

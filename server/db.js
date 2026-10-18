@@ -102,7 +102,9 @@ db.exec(`
     created_at      TEXT NOT NULL DEFAULT (datetime('now')),
     last_sent_day   TEXT,
     last_attempt_at TEXT,
-    last_error      TEXT
+    last_error      TEXT,
+    last_checkin_day        TEXT,
+    last_checkin_attempt_at TEXT
   );
 
   -- Server-wide settings (e.g. generated VAPID keys)
@@ -124,6 +126,11 @@ db.exec(`
     logged_at   TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// Migrations for push_subscriptions created before the evening check-in existed
+['last_checkin_day', 'last_checkin_attempt_at'].forEach((col) => {
+  try { db.exec(`ALTER TABLE push_subscriptions ADD COLUMN ${col} TEXT`); } catch (e) { /* already there */ }
+});
 
 // ── VIEWS — make app_state blob queryable like real tables ──────────────────
 // OpenClaw tends to query tables directly. These views proxy into the blob

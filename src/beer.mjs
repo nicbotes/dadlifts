@@ -105,6 +105,9 @@ export function makeDefaultBeerCfg() {
     tzOff: 0,            // device getTimezoneOffset() — kept fresh on save
     notifyTime: "17:00", // daily nudge, local wall-clock time in notifyTz
     notifyTz: "Africa/Johannesburg", // IANA zone the nudge time is read in (SAST)
+    nudgeOn: true,       // 5pm nudge
+    checkinTime: "19:30",// evening check-in: did you stay dry or have beer?
+    checkinOn: true,
   };
 }
 
@@ -121,6 +124,9 @@ export function normalizeBeerCfg(raw) {
   if (cfg.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(cfg.startDate))) cfg.startDate = null;
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cfg.notifyTime))) cfg.notifyTime = "17:00";
   if (!cfg.notifyTz || typeof cfg.notifyTz !== "string") cfg.notifyTz = "Africa/Johannesburg";
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cfg.checkinTime))) cfg.checkinTime = "19:30";
+  cfg.nudgeOn = cfg.nudgeOn !== false;
+  cfg.checkinOn = cfg.checkinOn !== false;
   return cfg;
 }
 
@@ -146,6 +152,17 @@ export function normalizeBeerLog(raw) {
     });
   });
   out.sort(function(a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
+  return out;
+}
+
+// Evening check-ins: { "YYYY-MM-DD": "dry" | "drank" } keyed by beer day.
+// "dry" = you confirmed a dry evening; "drank" = you logged at check-in.
+export function normalizeBeerCheckins(raw) {
+  var out = {};
+  if (!raw || typeof raw !== "object") return out;
+  Object.keys(raw).sort().slice(-400).forEach(function(k) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(k) && (raw[k] === "dry" || raw[k] === "drank")) out[k] = raw[k];
+  });
   return out;
 }
 
@@ -206,7 +223,7 @@ export function kcalBeer(ml, abv) {
 // ── INSIGHTS ─────────────────────────────────────────────────────────────────
 // All numbers precalculated so the UI, the agent snapshot and the export never
 // have to re-derive them. `now` is optional (ISO or Date) for deterministic tests.
-export function computeBeerInsights(rawLog, rawCfg, now) {
+export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   var cfg = normalizeBeerCfg(rawCfg);
   var log = normalizeBeerLog(rawLog);
   var nowD = now ? new Date(now) : new Date();
@@ -390,6 +407,15 @@ export function computeBeerInsights(rawLog, rawCfg, now) {
   var weekly8 = [];
   for (var wk = 7; wk >= 0; wk--) { var wd = windowBefore(7, wk * 7); weekly8.push({ weeksAgo:wk, ml:Math.round(wd.ml), g:Math.round(wd.g), drinkingDays:wd.drinkingDays }); }
 
+  // Check-ins — confirmed dry evenings (a day only counts if no beer was logged)
+  var checkins = normalizeBeerCheckins(rawCheckins);
+  var confirmedDry7 = 0, confirmedDry30 = 0;
+  for (var ci = 0; ci < 30; ci++) {
+    var ck = addDaysKey(todayKey, -ci);
+    if (checkins[ck] === "dry" && !byDay[ck]) { confirmedDry30++; if (ci < 7) confirmedDry7++; }
+  }
+  if (confirmedDry7 >= 2) wins.push("Confirmed dry " + confirmedDry7 + " evening" + (confirmedDry7 > 1 ? "s" : "") + " this week.");
+
   function r1(x) { return Math.round(x * 10) / 10; }
   return {
     generatedAt: nowIso,
@@ -429,6 +455,7 @@ export function computeBeerInsights(rawLog, rawCfg, now) {
     budget: budget,
     money: money,
     guidelines: LOW_RISK,
+    checkins: { today: checkins[todayKey] || null, confirmedDry7: confirmedDry7, confirmedDry30: confirmedDry30 },
   };
 }
 
@@ -451,12 +478,13 @@ export function beerLogToCsv(rawLog, rawCfg) {
   return head.join(",") + "\n" + rows.join("\n") + (rows.length ? "\n" : "");
 }
 
-export function beerExportJson(rawLog, rawCfg, now) {
+export function beerExportJson(rawLog, rawCfg, now, rawCheckins) {
   return {
     exportedAt: new Date().toISOString(),
     cfg: normalizeBeerCfg(rawCfg),
     log: normalizeBeerLog(rawLog),
-    insights: computeBeerInsights(rawLog, rawCfg, now),
+    checkins: normalizeBeerCheckins(rawCheckins),
+    insights: computeBeerInsights(rawLog, rawCfg, now, rawCheckins),
   };
 }
 
@@ -530,13 +558,35 @@ export function zonedParts(date, timeZone) {
   return { day: day, minutes: mins, dayNum: dayNum };
 }
 
-// Is a nudge due? Fires once per local day, in the hour after notifyTime, so a
-// server restart at 17:20 still sends but one at 23:00 does not.
-export function nudgeDue(cfg, now, lastSentDay) {
+// Is a scheduled notification due? Fires once per local day, in the hour after
+// its time, so a server restart at 17:20 still sends but one at 23:00 does not.
+//   kind: "nudge" (notifyTime) | "checkin" (checkinTime)
+export function scheduleDue(cfg, kind, now, lastSentDay) {
   cfg = normalizeBeerCfg(cfg);
   var z = zonedParts(now || new Date(), cfg.notifyTz);
-  var hm = cfg.notifyTime.split(":").map(Number);
+  var on = kind === "checkin" ? cfg.checkinOn : cfg.nudgeOn;
+  var hm = (kind === "checkin" ? cfg.checkinTime : cfg.notifyTime).split(":").map(Number);
   var at = hm[0] * 60 + hm[1];
-  var due = z.minutes >= at && z.minutes < at + 60 && lastSentDay !== z.day;
+  var due = on && z.minutes >= at && z.minutes < at + 60 && lastSentDay !== z.day;
   return { due: due, day: z.day, dayNum: z.dayNum };
+}
+export function nudgeDue(cfg, now, lastSentDay) { return scheduleDue(cfg, "nudge", now, lastSentDay); }
+
+// The 7:30pm check-in: did you stay dry, or have beer? Tap → log the ml.
+export function composeBeerCheckin(ins, seed) {
+  var n = Math.abs(Math.floor(Number(seed) || 0));
+  var s = ins && ins.streak ? ins.streak : { current: 0 };
+  var todayMl = ins && ins.today ? ins.today.ml : 0;
+  var title, body;
+  if (todayMl > 0) {
+    title = "Evening check-in · " + todayMl + "ml logged";
+    body = ["Anything since? Log it now while you remember, then switch to water.",
+            "Add any you haven't logged yet. Honest numbers make the insights work."][n % 2];
+  } else {
+    title = s.current >= 1 ? "Evening check-in · Day " + s.current + " dry?" : "Evening check-in 🍺?";
+    body = ["Stayed dry? Tap to confirm it. Had a beer? Log the ml. Honest data beats a perfect streak.",
+            "Did you hold the line tonight? Confirm dry, or log what you had. No judgement either way.",
+            "Quick one: dry or not? Ten seconds to log it keeps the streak and the stats real."][n % 3];
+  }
+  return { title: title, body: body, tag: "beer-checkin", url: "?beer=checkin" };
 }

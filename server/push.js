@@ -1,4 +1,6 @@
-// Web Push — daily beer nudge at the user's chosen local time (default 17:00 SAST).
+// Web Push — two daily notifications at the user's local times (SAST by default):
+//   nudge   17:00  something to do instead of a beer
+//   checkin 19:30  did you stay dry or have beer? tap to log the ml
 //
 // - VAPID keys come from env (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY) or are
 //   generated once and persisted in the server_kv table, so no setup is needed.
@@ -71,10 +73,11 @@ function listSubscriptions(token) {
 }
 
 // Build the personalised payload for a user from their blob
-async function buildPayload(state, now) {
+async function buildPayload(state, now, kind = 'nudge') {
   const B = await beer();
   const cfg = B.normalizeBeerCfg(state.beerCfg);
-  const ins = B.computeBeerInsights(state.beerLog, cfg, now);
+  const ins = B.computeBeerInsights(state.beerLog, cfg, now, state.beerCheckins);
+  if (kind === 'checkin') return B.composeBeerCheckin(ins, B.zonedParts(now, cfg.notifyTz).dayNum);
   const ctx = {
     enabledModes: state.enabledModes || { 0: true, 1: true, 2: true, 3: true },
     barbellDay: BB_LABELS[state.dayIdx || 0],
@@ -100,9 +103,9 @@ async function sendTo(row, payload) {
 }
 
 // Send right now to every device of one user (the in-app "test" button)
-async function sendTest(token, now = new Date()) {
+async function sendTest(token, now = new Date(), kind = 'nudge') {
   const rows = db.prepare('SELECT * FROM push_subscriptions WHERE token = ?').all(token);
-  const payload = await buildPayload(readState(token), now);
+  const payload = await buildPayload(readState(token), now, kind);
   const results = [];
   for (const row of rows) results.push(Object.assign({ endpoint: row.endpoint.slice(0, 60) + '…' }, await sendTo(row, payload)));
   return { sent: results.filter(r => r.ok).length, devices: rows.length, payload, results };
@@ -114,19 +117,25 @@ async function runNudgeTick(now = new Date()) {
   const rows = db.prepare('SELECT * FROM push_subscriptions').all();
   const out = [];
   const stateCache = {};
+  const KINDS = [
+    { kind: 'nudge',   dayCol: 'last_sent_day',    attemptCol: 'last_attempt_at' },
+    { kind: 'checkin', dayCol: 'last_checkin_day', attemptCol: 'last_checkin_attempt_at' },
+  ];
   for (const row of rows) {
     const state = stateCache[row.token] || (stateCache[row.token] = readState(row.token));
-    if (state.enabledModes && state.enabledModes[3] === false) continue; // beer tracker hidden → no nudges
-    const check = B.nudgeDue(state.beerCfg, now, row.last_sent_day);
-    if (!check.due) continue;
-    if (row.last_attempt_at && now.getTime() - Date.parse(row.last_attempt_at) < RETRY_MS) continue;
-    const payload = await buildPayload(state, now);
-    const res = await sendTo(row, payload);
-    if (!res.gone) {
-      db.prepare('UPDATE push_subscriptions SET last_attempt_at = ?, last_sent_day = ?, last_error = ? WHERE endpoint = ?')
-        .run(now.toISOString(), res.ok ? check.day : row.last_sent_day, res.ok ? null : `${res.status} ${res.error || ''}`.trim(), row.endpoint);
+    if (state.enabledModes && state.enabledModes[3] === false) continue; // beer tracker hidden → no notifications
+    for (const k of KINDS) {
+      const check = B.scheduleDue(state.beerCfg, k.kind, now, row[k.dayCol]);
+      if (!check.due) continue;
+      // Already checked in this evening (confirmed dry or logged) → don't ask
+      if (k.kind === 'checkin' && state.beerCheckins && state.beerCheckins[check.day]) continue;
+      if (row[k.attemptCol] && now.getTime() - Date.parse(row[k.attemptCol]) < RETRY_MS) continue;
+      const res = await sendTo(row, await buildPayload(state, now, k.kind));
+      if (res.gone) break;
+      db.prepare(`UPDATE push_subscriptions SET ${k.attemptCol} = ?, ${k.dayCol} = ?, last_error = ? WHERE endpoint = ?`)
+        .run(now.toISOString(), res.ok ? check.day : row[k.dayCol], res.ok ? null : `${k.kind} ${res.status} ${res.error || ''}`.trim(), row.endpoint);
+      out.push({ token: row.token.slice(0, 6), kind: k.kind, day: check.day, ok: res.ok, status: res.status });
     }
-    out.push({ token: row.token.slice(0, 6), day: check.day, ok: res.ok, status: res.status });
   }
   return out;
 }

@@ -31,7 +31,7 @@ async function recompute(state) {
   const B = await beer();
   state.beerCfg = B.normalizeBeerCfg(state.beerCfg);
   state.beerLog = B.normalizeBeerLog(state.beerLog);
-  state.beerInsights = B.computeBeerInsights(state.beerLog, state.beerCfg);
+  state.beerInsights = B.computeBeerInsights(state.beerLog, state.beerCfg, undefined, state.beerCheckins);
   return state;
 }
 
@@ -43,7 +43,7 @@ router.get('/', async (req, res) => {
     const B = await beer();
     const cfg = B.normalizeBeerCfg(state.beerCfg);
     const log = B.normalizeBeerLog(state.beerLog);
-    res.json({ cfg, log, insights: B.computeBeerInsights(log, cfg) });
+    res.json({ cfg, log, checkins: B.normalizeBeerCheckins(state.beerCheckins), insights: B.computeBeerInsights(log, cfg, undefined, state.beerCheckins) });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -53,7 +53,7 @@ router.get('/insights', async (req, res) => {
     const state = readState(req.token);
     if (!state) return res.json({ error: 'no data yet' });
     const B = await beer();
-    res.json(B.computeBeerInsights(state.beerLog, state.beerCfg));
+    res.json(B.computeBeerInsights(state.beerLog, state.beerCfg, undefined, state.beerCheckins));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -117,7 +117,7 @@ router.get('/export.json', async (req, res) => {
     const state = readState(req.token) || {};
     const B = await beer();
     res.setHeader('Content-Disposition', 'attachment; filename="beer-log.json"');
-    res.json(B.beerExportJson(state.beerLog, state.beerCfg));
+    res.json(B.beerExportJson(state.beerLog, state.beerCfg, undefined, state.beerCheckins));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

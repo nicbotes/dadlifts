@@ -29,9 +29,10 @@ router.post('/unsubscribe', (req, res) => {
   res.json({ removed: push.removeSubscription(req.token, endpoint) });
 });
 
-// Send today's nudge to all of this user's devices right now
+// Send a notification to all of this user's devices right now. ?kind=nudge|checkin
 router.post('/test', async (req, res) => {
-  try { res.json(await push.sendTest(req.token)); }
+  const kind = req.query.kind === 'checkin' ? 'checkin' : 'nudge';
+  try { res.json(await push.sendTest(req.token, new Date(), kind)); }
   catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -40,7 +41,8 @@ router.get('/preview', async (req, res) => {
   try {
     const db = require('../db');
     const row = db.prepare("SELECT value FROM app_state WHERE token = ? AND key = 'main'").get(req.token);
-    res.json(await push.buildPayload(row ? JSON.parse(row.value) : {}, new Date()));
+    const kind = req.query.kind === 'checkin' ? 'checkin' : 'nudge';
+    res.json(await push.buildPayload(row ? JSON.parse(row.value) : {}, new Date(), kind));
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

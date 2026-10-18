@@ -269,7 +269,7 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 // API-backed persistence — token read from URL path at runtime
 import api from './api.js';
 import { BeerLogTab, BeerInsightsTab, beerCss } from './Beer.jsx';
-import { BEER_COLOR, computeBeerInsights, normalizeBeerCfg, normalizeBeerLog, makeEntry, makeDefaultBeerCfg, dayKey as beerDayKey } from './beer.mjs';
+import { BEER_COLOR, computeBeerInsights, normalizeBeerCfg, normalizeBeerLog, normalizeBeerCheckins, makeEntry, makeDefaultBeerCfg, dayKey as beerDayKey } from './beer.mjs';
 
 async function loadState() {
   try {
@@ -433,7 +433,7 @@ function makeDefault() {
     mode: 0, bbTab: 0, caliTab: 0, kbTab: 0, beerTab: 0, dayIdx: 0, caliDayIdx: 0, cycle: 1, caliCycle: 1, kbSession: 1, sessionLog: [], caliLog: [], kbLog: [], amrapLog: {}, caliAmrapLog: {},
     kbWeight: KB_CIRCUIT.bellKg, kbSets: makeDefaultKbSets(), kbWarmup: {},
     // Beer tracker (mode 3) — see src/beer.mjs for the shape
-    beerLog: [], beerCfg: makeDefaultBeerCfg(), beerInsights: null,
+    beerLog: [], beerCfg: makeDefaultBeerCfg(), beerInsights: null, beerCheckins: {},
     enabledModes: { 0:true, 1:true, 2:true, 3:true },
     weights: makeDefaultWeights(),
     progs: makeDefaultProgs(),
@@ -485,6 +485,7 @@ function normalizeState(raw) {
   if (!Number.isFinite(Number(state.kbSession))) state.kbSession = 1;
   state.beerLog = normalizeBeerLog(state.beerLog);
   state.beerCfg = normalizeBeerCfg(state.beerCfg);
+  state.beerCheckins = normalizeBeerCheckins(state.beerCheckins);
   if (!Number.isFinite(Number(state.beerTab))) state.beerTab = 0;
   state.enabledModes = Object.assign({ 0:true, 1:true, 2:true, 3:true }, state.enabledModes || {});
   // Never allow every mode disabled — fall back to barbell on
@@ -1900,12 +1901,18 @@ export default function App() {
   var importTextPair = useState(""); var importText = importTextPair[0]; var setImportText = importTextPair[1];
   var importMsgPair = useState(""); var importMsg = importMsgPair[0]; var setImportMsg = importMsgPair[1];
   var copiedPair = useState(false); var copied = copiedPair[0]; var setCopied = copiedPair[1];
+  var forceCkPair = useState(false); var forceCheckin = forceCkPair[0]; var setForceCheckin = forceCkPair[1];
+  // Re-render once a minute so the evening check-in card appears on time and "hours since" stays fresh
+  var tickPair = useState(0); var setTick = tickPair[1];
+  useEffect(function() { var iv = setInterval(function() { setTick(function(t) { return t + 1; }); }, 60000); return function() { clearInterval(iv); }; }, []);
 
   useEffect(function() {
     loadState().then(function(saved) {
       if (saved) { _setSt(function(prev) { return normalizeState(Object.assign({}, prev, saved)); }); }
-      // Notification tap opens ?beer=log → jump to the beer LOG tab, then clean the URL
-      if (/[?&]beer=log\b/.test(window.location.search)) {
+      // Notification tap opens ?beer=log or ?beer=checkin → beer LOG tab, then clean the URL
+      var beerLink = (window.location.search.match(/[?&]beer=(log|checkin)\b/) || [])[1];
+      if (beerLink === "checkin") setForceCheckin(true);
+      if (beerLink) {
         _setSt(function(prev) {
           var em = prev.enabledModes || {};
           return em[3] === false ? prev : Object.assign({}, prev, { mode: 3, beerTab: 0 });
@@ -1921,7 +1928,7 @@ export default function App() {
       var next = normalizeState(typeof upd === "function" ? upd(prev) : Object.assign({}, prev, upd));
       // Beer insights are precalculated into the blob so the agent snapshot / export never recompute
       next.beerCfg = Object.assign({}, next.beerCfg, { tzOff: new Date().getTimezoneOffset() });
-      next.beerInsights = computeBeerInsights(next.beerLog, next.beerCfg);
+      next.beerInsights = computeBeerInsights(next.beerLog, next.beerCfg, undefined, next.beerCheckins);
       clearTimeout(saveTimer.current);
       setSaving(true);
       saveTimer.current = setTimeout(function() {
@@ -1938,7 +1945,13 @@ export default function App() {
   }
 
   // Beer insights for display — recomputed on render so "hours since" stays live
-  var beerIns = computeBeerInsights(st.beerLog, st.beerCfg);
+  var beerIns = computeBeerInsights(st.beerLog, st.beerCfg, undefined, st.beerCheckins);
+  // Evening check-in card: after checkinTime (or until the day rolls over), or when
+  // the check-in notification was tapped, until answered for today.
+  var nowD = new Date(), nowMin = nowD.getHours() * 60 + nowD.getMinutes();
+  var ckParts = st.beerCfg.checkinTime.split(":").map(Number);
+  var inCheckinWindow = st.beerCfg.checkinOn && (nowMin >= ckParts[0] * 60 + ckParts[1] || nowMin < st.beerCfg.rolloverHour * 60);
+  var showCheckin = !beerIns.checkins.today && (forceCheckin || inCheckinWindow);
 
   var today = SCHED[st.dayIdx] || SCHED[0];
   var todaySets = (st.liftSets || {})[st.dayIdx] || makeDefaultLiftSets()[st.dayIdx];
@@ -2650,6 +2663,28 @@ export default function App() {
     setSt(function(prev) { return Object.assign({}, prev, { beerCfg: Object.assign({}, prev.beerCfg, patch) }); });
   }
   function beerBurst(x, y, emojis) { emitBurst(makeDoneBurst(x, y, emojis)); }
+  function todayBeerKey(cfg) { return beerDayKey(new Date().toISOString(), new Date().getTimezoneOffset(), cfg.rolloverHour); }
+  // Check-in: "stayed dry" (or "that's all" when beer was already logged today)
+  function checkinDry() {
+    setForceCheckin(false);
+    setSt(function(prev) {
+      var cfg = prev.beerCfg, key = todayBeerKey(cfg);
+      var drank = (prev.beerLog || []).some(function(e) { return !e.resisted && e.ml > 0 && beerDayKey(e.ts, e.tzOff, cfg.rolloverHour) === key; });
+      var ck = Object.assign({}, prev.beerCheckins); ck[key] = drank ? "drank" : "dry";
+      return Object.assign({}, prev, { beerCheckins: ck });
+    });
+  }
+  // Check-in: log what you had (several beers at once)
+  function checkinLog(entries) {
+    setForceCheckin(false);
+    setSt(function(prev) {
+      var cfg = Object.assign({}, prev.beerCfg, { tzOff: new Date().getTimezoneOffset() });
+      var made = entries.map(function(f) { return makeEntry(Object.assign({}, f, { resisted:false, tzOff: cfg.tzOff }), cfg); });
+      if (!cfg.startDate && made.length) cfg.startDate = beerDayKey(made[0].ts, made[0].tzOff, cfg.rolloverHour);
+      var ck = Object.assign({}, prev.beerCheckins); ck[todayBeerKey(cfg)] = "drank";
+      return Object.assign({}, prev, { beerCfg: cfg, beerLog: (prev.beerLog || []).concat(made), beerCheckins: ck });
+    });
+  }
 
   function toggleMode(m) {
     setSt(function(prev) {
@@ -3143,7 +3178,8 @@ export default function App() {
               {motiv.a && <div className="motd-a" style={{ color:"#0F766E" }}>— {motiv.a}</div>}
             </div>
             <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }}
-              onCfg={updateBeerCfg} nudgeCtx={{ enabledModes: st.enabledModes, barbellDay: (SCHED[st.dayIdx] || SCHED[0]).label, kbBellKg: st.kbWeight }} />
+              onCfg={updateBeerCfg} nudgeCtx={{ enabledModes: st.enabledModes, barbellDay: (SCHED[st.dayIdx] || SCHED[0]).label, kbBellKg: st.kbWeight }}
+              showCheckin={showCheckin} onCheckinDry={checkinDry} onCheckinLog={checkinLog} />
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
         )}
@@ -3152,7 +3188,7 @@ export default function App() {
         {st.mode === 3 && atab === 1 && (
           <div className="pg">
             <div style={{ fontSize:10, color:"var(--mid)", letterSpacing:"1.5px", marginBottom:14, fontWeight:700 }}>PRECALCULATED · SWIPE → LOG</div>
-            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} />
+            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} checkins={st.beerCheckins} />
             <div className="xsec">
               <div className="xhd">Workouts · Show / Hide</div>
               <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />

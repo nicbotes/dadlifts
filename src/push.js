@@ -67,8 +67,8 @@ export async function disablePush() {
   await sub.unsubscribe();
 }
 
-export async function testPush() {
-  return api.pushTest();
+export async function testPush(kind) {
+  return api.pushTest(kind);
 }
 
 export function deviceTimeZone() {

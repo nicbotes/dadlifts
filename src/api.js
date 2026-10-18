@@ -75,7 +75,7 @@ const api = STANDALONE ? {
   pushKey:         ()          => apiReq('GET',    '/api/push/key'),
   pushSubscribe:   (sub)       => apiReq('POST',   '/api/push/subscribe', { subscription: sub }),
   pushUnsubscribe: (endpoint)  => apiReq('POST',   '/api/push/unsubscribe', { endpoint }),
-  pushTest:        ()          => apiReq('POST',   '/api/push/test'),
+  pushTest:        (kind)      => apiReq('POST',   `/api/push/test?kind=${kind === 'checkin' ? 'checkin' : 'nudge'}`),
 };
 
 export default api;

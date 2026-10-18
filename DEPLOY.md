@@ -52,7 +52,7 @@ pm2 save
 pm2 logs dadlifts --lines 30
 ```
 
-## HTTPS — required for the 5pm beer nudge
+## HTTPS — required for the beer notifications (5pm nudge, 7:30pm check-in)
 
 Push notifications only work when the app is opened over **https://**. Phones
 block them on plain `http://13.245.82.245/...`. On iPhone the app must also be
@@ -79,7 +79,7 @@ One-time setup on the VPS:
    Their data is on the server, so nothing is lost. On iPhone, delete the old
    Home Screen icon and add the https one. Use the https base for new users:
    `DADLIFT_BASE_URL=https://dadlifts.duckdns.org node cli/setup.js --name "Name"`.
-6. **Turn it on.** Open the app → 🍺 → LOG → *Daily nudge* → TURN ON → SEND TEST.
+6. **Turn it on.** Open the app → 🍺 → LOG → *Notifications* → TURN ON → TEST NUDGE / TEST CHECK-IN.
 
 Notes:
 - Signing (VAPID) keys are generated on first start and stored in the
@@ -87,8 +87,10 @@ Notes:
   To pin keys instead, set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (and
   optionally `VAPID_SUBJECT`) in `.env`.
 - `PUSH_SCHEDULER=off` disables the daily send loop.
-- Check a user's devices: `node cli/dadlift.js beer-nudge` previews today's
-  message; `beer-nudge-send` sends it now.
+- `node cli/dadlift.js beer-nudge [checkin]` previews today's message;
+  `beer-nudge-send [checkin]` sends it now.
+- The evening check-in card also appears in the app after 19:30 without
+  notifications, so it works before HTTPS is set up.
 
 ## Adding a new user
 
