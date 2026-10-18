@@ -15,7 +15,10 @@ export DADLIFT_API_URL=http://13.245.82.245/$(node -e "const db=require('better-
 node cli/dadlift.js snapshot
 ```
 
-This gives you weights, history, PRs, deloads, recent sessions — everything.
+This gives you weights, history, PRs, deloads, recent sessions — everything,
+including a `beer` block (beer tracker insights). For beer-only questions:
+`node cli/dadlift.js beer`. To log for Nic: `beer-log <ml> <trigger>` /
+`beer-resist <swap>`. Details: docs/BEER_TRACKER_PLAN.md
 
 ## Redeploy
 

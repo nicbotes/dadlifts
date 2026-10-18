@@ -268,6 +268,8 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 // ── STORAGE ───────────────────────────────────────────────────────────────────
 // API-backed persistence — token read from URL path at runtime
 import api from './api.js';
+import { BeerLogTab, BeerInsightsTab, beerCss } from './Beer.jsx';
+import { BEER_COLOR, computeBeerInsights, normalizeBeerCfg, normalizeBeerLog, makeEntry, makeDefaultBeerCfg, dayKey as beerDayKey } from './beer.mjs';
 
 async function loadState() {
   try {
@@ -428,9 +430,11 @@ function makeDefaultHoldLevels() {
 function makeDefault() {
   var holdCfg = makeDefaultHoldCfg();
   return {
-    mode: 0, bbTab: 0, caliTab: 0, kbTab: 0, dayIdx: 0, caliDayIdx: 0, cycle: 1, caliCycle: 1, kbSession: 1, sessionLog: [], caliLog: [], kbLog: [], amrapLog: {}, caliAmrapLog: {},
+    mode: 0, bbTab: 0, caliTab: 0, kbTab: 0, beerTab: 0, dayIdx: 0, caliDayIdx: 0, cycle: 1, caliCycle: 1, kbSession: 1, sessionLog: [], caliLog: [], kbLog: [], amrapLog: {}, caliAmrapLog: {},
     kbWeight: KB_CIRCUIT.bellKg, kbSets: makeDefaultKbSets(), kbWarmup: {},
-    enabledModes: { 0:true, 1:true, 2:true },
+    // Beer tracker (mode 3) — see src/beer.mjs for the shape
+    beerLog: [], beerCfg: makeDefaultBeerCfg(), beerInsights: null,
+    enabledModes: { 0:true, 1:true, 2:true, 3:true },
     weights: makeDefaultWeights(),
     progs: makeDefaultProgs(),
     liftSets: makeDefaultLiftSets(),
@@ -446,6 +450,8 @@ function makeDefault() {
     caliFailLog: {},
   };
 }
+
+var MODES = [0,1,2,3]; // 0 barbell · 1 calisthenics · 2 kettlebell · 3 beer
 
 function normalizeState(raw) {
   var base = makeDefault();
@@ -477,12 +483,15 @@ function normalizeState(raw) {
   if (state.kbWeight == null) state.kbWeight = KB_CIRCUIT.bellKg;
   if (!Number.isFinite(Number(state.kbTab))) state.kbTab = 0;
   if (!Number.isFinite(Number(state.kbSession))) state.kbSession = 1;
-  state.enabledModes = Object.assign({ 0:true, 1:true, 2:true }, state.enabledModes || {});
-  // Never allow all three disabled — fall back to barbell on
-  if (!state.enabledModes[0] && !state.enabledModes[1] && !state.enabledModes[2]) state.enabledModes[0] = true;
+  state.beerLog = normalizeBeerLog(state.beerLog);
+  state.beerCfg = normalizeBeerCfg(state.beerCfg);
+  if (!Number.isFinite(Number(state.beerTab))) state.beerTab = 0;
+  state.enabledModes = Object.assign({ 0:true, 1:true, 2:true, 3:true }, state.enabledModes || {});
+  // Never allow every mode disabled — fall back to barbell on
+  if (!MODES.some(function(m){ return state.enabledModes[m]; })) state.enabledModes[0] = true;
   // If current mode is disabled, switch to first enabled
   if (!state.enabledModes[state.mode]) {
-    state.mode = [0,1,2].find(function(m){ return state.enabledModes[m]; });
+    state.mode = MODES.find(function(m){ return state.enabledModes[m]; });
   }
   if (!Number.isFinite(Number(state.mode))) state.mode = base.mode;
   if (!Number.isFinite(Number(state.bbTab))) state.bbTab = base.bbTab;
@@ -632,7 +641,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .sdot{width:8px;height:8px;border-radius:50%;background:var(--light);border:2px solid var(--rule);transition:all .3s;flex-shrink:0}
 .sdot.on{background:var(--green);border-color:var(--green)}
 .mtabs{display:flex;border:2px solid var(--ink);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--ink)}
-.mtab{padding:0 7px;height:30px;font-size:13px;background:var(--card);color:var(--mid);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mtab{padding:0 6px;height:30px;font-size:13px;background:var(--card);color:var(--mid);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .stabs{display:flex;border:2px solid var(--ink);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--ink)}
 .stab{padding:0 8px;height:30px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.3px;background:var(--card);color:var(--mid);border:none;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .stab.on{background:var(--orange);color:#fff}
@@ -775,6 +784,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .celebrate-title{font-family:'Nunito',sans-serif;font-size:42px;font-weight:900;line-height:1;letter-spacing:-1px;margin-bottom:6px}
 .celebrate-sub{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid)}
 @keyframes popIn{0%{transform:scale(0.6);opacity:0}100%{transform:scale(1);opacity:1}}
+` + beerCss + `
 .amrap-row{display:flex;gap:5px;width:100%}
 .amrap-btn{flex:1;padding:8px 2px;border:2.5px solid var(--ink);border-radius:10px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;line-height:1.3;text-align:center}
 .amrap-btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
@@ -1852,6 +1862,31 @@ function buildCaliLiftHistory(caliLog) {
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
+// ── WORKOUT SHOW/HIDE ────────────────────────────────────────────────────────
+function WorkoutToggles(props) {
+  var st = props.st, acc = props.acc, onToggle = props.onToggle;
+  var rows = [{m:0,icon:"🏋️",label:"Barbell",col:acc},{m:1,icon:"🤸",label:"Calisthenics",col:"#8B5CF6"},{m:2,icon:"🔔",label:"Kettlebell",col:KB_COLOR},{m:3,icon:"🍺",label:"Beer tracker",col:BEER_COLOR}];
+  var enabledCount = MODES.filter(function(x){ return (st.enabledModes||{})[x]; }).length;
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {rows.map(function(row) {
+        var on = (st.enabledModes||{})[row.m];
+        var isLast = on && enabledCount <= 1;
+        return (
+          <button key={row.m} onClick={function(){ onToggle(row.m); }} disabled={isLast}
+            style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--ink)",borderRadius:14,background:on?"var(--card)":"#F0F0EA",cursor:isLast?"default":"pointer",boxShadow:"2px 2px 0 var(--ink)",textAlign:"left",opacity:on?1:0.55}}>
+            <span style={{fontSize:20}}>{row.icon}</span>
+            <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:16,color:"var(--ink)",flex:1}}>{row.label}</span>
+            <span style={{width:44,height:26,borderRadius:100,border:"2.5px solid var(--ink)",background:on?row.col:"#D5D5CD",position:"relative",flexShrink:0,transition:"background .15s"}}>
+              <span style={{position:"absolute",top:1,left:on?20:1,width:18,height:18,borderRadius:"50%",background:"#fff",border:"2px solid var(--ink)",transition:"left .15s"}} />
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function App() {
   var readyPair = useState(false); var ready = readyPair[0]; var setReady = readyPair[1];
   var savingPair = useState(false); var saving = savingPair[0]; var setSaving = savingPair[1];
@@ -1876,6 +1911,9 @@ export default function App() {
   function setSt(upd) {
     _setSt(function(prev) {
       var next = normalizeState(typeof upd === "function" ? upd(prev) : Object.assign({}, prev, upd));
+      // Beer insights are precalculated into the blob so the agent snapshot / export never recompute
+      next.beerCfg = Object.assign({}, next.beerCfg, { tzOff: new Date().getTimezoneOffset() });
+      next.beerInsights = computeBeerInsights(next.beerLog, next.beerCfg);
       clearTimeout(saveTimer.current);
       setSaving(true);
       saveTimer.current = setTimeout(function() {
@@ -1885,11 +1923,14 @@ export default function App() {
     });
   }
 
-  var atab = st.mode === 0 ? st.bbTab : st.mode === 1 ? st.caliTab : st.kbTab;
+  var atab = st.mode === 0 ? st.bbTab : st.mode === 1 ? st.caliTab : st.mode === 2 ? st.kbTab : st.beerTab;
   function setAtab(t) {
     window.scrollTo(0, 0);
-    st.mode === 0 ? setSt({ bbTab:t }) : st.mode === 1 ? setSt({ caliTab:t }) : setSt({ kbTab:t });
+    st.mode === 0 ? setSt({ bbTab:t }) : st.mode === 1 ? setSt({ caliTab:t }) : st.mode === 2 ? setSt({ kbTab:t }) : setSt({ beerTab:t });
   }
+
+  // Beer insights for display — recomputed on render so "hours since" stays live
+  var beerIns = computeBeerInsights(st.beerLog, st.beerCfg);
 
   var today = SCHED[st.dayIdx] || SCHED[0];
   var todaySets = (st.liftSets || {})[st.dayIdx] || makeDefaultLiftSets()[st.dayIdx];
@@ -2580,17 +2621,39 @@ export default function App() {
     });
   }
 
+  // ── Beer tracker ─────────────────────────────────────────────────────────
+  function appendBeer(fields, resisted) {
+    setSt(function(prev) {
+      var next = Object.assign({}, prev);
+      var cfg = Object.assign({}, prev.beerCfg, { tzOff: new Date().getTimezoneOffset() });
+      var entry = makeEntry(Object.assign({}, fields, { resisted: resisted, ml: resisted ? 0 : fields.ml, tzOff: cfg.tzOff }), cfg);
+      if (!cfg.startDate) cfg.startDate = beerDayKey(entry.ts, entry.tzOff, cfg.rolloverHour);
+      next.beerCfg = cfg;
+      next.beerLog = (prev.beerLog || []).concat([entry]);
+      return next;
+    });
+  }
+  function logBeer(fields) { appendBeer(fields, false); }
+  function logUrge(fields) { appendBeer(fields, true); }
+  function deleteBeerEntry(id) {
+    setSt(function(prev) { return Object.assign({}, prev, { beerLog: (prev.beerLog || []).filter(function(e) { return e.id !== id; }) }); });
+  }
+  function updateBeerCfg(patch) {
+    setSt(function(prev) { return Object.assign({}, prev, { beerCfg: Object.assign({}, prev.beerCfg, patch) }); });
+  }
+  function beerBurst(x, y, emojis) { emitBurst(makeDoneBurst(x, y, emojis)); }
+
   function toggleMode(m) {
     setSt(function(prev) {
       var next = JSON.parse(JSON.stringify(prev));
-      next.enabledModes = Object.assign({ 0:true, 1:true, 2:true }, next.enabledModes);
+      next.enabledModes = Object.assign({ 0:true, 1:true, 2:true, 3:true }, next.enabledModes);
       var on = Object.keys(next.enabledModes).filter(function(k){ return next.enabledModes[k]; });
       // Prevent disabling the last enabled mode
       if (next.enabledModes[m] && on.length <= 1) return prev;
       next.enabledModes[m] = !next.enabledModes[m];
       // If we just disabled the active mode, jump to first enabled
       if (!next.enabledModes[next.mode]) {
-        next.mode = [0,1,2].find(function(x){ return next.enabledModes[x]; });
+        next.mode = MODES.find(function(x){ return next.enabledModes[x]; });
       }
       return next;
     });
@@ -2681,11 +2744,12 @@ export default function App() {
             {(st.enabledModes||{0:true})[0] && <button className="mtab" style={st.mode === 0 ? { background:acc, color:"#fff" } : {}} onClick={function() { setSt({ mode:0 }); }}>🏋️</button>}
             {(st.enabledModes||{})[1] && <button className="mtab" style={st.mode === 1 ? { background:"#8B5CF6", color:"#fff" } : {}} onClick={function() { setSt({ mode:1 }); }}>🤸</button>}
             {(st.enabledModes||{})[2] && <button className="mtab" style={st.mode === 2 ? { background:KB_COLOR, color:"#fff" } : {}} onClick={function() { setSt({ mode:2 }); }}>🔔</button>}
+            {(st.enabledModes||{})[3] && <button className="mtab" style={st.mode === 3 ? { background:BEER_COLOR, color:"#fff" } : {}} onClick={function() { setSt({ mode:3 }); }}>🍺</button>}
           </div>
           <div className="bar-gap" />
           <div className="stabs">
-            <button className={"stab" + (atab === 0 ? " on" : "")} onClick={function() { setAtab(0); }}>TRAIN</button>
-            <button className={"stab" + (atab === 1 ? " on" : "")} onClick={function() { setAtab(1); }}>STATS</button>
+            <button className={"stab" + (atab === 0 ? " on" : "")} style={atab === 0 && st.mode === 3 ? { background:BEER_COLOR } : {}} onClick={function() { setAtab(0); }}>{st.mode === 3 ? "LOG" : "TRAIN"}</button>
+            <button className={"stab" + (atab === 1 ? " on" : "")} style={atab === 1 && st.mode === 3 ? { background:BEER_COLOR } : {}} onClick={function() { setAtab(1); }}>{st.mode === 3 ? "INSIGHTS" : "STATS"}</button>
           </div>
         </div>
 
@@ -2802,23 +2866,7 @@ export default function App() {
             <div className="xsec">
               <div className="xhd">Workouts · Show / Hide</div>
               <div style={{ fontSize:11, color:"var(--mid)", marginBottom:10, lineHeight:1.6, fontWeight:700 }}>Turn off what you don't use. Hidden workouts disappear from the top nav. Your data is kept.</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {[{m:0,icon:"🏋️",label:"Barbell",col:acc},{m:1,icon:"🤸",label:"Calisthenics",col:"#8B5CF6"},{m:2,icon:"🔔",label:"Kettlebell",col:KB_COLOR}].map(function(row) {
-                  var on = (st.enabledModes||{})[row.m];
-                  var enabledCount = [0,1,2].filter(function(x){return (st.enabledModes||{})[x];}).length;
-                  var isLast = on && enabledCount <= 1;
-                  return (
-                    <button key={row.m} onClick={function(){ toggleMode(row.m); }} disabled={isLast}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--ink)",borderRadius:14,background:on?"var(--card)":"#F0F0EA",cursor:isLast?"default":"pointer",boxShadow:"2px 2px 0 var(--ink)",textAlign:"left",opacity:on?1:0.55}}>
-                      <span style={{fontSize:20}}>{row.icon}</span>
-                      <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:16,color:"var(--ink)",flex:1}}>{row.label}</span>
-                      <span style={{width:44,height:26,borderRadius:100,border:"2.5px solid var(--ink)",background:on?row.col:"#D5D5CD",position:"relative",flexShrink:0,transition:"background .15s"}}>
-                        <span style={{position:"absolute",top:1,left:on?20:1,width:18,height:18,borderRadius:"50%",background:"#fff",border:"2px solid var(--ink)",transition:"left .15s"}} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
             </div>
             <div className="xsec">
               <div className="xhd">Data · Export / Import</div>
@@ -2987,23 +3035,7 @@ export default function App() {
             </div>
             <div className="asec">
               <div className="at">Workouts · Show / Hide</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {[{m:0,icon:"🏋️",label:"Barbell",col:acc},{m:1,icon:"🤸",label:"Calisthenics",col:"#8B5CF6"},{m:2,icon:"🔔",label:"Kettlebell",col:KB_COLOR}].map(function(row) {
-                  var on = (st.enabledModes||{})[row.m];
-                  var enabledCount = [0,1,2].filter(function(x){return (st.enabledModes||{})[x];}).length;
-                  var isLast = on && enabledCount <= 1;
-                  return (
-                    <button key={row.m} onClick={function(){ toggleMode(row.m); }} disabled={isLast}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--ink)",borderRadius:14,background:on?"var(--card)":"#F0F0EA",cursor:isLast?"default":"pointer",boxShadow:"2px 2px 0 var(--ink)",textAlign:"left",opacity:on?1:0.55}}>
-                      <span style={{fontSize:20}}>{row.icon}</span>
-                      <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:16,color:"var(--ink)",flex:1}}>{row.label}</span>
-                      <span style={{width:44,height:26,borderRadius:100,border:"2.5px solid var(--ink)",background:on?row.col:"#D5D5CD",position:"relative",flexShrink:0}}>
-                        <span style={{position:"absolute",top:1,left:on?20:1,width:18,height:18,borderRadius:"50%",background:"#fff",border:"2px solid var(--ink)"}} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
@@ -3093,6 +3125,33 @@ export default function App() {
           </div>
         )}
 
+        {/* BEER LOG */}
+        {st.mode === 3 && atab === 0 && (
+          <div className="pg">
+            <div className="wtag" style={{background:BEER_COLOR,borderColor:"var(--ink)",color:"#fff"}}>🍺 {beerIns.today.ml > 0 ? "TODAY " + beerIns.today.ml + "ML" : "DAY " + beerIns.streak.current + " DRY"} · {beerIns.month.dryDays}/{beerIns.month.trackedDays} DRY</div>
+            <div className="motd" style={{ background:"#CCFBF1", borderColor:BEER_COLOR }}>
+              <button className="qref" onClick={refreshQuote} aria-label="New quote">↻</button>
+              <div className="motd-q">"{motiv.q}"</div>
+              {motiv.a && <div className="motd-a" style={{ color:"#0F766E" }}>— {motiv.a}</div>}
+            </div>
+            <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }} />
+            <div className="sig">built between sets<span>to stay in the game</span></div>
+          </div>
+        )}
+
+        {/* BEER INSIGHTS */}
+        {st.mode === 3 && atab === 1 && (
+          <div className="pg">
+            <div style={{ fontSize:10, color:"var(--mid)", letterSpacing:"1.5px", marginBottom:14, fontWeight:700 }}>PRECALCULATED · SWIPE → LOG</div>
+            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} />
+            <div className="xsec">
+              <div className="xhd">Workouts · Show / Hide</div>
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
+            </div>
+            <div className="sig">built between sets<span>to stay in the game</span></div>
+          </div>
+        )}
+
         {/* KETTLEBELL STATS */}
         {st.mode === 2 && atab === 1 && (
           <div className="pg">
@@ -3159,23 +3218,7 @@ export default function App() {
             </div>
             <div className="asec">
               <div className="at">Workouts · Show / Hide</div>
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {[{m:0,icon:"🏋️",label:"Barbell",col:acc},{m:1,icon:"🤸",label:"Calisthenics",col:"#8B5CF6"},{m:2,icon:"🔔",label:"Kettlebell",col:KB_COLOR}].map(function(row) {
-                  var on = (st.enabledModes||{})[row.m];
-                  var enabledCount = [0,1,2].filter(function(x){return (st.enabledModes||{})[x];}).length;
-                  var isLast = on && enabledCount <= 1;
-                  return (
-                    <button key={row.m} onClick={function(){ toggleMode(row.m); }} disabled={isLast}
-                      style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--ink)",borderRadius:14,background:on?"var(--card)":"#F0F0EA",cursor:isLast?"default":"pointer",boxShadow:"2px 2px 0 var(--ink)",textAlign:"left",opacity:on?1:0.55}}>
-                      <span style={{fontSize:20}}>{row.icon}</span>
-                      <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:16,color:"var(--ink)",flex:1}}>{row.label}</span>
-                      <span style={{width:44,height:26,borderRadius:100,border:"2.5px solid var(--ink)",background:on?row.col:"#D5D5CD",position:"relative",flexShrink:0}}>
-                        <span style={{position:"absolute",top:1,left:on?20:1,width:18,height:18,borderRadius:"50%",background:"#fff",border:"2px solid var(--ink)"}} />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>

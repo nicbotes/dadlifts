@@ -49,6 +49,7 @@ const api = STANDALONE ? {
   clearDeloads:    async () => ({}),
   getHoldConfig:   async () => ({}),
   setHoldConfig:   async () => ({}),
+  getBeer:         async () => null,
 } : {
   getState:        ()          => apiReq('GET',    '/api/state/main'),
   saveState:       (s)         => apiReq('PUT',    '/api/state/main', { value: s }),
@@ -62,6 +63,10 @@ const api = STANDALONE ? {
   clearDeloads:    ()          => apiReq('DELETE', '/api/lifts/deloads'),
   getHoldConfig:   ()          => apiReq('GET',    '/api/holds/config'),
   setHoldConfig:   (id, cfg)   => apiReq('PUT',    `/api/holds/config/${id}`, cfg),
+  // Beer tracker — the app writes beerLog/beerCfg via saveState; these are for
+  // server-side export links and agent parity.
+  getBeer:         ()          => apiReq('GET',    '/api/beer'),
+  beerExportUrl:   (fmt)       => `${getApiBase()}/api/beer/export.${fmt || 'csv'}`,
 };
 
 export default api;

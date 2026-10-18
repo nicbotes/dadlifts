@@ -1,6 +1,6 @@
 # DΔDLIFTS 🏋️
 
-Personal training tracker. Barbell + calisthenics. Built between sets, to stay in the game.
+Personal training tracker. Barbell + calisthenics + kettlebell, plus a beer tracker for cutting down. Built between sets, to stay in the game.
 
 **Live PWA:** https://nicbotes.github.io/dadlifts/
 
@@ -28,6 +28,8 @@ A home screen PWA for tracking the [Ivysaur 4-4-8](https://www.liftosaur.com/pro
 
 **Barbell:** Deadlift · Back Squat · Bench Press · OHP · Bent-Over Row  
 **Calisthenics:** Front Lever · Dead Hang · Wall Handstand · Wall HSPU · L-Sit · Muscle-Up
+
+**Beer tracker (🍺):** log millilitres with time and trigger, beat urges with a 20-minute surf timer, see streaks, danger windows, triggers, a research-based brain-rewiring timeline and a withdrawal guide. CSV/JSON export. See [docs/BEER_TRACKER_PLAN.md](docs/BEER_TRACKER_PLAN.md).
 
 **Install:** Open https://nicbotes.github.io/dadlifts/ in Safari → Share → Add to Home Screen
 
@@ -87,4 +89,10 @@ DADLIFT_BASE_URL=http://your-vps node cli/setup.js --name "Name"
 
 # Read training data
 node cli/dadlift.js snapshot
+
+# Beer tracker
+node cli/dadlift.js beer                    # insights
+node cli/dadlift.js beer-log 440 winddown   # log a beer
+node cli/dadlift.js beer-resist walk bored  # urge beaten
+node cli/dadlift.js beer-export > beer.csv
 ```

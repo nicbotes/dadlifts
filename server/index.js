@@ -33,11 +33,15 @@ userRouter.use((req, res, next) => {
 userRouter.use('/api/lifts', require('./routes/lifts'));
 userRouter.use('/api/holds', require('./routes/holds'));
 userRouter.use('/api/state', require('./routes/state'));
+userRouter.use('/api/beer',  require('./routes/beer'));
 userRouter.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Agent snapshot — reads app_state blob and returns parsed summary
 // This is the correct endpoint for agent queries. Structured tables are empty.
-userRouter.get('/api/agent/snapshot', (req, res) => {
+let beerModP = null;
+const beerMod = () => (beerModP = beerModP || import('../src/beer.mjs'));
+
+userRouter.get('/api/agent/snapshot', async (req, res) => {
   try {
     const token = req.token;
     const row = db.prepare("SELECT value FROM app_state WHERE token=? AND key='main'").get(token);
@@ -99,6 +103,8 @@ userRouter.get('/api/agent/snapshot', (req, res) => {
       lift_history:   liftSummary,
       current_cycle_fails: failsByLift,
       hold_config:    state.holdCfg || {},
+      // Beer tracker — precalculated insights (streaks, volume, triggers, time-of-day, flags)
+      beer: await beerMod().then(B => B.computeBeerInsights(state.beerLog, state.beerCfg)).catch(e => ({ error: e.message })),
     });
   } catch(err) {
     res.status(500).json({ error: err.message });
