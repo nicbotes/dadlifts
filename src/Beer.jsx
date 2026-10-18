@@ -6,8 +6,9 @@
 import { useState, useEffect, useRef } from "react";
 import {
   BEER_COLOR, SIZES, TRIGGERS, SWAPS, STD_DRINK_OPTIONS, MILESTONES, WITHDRAWAL, RED_FLAGS,
-  beerLogToCsv, beerExportJson, localHour, dayKey,
+  beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge,
 } from "./beer.mjs";
+import { pushStatus, enablePush, disablePush, testPush, deviceTimeZone } from "./push.js";
 
 var AMBER = "#D97706";
 var AMBER_BG = "#FEF3C7";
@@ -151,6 +152,78 @@ function SurfTimer(props) {
   return <button className="bz-chip" onClick={function() { setDone(false); setEndAt(Date.now() + 20 * 60000); }}>⏱ SURF 20:00</button>;
 }
 
+// ── DAILY NUDGE (push notification) ───────────────────────────────────────────
+function shiftTime(hhmm, deltaMin) {
+  var p = String(hhmm || "17:00").split(":").map(Number);
+  var m = (((p[0] * 60 + p[1] + deltaMin) % 1440) + 1440) % 1440;
+  var h = Math.floor(m / 60), mm = m % 60;
+  return (h < 10 ? "0" : "") + h + ":" + (mm < 10 ? "0" : "") + mm;
+}
+
+export function NudgeCard(props) {
+  var cfg = props.cfg, ins = props.ins, onCfg = props.onCfg, ctx = props.ctx || {};
+  var stPair = useState({ state: "loading", reason: "" }); var status = stPair[0]; var setStatus = stPair[1];
+  var busyPair = useState(false); var busy = busyPair[0]; var setBusy = busyPair[1];
+  var msgPair = useState(""); var msg = msgPair[0]; var setMsg = msgPair[1];
+
+  function refresh() { pushStatus().then(setStatus).catch(function(e) { setStatus({ state: "unsupported", reason: e.message }); }); }
+  useEffect(refresh, []);
+  function flash(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 4000); }
+
+  function enable() {
+    setBusy(true);
+    var tz = deviceTimeZone();
+    enablePush()
+      .then(function() { if (tz !== cfg.notifyTz) onCfg({ notifyTz: tz }); flash("On. First nudge at " + cfg.notifyTime + " today or tomorrow."); refresh(); })
+      .catch(function(e) { flash("✕ " + e.message); refresh(); })
+      .finally(function() { setBusy(false); });
+  }
+  function disable() {
+    setBusy(true);
+    disablePush().then(function() { flash("Off on this device."); refresh(); }).catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
+  }
+  function test() {
+    setBusy(true);
+    testPush().then(function(r) { flash(r.sent ? "Sent. Check your notifications." : "✕ Not delivered" + (r.results && r.results[0] && r.results[0].status ? " (" + r.results[0].status + ")" : "")); })
+      .catch(function(e) { flash("✕ " + e.message); }).finally(function() { setBusy(false); });
+  }
+
+  var now = new Date();
+  var dayNum = Math.floor((now.getTime() - now.getTimezoneOffset() * 60000) / 86400000);
+  var preview = composeBeerNudge(ins, ctx, dayNum);
+  var on = status.state === "on";
+  var canEnable = status.state === "off";
+  var blocked = !on && !canEnable && status.state !== "loading";
+  var tzLabel = cfg.notifyTz === "Africa/Johannesburg" ? "SAST" : cfg.notifyTz;
+
+  return (
+    <div className="bz-card" style={{ borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
+      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Daily nudge · {cfg.notifyTime} {tzLabel}{on ? " · ON" : ""}</div>
+      <div className="bz-p">A notification at your danger hour with something to do instead: sparkling water from the fridge, a training session, a walk. Today's would read:</div>
+      <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 10 }}>
+        <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>{preview.title}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 3 }}>{preview.body}</div>
+      </div>
+      <div className="crow">
+        <div className="clabel" style={{ width:110 }}>Nudge time</div>
+        <div className="cst">
+          <button className="cb" onClick={function() { onCfg({ notifyTime: shiftTime(cfg.notifyTime, -30) }); }}>−</button>
+          <span className="cv">{cfg.notifyTime}</span>
+          <button className="cb" onClick={function() { onCfg({ notifyTime: shiftTime(cfg.notifyTime, 30) }); }}>+</button>
+        </div>
+      </div>
+      {blocked && <div className="bz-flag mid" style={{ marginTop: 4 }}>ℹ️ <span>{status.reason}</span></div>}
+      <div className="xrow" style={{ marginTop: 8 }}>
+        {canEnable && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={enable}>{busy ? "…" : "TURN ON"}</button>}
+        {on && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={test}>{busy ? "…" : "SEND TEST"}</button>}
+        {on && <button className="xbtn" disabled={busy} onClick={disable}>TURN OFF</button>}
+      </div>
+      {msg && <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", color: msg.charAt(0) === "✕" ? "var(--red)" : "var(--green)" }}>{msg}</div>}
+      <div className="bz-src">Each phone or browser you turn it on from gets the nudge. Hiding the beer tracker stops them.</div>
+    </div>
+  );
+}
+
 // ── LOG TAB ───────────────────────────────────────────────────────────────────
 export function BeerLogTab(props) {
   var cfg = props.cfg, log = props.log || [], ins = props.ins, onLog = props.onLog, onUrge = props.onUrge, onDelete = props.onDelete, burst = props.burst;
@@ -283,6 +356,8 @@ export function BeerLogTab(props) {
         </div>
         <div className="bz-p" style={{ marginTop:8, marginBottom:0 }}>Teal = dry. Amber = beer (number is ml ÷ 100). Grey = before tracking. {ins.month.dryDays}/{ins.month.trackedDays} dry days in the last 30.</div>
       </div>
+
+      {props.onCfg && <NudgeCard cfg={cfg} ins={ins} onCfg={props.onCfg} ctx={props.nudgeCtx} />}
 
       <div style={{ display:"flex", justifyContent:"flex-end", marginTop:4 }}>
         <button className="fhb" style={{ borderColor:BEER_COLOR, color:BEER_COLOR }} onClick={props.onInsights}>INSIGHTS ▶</button>

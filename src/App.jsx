@@ -1904,6 +1904,14 @@ export default function App() {
   useEffect(function() {
     loadState().then(function(saved) {
       if (saved) { _setSt(function(prev) { return normalizeState(Object.assign({}, prev, saved)); }); }
+      // Notification tap opens ?beer=log → jump to the beer LOG tab, then clean the URL
+      if (/[?&]beer=log\b/.test(window.location.search)) {
+        _setSt(function(prev) {
+          var em = prev.enabledModes || {};
+          return em[3] === false ? prev : Object.assign({}, prev, { mode: 3, beerTab: 0 });
+        });
+        try { window.history.replaceState(null, "", window.location.pathname); } catch (e) {}
+      }
       setReady(true);
     });
   }, []);
@@ -3134,7 +3142,8 @@ export default function App() {
               <div className="motd-q">"{motiv.q}"</div>
               {motiv.a && <div className="motd-a" style={{ color:"#0F766E" }}>— {motiv.a}</div>}
             </div>
-            <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }} />
+            <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }}
+              onCfg={updateBeerCfg} nudgeCtx={{ enabledModes: st.enabledModes, barbellDay: (SCHED[st.dayIdx] || SCHED[0]).label, kbBellKg: st.kbWeight }} />
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
         )}

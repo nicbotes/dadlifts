@@ -93,6 +93,24 @@ db.exec(`
     PRIMARY KEY (token, hold_id)
   );
 
+  -- Web Push subscriptions — one row per device (beer tracker daily nudge)
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint        TEXT PRIMARY KEY,
+    token           TEXT NOT NULL REFERENCES users(token),
+    sub_json        TEXT NOT NULL,
+    user_agent      TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    last_sent_day   TEXT,
+    last_attempt_at TEXT,
+    last_error      TEXT
+  );
+
+  -- Server-wide settings (e.g. generated VAPID keys)
+  CREATE TABLE IF NOT EXISTS server_kv (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   -- Calisthenics hold logs
   CREATE TABLE IF NOT EXISTS hold_logs (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

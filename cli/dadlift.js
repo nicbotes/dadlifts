@@ -199,6 +199,16 @@ const commands = {
     const data = await req('DELETE', `/api/beer/log/${id}`);
     console.log(JSON.stringify(data, null, 2));
   },
+  async 'beer-nudge'() {
+    // Today's 5pm notification text, without sending it
+    const data = await req('GET', '/api/push/preview');
+    console.log(JSON.stringify(data, null, 2));
+  },
+  async 'beer-nudge-send'() {
+    // Send today's nudge to every device the user turned notifications on from
+    const data = await req('POST', '/api/push/test');
+    console.log(JSON.stringify(data, null, 2));
+  },
   async 'beer-export'([fmt = 'csv']) {
     // Prints CSV (default) or JSON to stdout — redirect to a file
     const data = await req('GET', `/api/beer/export.${fmt === 'json' ? 'json' : 'csv'}`);
@@ -229,6 +239,8 @@ Beer tracker:
   beer-resist [swap] [trigger]      Log an urge beaten
   beer-delete <id>                  Remove an entry
   beer-export [csv|json]            Full log export to stdout
+  beer-nudge                        Preview today's 5pm notification
+  beer-nudge-send                   Send it now to the user's devices
 
 Lift IDs: deadlift squat bench ohp rows
 Triggers: bored winddown thirsty social stress craving

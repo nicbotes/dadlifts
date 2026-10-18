@@ -103,6 +103,8 @@ export function makeDefaultBeerCfg() {
     rolloverHour: 4,     // a beer at 01:00 belongs to the previous day
     startDate: null,     // ISO date tracking started (set on first log)
     tzOff: 0,            // device getTimezoneOffset() — kept fresh on save
+    notifyTime: "17:00", // daily nudge, local wall-clock time in notifyTz
+    notifyTz: "Africa/Johannesburg", // IANA zone the nudge time is read in (SAST)
   };
 }
 
@@ -117,6 +119,8 @@ export function normalizeBeerCfg(raw) {
   cfg.rolloverHour = Math.min(12, Math.max(0, Math.round(num(cfg.rolloverHour, 4))));
   cfg.tzOff = num(cfg.tzOff, 0);
   if (cfg.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(cfg.startDate))) cfg.startDate = null;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cfg.notifyTime))) cfg.notifyTime = "17:00";
+  if (!cfg.notifyTz || typeof cfg.notifyTz !== "string") cfg.notifyTz = "Africa/Johannesburg";
   return cfg;
 }
 
@@ -454,4 +458,85 @@ export function beerExportJson(rawLog, rawCfg, now) {
     log: normalizeBeerLog(rawLog),
     insights: computeBeerInsights(rawLog, rawCfg, now),
   };
+}
+
+// ── DAILY NUDGE ──────────────────────────────────────────────────────────────
+// Composes the 5pm push notification. Pure and deterministic: the same insights,
+// context and seed always give the same message, so it is testable and the
+// copy rotates day to day without repeating.
+//   ins:  computeBeerInsights() output
+//   ctx:  { enabledModes, barbellDay, kbBellKg }  (all optional)
+//   seed: integer, e.g. days since epoch in the user's zone
+var NUDGE_DRINKS = [
+  "Sparkling water's in the fridge. Crack one before the beer thought finishes.",
+  "Thirsty? 500ml of fizz first, wait 15 minutes, then decide.",
+  "Ice, lemon, sparkling water. Same ritual, no dip tomorrow.",
+  "Something cold in your hand is the habit. It doesn't have to be beer.",
+  "Fridge check: sparkling water front and centre, beer at the back.",
+];
+var NUDGE_MOVES_GENERIC = [
+  "A 20-minute walk now buys hours of steady dopamine.",
+  "Train first. Exercise lifts dopamine for hours; beer gives you 90 minutes and a dip.",
+  "Cold shower, then decide. It spikes dopamine without the crash.",
+];
+
+export function composeBeerNudge(ins, ctx, seed) {
+  ctx = ctx || {};
+  var n = Math.abs(Math.floor(Number(seed) || 0));
+  var modes = ctx.enabledModes || {};
+  var moves = NUDGE_MOVES_GENERIC.slice();
+  if (modes[0] && ctx.barbellDay) moves.push("Barbell " + ctx.barbellDay + " is up next. Lift it tonight instead.");
+  if (modes[2]) moves.push("20-minute kettlebell circuit" + (ctx.kbBellKg ? " with the " + ctx.kbBellKg + "kg bell" : "") + ". Done before a beer would be.");
+  if (modes[1]) moves.push("10 minutes of handstand practice. Skill work beats a beer on the couch.");
+
+  var s = ins && ins.streak ? ins.streak : null;
+  var drankToday = !!(ins && ins.today && ins.today.ml > 0);
+  var title;
+  if (!s || (!s.lastDrinkAt && (!ins.urges || !ins.urges.total))) title = "5pm check-in 🍺→💧";
+  else if (drankToday) title = "One's enough tonight";
+  else if (s.current >= 1) {
+    title = "Day " + s.current + " dry 🔥";
+    var nm = ins.nextMilestone;
+    if (nm) { var left = nm.days - s.daysSinceLastDrink; if (left > 0 && left <= 3) title += " · " + left + " to " + nm.title; }
+  }
+  else title = "5pm reset 🌱 Tonight is day 1";
+
+  var first;
+  if (drankToday) first = "Switch to water now and make tonight's count stop here.";
+  else {
+    var personal = [];
+    if (ins && ins.urges && ins.urges.bestSwap && SWAPS[ins.urges.bestSwap]) personal.push("Last time " + SWAPS[ins.urges.bestSwap].label.toLowerCase() + " beat the urge. Do it again.");
+    if (ins && ins.triggers && ins.triggers.top === "winddown") personal.push("Work's done. Shower, change, cold fizz. Keep the ritual, swap the beer.");
+    if (ins && ins.triggers && ins.triggers.top === "bored") personal.push("Bored is a dopamine dip. Fill it with something slow: walk, cook, lift.");
+    var pool = NUDGE_DRINKS.concat(personal);
+    first = pool[n % pool.length];
+  }
+  // Don't repeat the swap the first line already named (e.g. "walk" twice)
+  var avoid = ins && ins.urges && ins.urges.bestSwap && SWAPS[ins.urges.bestSwap] && first.indexOf("Last time") === 0
+    ? SWAPS[ins.urges.bestSwap].label.toLowerCase().split(" ")[0] : null;
+  var start = (n * 7 + 3) % moves.length, second = moves[start];
+  for (var i = 0; avoid && i < moves.length && second.toLowerCase().indexOf(avoid) >= 0; i++) second = moves[(start + i + 1) % moves.length];
+  return { title: title, body: first + " " + second, tag: "beer-nudge", url: "?beer=log" };
+}
+
+// Local wall-clock parts in an IANA zone (server side; Intl is built into Node).
+export function zonedParts(date, timeZone) {
+  var f = new Intl.DateTimeFormat("en-CA", { timeZone: timeZone || "Africa/Johannesburg", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", hourCycle:"h23" });
+  var p = {};
+  f.formatToParts(date).forEach(function(x) { p[x.type] = x.value; });
+  var day = p.year + "-" + p.month + "-" + p.day;
+  var mins = Number(p.hour) * 60 + Number(p.minute);
+  var dayNum = Math.floor(Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day)) / 86400000);
+  return { day: day, minutes: mins, dayNum: dayNum };
+}
+
+// Is a nudge due? Fires once per local day, in the hour after notifyTime, so a
+// server restart at 17:20 still sends but one at 23:00 does not.
+export function nudgeDue(cfg, now, lastSentDay) {
+  cfg = normalizeBeerCfg(cfg);
+  var z = zonedParts(now || new Date(), cfg.notifyTz);
+  var hm = cfg.notifyTime.split(":").map(Number);
+  var at = hm[0] * 60 + hm[1];
+  var due = z.minutes >= at && z.minutes < at + 60 && lastSentDay !== z.day;
+  return { due: due, day: z.day, dayNum: z.dayNum };
 }

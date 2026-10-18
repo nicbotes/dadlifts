@@ -50,6 +50,10 @@ const api = STANDALONE ? {
   getHoldConfig:   async () => ({}),
   setHoldConfig:   async () => ({}),
   getBeer:         async () => null,
+  pushKey:         async () => { throw new Error('no server'); },
+  pushSubscribe:   async () => { throw new Error('no server'); },
+  pushUnsubscribe: async () => ({}),
+  pushTest:        async () => { throw new Error('no server'); },
 } : {
   getState:        ()          => apiReq('GET',    '/api/state/main'),
   saveState:       (s)         => apiReq('PUT',    '/api/state/main', { value: s }),
@@ -67,6 +71,11 @@ const api = STANDALONE ? {
   // server-side export links and agent parity.
   getBeer:         ()          => apiReq('GET',    '/api/beer'),
   beerExportUrl:   (fmt)       => `${getApiBase()}/api/beer/export.${fmt || 'csv'}`,
+  // Daily nudge — Web Push
+  pushKey:         ()          => apiReq('GET',    '/api/push/key'),
+  pushSubscribe:   (sub)       => apiReq('POST',   '/api/push/subscribe', { subscription: sub }),
+  pushUnsubscribe: (endpoint)  => apiReq('POST',   '/api/push/unsubscribe', { endpoint }),
+  pushTest:        ()          => apiReq('POST',   '/api/push/test'),
 };
 
 export default api;
