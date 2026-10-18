@@ -28,7 +28,10 @@ is in the `app_state` blob — not in the structured tables.
 ## Data architecture — important
 
 All app data is stored as a single JSON blob in the `app_state` table
-under the key `main`. The structured tables (`weights`, `sessions`,
+under the key `main`. This includes the beer tracker (`beerLog`, `beerCfg`,
+and precalculated `beerInsights`) — see `docs/BEER_TRACKER_PLAN.md` and the
+`beer*` CLI commands. The `beer` block in `snapshot` has streaks, volume,
+triggers, time-of-day danger window and risk flags ready to read. The structured tables (`weights`, `sessions`,
 `set_logs` etc.) exist but are not currently populated by the app.
 
 **Always read from `app_state`**, not from individual tables.

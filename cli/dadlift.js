@@ -165,6 +165,45 @@ const commands = {
 
     console.log(JSON.stringify(out, null, 2));
   },
+
+  // ── Beer tracker ──────────────────────────────────────────────────────────
+  async beer() {
+    // Precalculated insights — streaks, volume, triggers, time-of-day, flags, milestones
+    const data = await req('GET', '/api/beer/insights');
+    console.log(JSON.stringify(data, null, 2));
+  },
+  async 'beer-log'(args) {
+    // beer-log [ml] [trigger] [--at ISO] [--note "..."]   trigger: bored winddown thirsty social stress craving
+    const body = { tzOff: new Date().getTimezoneOffset() };
+    const rest = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--at')   body.ts   = args[++i];
+      else if (args[i] === '--note') body.note = args[++i];
+      else rest.push(args[i]);
+    }
+    if (rest[0] != null) body.ml = parseFloat(rest[0]);
+    if (rest[1]) body.trigger = rest[1];
+    const data = await req('POST', '/api/beer/log', body);
+    console.log(JSON.stringify({ saved: data.saved, entry: data.entry, streak: data.insights && data.insights.streak, today: data.insights && data.insights.today }, null, 2));
+  },
+  async 'beer-resist'(args) {
+    // beer-resist [swap] [trigger]   swap: walk water train cold tea call cook read breathe sleep
+    const body = { resisted: true, tzOff: new Date().getTimezoneOffset() };
+    if (args[0]) body.swap = args[0];
+    if (args[1]) body.trigger = args[1];
+    const data = await req('POST', '/api/beer/log', body);
+    console.log(JSON.stringify({ saved: data.saved, entry: data.entry, urges: data.insights && data.insights.urges }, null, 2));
+  },
+  async 'beer-delete'([id]) {
+    if (!id) throw new Error('Usage: beer-delete <entryId>');
+    const data = await req('DELETE', `/api/beer/log/${id}`);
+    console.log(JSON.stringify(data, null, 2));
+  },
+  async 'beer-export'([fmt = 'csv']) {
+    // Prints CSV (default) or JSON to stdout — redirect to a file
+    const data = await req('GET', `/api/beer/export.${fmt === 'json' ? 'json' : 'csv'}`);
+    console.log(typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+  },
   help() {
     console.log(`
 DADLIFTS CLI — per-user commands
@@ -184,7 +223,16 @@ Commands:
   state                 Full app state blob (primary data source)
   snapshot              Parsed training summary — easier for agents
 
+Beer tracker:
+  beer                              Precalculated insights (streak, volume, triggers, flags)
+  beer-log [ml] [trigger] [--at ISO] Log a beer (defaults: configured size, now)
+  beer-resist [swap] [trigger]      Log an urge beaten
+  beer-delete <id>                  Remove an entry
+  beer-export [csv|json]            Full log export to stdout
+
 Lift IDs: deadlift squat bench ohp rows
+Triggers: bored winddown thirsty social stress craving
+Swaps:    walk water train cold tea call cook read breathe sleep
     `.trim());
   },
 };

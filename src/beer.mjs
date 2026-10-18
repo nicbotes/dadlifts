@@ -1,0 +1,457 @@
+// ── BEER TRACKER — shared pure module ────────────────────────────────────────
+// Used by the React app (import), the Express server (dynamic import) and the
+// CLI. No DOM, no Node APIs — just data in, insights out.
+//
+// Data lives in the app_state blob:
+//   beerLog:      [{ id, ts, tzOff, ml, abv, trigger, note, resisted, swap }]
+//   beerCfg:      { ...makeDefaultBeerCfg() }
+//   beerInsights: computeBeerInsights(beerLog, beerCfg)  — precalculated on save
+//
+// Entry semantics
+//   ml > 0, resisted false  → a beer was drunk
+//   ml = 0, resisted true   → an urge was logged and beaten (swap = what you did instead)
+//
+// Times: ts is ISO-8601 UTC. tzOff is the device's getTimezoneOffset() in
+// minutes at log time, so local hour / local day are reproducible anywhere.
+
+export const BEER_COLOR = "#0D9488";
+export const ETHANOL_DENSITY = 0.789;            // g per ml of pure ethanol
+export const KCAL_PER_G_ALCOHOL = 7;
+export const BEER_CARB_G_PER_100ML = 3.5;        // typical lager — ~4 kcal/g
+
+export const SIZES = [
+  { ml:330, label:"330" },
+  { ml:440, label:"440" },
+  { ml:500, label:"500" },
+  { ml:568, label:"PINT" },
+];
+
+export const TRIGGERS = {
+  bored:    { label:"Bored",      emoji:"😴", hint:"Boredom is a dopamine dip looking for a quick fix. Give it a slow one: walk, cook, train, call someone." },
+  winddown: { label:"After work", emoji:"🏁", hint:"The cue is 'work is over'. Keep the ritual, swap the routine: shower, change clothes, big glass of something cold that isn't beer." },
+  thirsty:  { label:"Thirsty",    emoji:"💧", hint:"Thirst rule: 500ml water or sparkling first, wait 15 minutes, then decide." },
+  social:   { label:"Social",     emoji:"🍻", hint:"Decide the number before you arrive. Alternate with water. First drink alcohol-free so the 'first sip' ritual is satisfied." },
+  stress:   { label:"Stress",     emoji:"😣", hint:"Alcohol dampens stress for 90 minutes and raises cortisol for the next day. Breathe 5 min, lift, or walk it out." },
+  craving:  { label:"Craving",    emoji:"🧠", hint:"A craving is a wave: it crests in ~20–30 min then passes whether or not you drink. Start the surf timer." },
+};
+
+export const SWAPS = {
+  walk:    { label:"Walk",          emoji:"🚶" },
+  water:   { label:"Water / fizz",  emoji:"💧" },
+  train:   { label:"Train",         emoji:"🏋️" },
+  cold:    { label:"Cold shower",   emoji:"🚿" },
+  tea:     { label:"Tea / coffee",  emoji:"☕" },
+  call:    { label:"Call someone",  emoji:"📞" },
+  cook:    { label:"Cook / eat",    emoji:"🍳" },
+  read:    { label:"Read / music",  emoji:"🎧" },
+  breathe: { label:"Breathe 5 min", emoji:"🧘" },
+  sleep:   { label:"Go to bed",     emoji:"🛏️" },
+};
+
+export const STD_DRINK_OPTIONS = [
+  { g:8,  label:"UK unit · 8g" },
+  { g:10, label:"WHO · 10g" },
+  { g:12, label:"SA · 12g" },
+  { g:14, label:"US · 14g" },
+];
+
+// Recovery milestones — days since last drink. Wording is deliberately hedged:
+// figures are what the cited studies report for abstinence after regular use.
+export const MILESTONES = [
+  { days:1,   title:"24 hours",  note:"Alcohol is out of your blood. Hydration and blood sugar normalise. Tonight's sleep gets its REM back." },
+  { days:3,   title:"3 days",    note:"Acute withdrawal window closed for most people. The glutamate rebound behind 'hangxiety' is easing." },
+  { days:7,   title:"1 week",    note:"Sleep architecture improving. GABA/glutamate balance resetting. Cravings often spike here — that's the brain asking for its old shortcut, not a sign it's failing." },
+  { days:14,  title:"2 weeks",   note:"Blood pressure trending down. Everyday pleasures start registering again as the reward system re-sensitises." },
+  { days:30,  title:"1 month",   note:"Dry-month studies report lower liver fat, insulin resistance and blood pressure. Dopamine D2 receptor availability begins to recover." },
+  { days:60,  title:"2 months",  note:"Mood baseline stabilising. Post-acute symptoms (flat mood, broken sleep, low drive) fading." },
+  { days:90,  title:"90 days",   note:"The clinical 90-day mark: reward sensitivity and receptor density substantially recovered. Your new routines are now habits." },
+  { days:180, title:"6 months",  note:"Imaging studies show grey-matter volume recovering. Cravings are rare and short." },
+  { days:365, title:"1 year",    note:"Cardiovascular and cancer-risk markers meaningfully lower. The old default is gone." },
+];
+
+// Withdrawal timeline — applies to people who have been drinking daily / heavily.
+// Shown as education, with the safety red flags.
+export const WITHDRAWAL = [
+  { when:"6–12 h",   what:"Mild: anxiety, shaky hands, sweating, nausea, headache, poor sleep." },
+  { when:"12–24 h",  what:"Symptoms peak. Rarely: hallucinations (seeing/hearing things, aware they aren't real)." },
+  { when:"24–48 h",  what:"Seizure risk window for heavily dependent drinkers." },
+  { when:"48–72 h",  what:"Delirium tremens risk (confusion, fever, racing heart, agitation). Medical emergency — rare, but real." },
+  { when:"Day 5–7",  what:"Acute symptoms resolve for most." },
+  { when:"Weeks–months", what:"Post-acute phase: sleep, mood swings, low energy, cravings, foggy thinking. Comes in waves; each wave shorter." },
+];
+
+export const RED_FLAGS = [
+  "Seizure, severe confusion, hallucinations or fever → emergency care now.",
+  "Heart rate over 100 with heavy tremor and sweating → seek medical help.",
+  "If you drink daily (≈6+ beers) or wake needing a drink, do NOT stop cold. Taper, and talk to a doctor — withdrawal from that level needs supervision.",
+];
+
+export const LOW_RISK = {
+  weeklyG: 112,       // UK CMO / WHO-aligned: ≤14 units (8g) ≈ 112g pure alcohol per week
+  bingeG: 60,         // WHO heavy episodic drinking: ≥60g on one occasion
+  dailyRunCaution: 4, // 4+ consecutive drinking days → daily-pattern caution
+};
+
+// ── DEFAULTS / NORMALISATION ─────────────────────────────────────────────────
+export function makeDefaultBeerCfg() {
+  return {
+    sizeMl: 440,         // default quick-log size
+    abv: 5,              // % alcohol by volume
+    stdDrinkG: 10,       // grams of alcohol per "standard drink"
+    weeklyBudgetMl: 0,   // 0 = aiming dry; >0 = tapering budget
+    costPerUnit: 0,      // optional, currency-agnostic; 0 hides money stats
+    rolloverHour: 4,     // a beer at 01:00 belongs to the previous day
+    startDate: null,     // ISO date tracking started (set on first log)
+    tzOff: 0,            // device getTimezoneOffset() — kept fresh on save
+  };
+}
+
+export function normalizeBeerCfg(raw) {
+  var cfg = Object.assign(makeDefaultBeerCfg(), raw || {});
+  var num = function(v, d) { var n = Number(v); return Number.isFinite(n) ? n : d; };
+  cfg.sizeMl = Math.max(50, num(cfg.sizeMl, 440));
+  cfg.abv = Math.min(20, Math.max(0, num(cfg.abv, 5)));
+  cfg.stdDrinkG = Math.max(1, num(cfg.stdDrinkG, 10));
+  cfg.weeklyBudgetMl = Math.max(0, num(cfg.weeklyBudgetMl, 0));
+  cfg.costPerUnit = Math.max(0, num(cfg.costPerUnit, 0));
+  cfg.rolloverHour = Math.min(12, Math.max(0, Math.round(num(cfg.rolloverHour, 4))));
+  cfg.tzOff = num(cfg.tzOff, 0);
+  if (cfg.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(cfg.startDate))) cfg.startDate = null;
+  return cfg;
+}
+
+export function normalizeBeerLog(raw) {
+  if (!Array.isArray(raw)) return [];
+  var out = [];
+  raw.forEach(function(e) {
+    if (!e || typeof e !== "object") return;
+    var ts = e.ts ? new Date(e.ts) : null;
+    if (!ts || isNaN(ts.getTime())) return;
+    var ml = Math.max(0, Number(e.ml) || 0);
+    var resisted = !!e.resisted || ml === 0;
+    out.push({
+      id: e.id || (ts.getTime().toString(36) + Math.random().toString(36).slice(2, 6)),
+      ts: ts.toISOString(),
+      tzOff: Number.isFinite(Number(e.tzOff)) ? Number(e.tzOff) : 0,
+      ml: resisted ? 0 : ml,
+      abv: Number.isFinite(Number(e.abv)) ? Number(e.abv) : undefined,
+      trigger: e.trigger && TRIGGERS[e.trigger] ? e.trigger : (e.trigger || null),
+      swap: resisted && e.swap ? e.swap : null,
+      note: e.note ? String(e.note).slice(0, 200) : "",
+      resisted: resisted,
+    });
+  });
+  out.sort(function(a, b) { return a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0; });
+  return out;
+}
+
+export function makeEntry(fields, cfg) {
+  cfg = normalizeBeerCfg(cfg);
+  var now = fields && fields.ts ? new Date(fields.ts) : new Date();
+  var tzOff = fields && Number.isFinite(Number(fields.tzOff)) ? Number(fields.tzOff) : cfg.tzOff;
+  var resisted = !!(fields && fields.resisted);
+  return normalizeBeerLog([{
+    id: now.getTime().toString(36) + Math.random().toString(36).slice(2, 6),
+    ts: now.toISOString(),
+    tzOff: tzOff,
+    ml: resisted ? 0 : (fields && fields.ml != null ? Number(fields.ml) : cfg.sizeMl),
+    abv: fields && fields.abv != null ? Number(fields.abv) : cfg.abv,
+    trigger: fields && fields.trigger || null,
+    swap: fields && fields.swap || null,
+    note: fields && fields.note || "",
+    resisted: resisted,
+  }])[0];
+}
+
+// ── TIME HELPERS ─────────────────────────────────────────────────────────────
+// "Local" = the device-local wall clock at log time, reconstructed from tzOff.
+function localDate(iso, tzOff) {
+  return new Date(new Date(iso).getTime() - (tzOff || 0) * 60000);
+}
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function keyOf(d) { return d.getUTCFullYear() + "-" + pad2(d.getUTCMonth() + 1) + "-" + pad2(d.getUTCDate()); }
+
+// Day key with rollover: subtract rolloverHour so 01:00 counts as "last night".
+export function dayKey(iso, tzOff, rolloverHour) {
+  var d = localDate(iso, tzOff);
+  d = new Date(d.getTime() - (rolloverHour || 0) * 3600000);
+  return keyOf(d);
+}
+export function localHour(iso, tzOff) { return localDate(iso, tzOff).getUTCHours(); }
+export function localDow(iso, tzOff, rolloverHour) {
+  var d = localDate(iso, tzOff);
+  d = new Date(d.getTime() - (rolloverHour || 0) * 3600000);
+  return d.getUTCDay(); // 0 = Sunday
+}
+function addDaysKey(key, n) {
+  var p = key.split("-").map(Number);
+  var d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + n));
+  return keyOf(d);
+}
+function daysBetweenKeys(a, b) {
+  var pa = a.split("-").map(Number), pb = b.split("-").map(Number);
+  return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 86400000);
+}
+
+// ── ALCOHOL MATHS ────────────────────────────────────────────────────────────
+export function gramsAlcohol(ml, abv) { return ml * (abv / 100) * ETHANOL_DENSITY; }
+export function kcalBeer(ml, abv) {
+  return gramsAlcohol(ml, abv) * KCAL_PER_G_ALCOHOL + (ml / 100) * BEER_CARB_G_PER_100ML * 4;
+}
+
+// ── INSIGHTS ─────────────────────────────────────────────────────────────────
+// All numbers precalculated so the UI, the agent snapshot and the export never
+// have to re-derive them. `now` is optional (ISO or Date) for deterministic tests.
+export function computeBeerInsights(rawLog, rawCfg, now) {
+  var cfg = normalizeBeerCfg(rawCfg);
+  var log = normalizeBeerLog(rawLog);
+  var nowD = now ? new Date(now) : new Date();
+  var nowIso = nowD.toISOString();
+  var tz = cfg.tzOff;
+  var roll = cfg.rolloverHour;
+  var todayKey = dayKey(nowIso, tz, roll);
+
+  var drinks = log.filter(function(e) { return !e.resisted && e.ml > 0; });
+  var urges = log.filter(function(e) { return e.resisted; });
+
+  // Per-day aggregation (drinks only)
+  var byDay = {};
+  drinks.forEach(function(e) {
+    var k = dayKey(e.ts, e.tzOff, roll);
+    var abv = e.abv != null ? e.abv : cfg.abv;
+    if (!byDay[k]) byDay[k] = { ml:0, g:0, kcal:0, count:0 };
+    byDay[k].ml += e.ml;
+    byDay[k].g += gramsAlcohol(e.ml, abv);
+    byDay[k].kcal += kcalBeer(e.ml, abv);
+    byDay[k].count += 1;
+  });
+
+  var firstKey = log.length ? dayKey(log[0].ts, log[0].tzOff, roll) : null;
+  var startKey = cfg.startDate || firstKey || todayKey;
+  if (daysBetweenKeys(startKey, todayKey) < 0) startKey = todayKey;
+  var trackedDays = daysBetweenKeys(startKey, todayKey) + 1;
+
+  // Streaks — a dry day has no drinks. Today counts (in progress) if dry so far.
+  var currentStreak = 0;
+  for (var k = todayKey; daysBetweenKeys(startKey, k) >= 0; k = addDaysKey(k, -1)) {
+    if (byDay[k]) break;
+    currentStreak++;
+  }
+  var longestStreak = 0, run = 0, drinkingRun = 0, longestDrinkingRun = 0;
+  for (var i = 0; i < trackedDays; i++) {
+    var kk = addDaysKey(startKey, i);
+    if (byDay[kk]) { run = 0; drinkingRun++; longestDrinkingRun = Math.max(longestDrinkingRun, drinkingRun); }
+    else { run++; drinkingRun = 0; longestStreak = Math.max(longestStreak, run); }
+  }
+  // Current consecutive drinking days ending today or yesterday
+  var currentDrinkingRun = 0;
+  for (var k2 = byDay[todayKey] ? todayKey : addDaysKey(todayKey, -1); byDay[k2]; k2 = addDaysKey(k2, -1)) currentDrinkingRun++;
+
+  var lastDrink = drinks.length ? drinks[drinks.length - 1] : null;
+  var hoursSinceLast = lastDrink ? Math.max(0, (nowD.getTime() - new Date(lastDrink.ts).getTime()) / 3600000) : null;
+  var daysSinceLast = lastDrink ? daysBetweenKeys(dayKey(lastDrink.ts, lastDrink.tzOff, roll), todayKey) : trackedDays;
+
+  // Windows
+  // Only days on/after the start date count as tracked — untracked days are neither dry nor drinking.
+  function window(days) {
+    var out = { ml:0, g:0, kcal:0, drinkingDays:0, dryDays:0, trackedDays:0, count:0 };
+    for (var i = 0; i < days; i++) {
+      var k = addDaysKey(todayKey, -i);
+      if (daysBetweenKeys(startKey, k) < 0) continue;
+      out.trackedDays++;
+      var d = byDay[k];
+      if (d) { out.ml += d.ml; out.g += d.g; out.kcal += d.kcal; out.count += d.count; out.drinkingDays++; }
+      else out.dryDays++;
+    }
+    out.stdDrinks = out.g / cfg.stdDrinkG;
+    out.avgMlPerDay = out.trackedDays ? out.ml / out.trackedDays : 0;
+    return out;
+  }
+  function windowBefore(days, offset) {
+    var out = { ml:0, g:0, count:0, drinkingDays:0 };
+    for (var i = offset; i < offset + days; i++) {
+      var d = byDay[addDaysKey(todayKey, -i)];
+      if (d) { out.ml += d.ml; out.g += d.g; out.count += d.count; out.drinkingDays++; }
+    }
+    return out;
+  }
+  var today = byDay[todayKey] || { ml:0, g:0, kcal:0, count:0 };
+  var w7 = window(7), w30 = window(30), prev7 = windowBefore(7, 7), prev30 = windowBefore(30, 30);
+  var allTime = { ml:0, g:0, kcal:0, count:drinks.length, drinkingDays:Object.keys(byDay).length };
+  Object.keys(byDay).forEach(function(k) { allTime.ml += byDay[k].ml; allTime.g += byDay[k].g; allTime.kcal += byDay[k].kcal; });
+  allTime.dryDays = Math.max(0, trackedDays - allTime.drinkingDays);
+  allTime.stdDrinks = allTime.g / cfg.stdDrinkG;
+
+  function pctChange(cur, prev) {
+    if (!prev && !cur) return 0;
+    if (!prev) return null; // from zero — undefined %
+    return Math.round(((cur - prev) / prev) * 100);
+  }
+
+  // Daily series — last 30 days, oldest first (for bar chart)
+  var daily30 = [];
+  for (var j = 29; j >= 0; j--) {
+    var dk = addDaysKey(todayKey, -j);
+    var dd = byDay[dk];
+    daily30.push({ day:dk, ml: dd ? Math.round(dd.ml) : 0, g: dd ? Math.round(dd.g) : 0, count: dd ? dd.count : 0, tracked: daysBetweenKeys(startKey, dk) >= 0 });
+  }
+  var last14 = daily30.slice(-14);
+
+  // Time-of-day — drinks by local hour, and 3-hour bands
+  var byHour = Array(24).fill(0);
+  var mlByHour = Array(24).fill(0);
+  drinks.forEach(function(e) { var h = localHour(e.ts, e.tzOff); byHour[h]++; mlByHour[h] += e.ml; });
+  var bands = [];
+  for (var b = 0; b < 8; b++) {
+    var c = 0, m = 0;
+    for (var h2 = b * 3; h2 < b * 3 + 3; h2++) { c += byHour[h2]; m += mlByHour[h2]; }
+    bands.push({ from:b * 3, to:b * 3 + 3, count:c, ml:Math.round(m) });
+  }
+  var dangerBand = null;
+  bands.forEach(function(bd) { if (bd.count > 0 && (!dangerBand || bd.count > dangerBand.count)) dangerBand = bd; });
+  var firstDrinkHours = [];
+  Object.keys(byDay).forEach(function(k) {
+    var first = null;
+    drinks.forEach(function(e) { if (dayKey(e.ts, e.tzOff, roll) === k) { var h = localHour(e.ts, e.tzOff); if (first === null || h < first) first = h; } });
+    if (first !== null) firstDrinkHours.push(first);
+  });
+  var avgFirstDrinkHour = firstDrinkHours.length ? firstDrinkHours.reduce(function(a, x) { return a + x; }, 0) / firstDrinkHours.length : null;
+
+  // Day of week — ml and drinking-day counts
+  var dowNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  var byDow = dowNames.map(function(n) { return { dow:n, ml:0, days:0, count:0 }; });
+  Object.keys(byDay).forEach(function(k) {
+    var p = k.split("-").map(Number);
+    var dow = new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
+    byDow[dow].ml += byDay[k].ml; byDow[dow].days++; byDow[dow].count += byDay[k].count;
+  });
+  byDow.forEach(function(x) { x.ml = Math.round(x.ml); });
+  var worstDow = null;
+  byDow.forEach(function(x) { if (x.ml > 0 && (!worstDow || x.ml > worstDow.ml)) worstDow = x; });
+
+  // Triggers
+  var byTrigger = {};
+  Object.keys(TRIGGERS).forEach(function(t) { byTrigger[t] = { count:0, ml:0, urges:0, beaten:0 }; });
+  drinks.forEach(function(e) { var t = e.trigger && byTrigger[e.trigger] ? e.trigger : "other"; if (!byTrigger[t]) byTrigger[t] = { count:0, ml:0, urges:0, beaten:0 }; byTrigger[t].count++; byTrigger[t].ml += e.ml; });
+  urges.forEach(function(e) { var t = e.trigger && byTrigger[e.trigger] ? e.trigger : "other"; if (!byTrigger[t]) byTrigger[t] = { count:0, ml:0, urges:0, beaten:0 }; byTrigger[t].urges++; byTrigger[t].beaten++; });
+  var topTrigger = null;
+  Object.keys(byTrigger).forEach(function(t) { if (byTrigger[t].count > 0 && (!topTrigger || byTrigger[t].count > byTrigger[topTrigger].count)) topTrigger = t; });
+
+  // Urges / swaps — "resist rate" = urges beaten ÷ (urges beaten + drinking occasions)
+  var bySwap = {};
+  urges.forEach(function(e) { var s = e.swap || "none"; if (!bySwap[s]) bySwap[s] = 0; bySwap[s]++; });
+  var bestSwap = null;
+  Object.keys(bySwap).forEach(function(s) { if (s !== "none" && (!bestSwap || bySwap[s] > bySwap[bestSwap])) bestSwap = s; });
+  var urges7 = urges.filter(function(e) { return daysBetweenKeys(dayKey(e.ts, e.tzOff, roll), todayKey) < 7; }).length;
+  var resistRateAll = (urges.length + drinks.length) ? urges.length / (urges.length + drinks.length) : null;
+  var resistRate7 = (urges7 + w7.count) ? urges7 / (urges7 + w7.count) : null;
+
+  // Risk flags
+  var flags = [];
+  var bingeDays = Object.keys(byDay).filter(function(k) { return byDay[k].g >= LOW_RISK.bingeG; });
+  var binge30 = bingeDays.filter(function(k) { return daysBetweenKeys(k, todayKey) < 30; });
+  if (binge30.length) flags.push({ level:"high", key:"binge", text: binge30.length + " heavy day" + (binge30.length > 1 ? "s" : "") + " in the last 30 (≥60g alcohol in one day — WHO heavy episodic threshold)." });
+  if (w7.g > LOW_RISK.weeklyG) flags.push({ level:"high", key:"weekly", text:"Last 7 days: " + Math.round(w7.g) + "g alcohol — over the 112g/week low-risk guideline." });
+  if (currentDrinkingRun >= LOW_RISK.dailyRunCaution) flags.push({ level:"high", key:"daily", text: currentDrinkingRun + " drinking days in a row. Daily use is where dependence and withdrawal start — if you stop, taper rather than cold turkey, and read the withdrawal guide." });
+  if (w7.drinkingDays >= 5 && !flags.some(function(f) { return f.key === "daily"; })) flags.push({ level:"mid", key:"frequent", text: w7.drinkingDays + " of the last 7 days had beer. Aim for at least 3 dry days a week, back-to-back if you can." });
+  if (cfg.weeklyBudgetMl > 0 && w7.ml > cfg.weeklyBudgetMl) flags.push({ level:"mid", key:"budget", text:"Over your weekly budget by " + Math.round(w7.ml - cfg.weeklyBudgetMl) + "ml." });
+  if (w7.ml > 0 && prev7.ml > 0 && w7.ml > prev7.ml * 1.25) flags.push({ level:"mid", key:"rising", text:"Up " + pctChange(w7.ml, prev7.ml) + "% on the week before. Catch the slide early." });
+
+  // Wins — positive reinforcement is the point
+  var wins = [];
+  if (currentStreak >= 1 && lastDrink) wins.push("Day " + currentStreak + " dry" + (currentStreak >= 3 ? " — the acute reset is behind you." : "."));
+  if (!lastDrink && trackedDays >= 1) wins.push("No beer logged since you started tracking. Keep the log honest and the streak real.");
+  if (w7.ml > 0 && prev7.ml > 0 && w7.ml < prev7.ml) wins.push("Down " + Math.abs(pctChange(w7.ml, prev7.ml)) + "% on last week.");
+  if (w7.ml === 0 && prev7.ml > 0) wins.push("A full dry week after " + Math.round(prev7.ml) + "ml the week before.");
+  if (urges7 > 0) wins.push(urges7 + " urge" + (urges7 > 1 ? "s" : "") + " beaten this week — every one rewires the loop a little.");
+  if (longestStreak > 0 && currentStreak === longestStreak && currentStreak >= 3) wins.push("This is your longest streak yet.");
+
+  // Milestones against days since last drink (or tracked days if never drank)
+  var milestoneProgress = MILESTONES.map(function(m) { return { days:m.days, title:m.title, note:m.note, reached: daysSinceLast >= m.days }; });
+  var nextMilestone = milestoneProgress.find(function(m) { return !m.reached; }) || null;
+
+  // Money — only if configured. "Unit" = cfg.sizeMl.
+  var money = cfg.costPerUnit > 0 ? {
+    perUnitMl: cfg.sizeMl,
+    spent30: Math.round((w30.ml / cfg.sizeMl) * cfg.costPerUnit),
+    spentAll: Math.round((allTime.ml / cfg.sizeMl) * cfg.costPerUnit),
+    // What the current dry streak has saved vs your average over the 30 days before it started
+    savedStreak: currentStreak > 0 ? Math.round(((windowBefore(30, currentStreak).ml / 30) * currentStreak / cfg.sizeMl) * cfg.costPerUnit) : 0,
+  } : null;
+
+  // Budget
+  var budget = cfg.weeklyBudgetMl > 0 ? { weeklyMl: cfg.weeklyBudgetMl, usedMl: Math.round(w7.ml), leftMl: Math.round(Math.max(0, cfg.weeklyBudgetMl - w7.ml)), pct: Math.min(100, Math.round((w7.ml / cfg.weeklyBudgetMl) * 100)) } : null;
+
+  // Weekly series — last 8 rolling weeks (oldest first)
+  var weekly8 = [];
+  for (var wk = 7; wk >= 0; wk--) { var wd = windowBefore(7, wk * 7); weekly8.push({ weeksAgo:wk, ml:Math.round(wd.ml), g:Math.round(wd.g), drinkingDays:wd.drinkingDays }); }
+
+  function r1(x) { return Math.round(x * 10) / 10; }
+  return {
+    generatedAt: nowIso,
+    todayKey: todayKey,
+    startDate: startKey,
+    trackedDays: trackedDays,
+    cfg: cfg,
+    streak: {
+      current: currentStreak,
+      longest: longestStreak,
+      daysSinceLastDrink: daysSinceLast,
+      hoursSinceLastDrink: hoursSinceLast == null ? null : r1(hoursSinceLast),
+      lastDrinkAt: lastDrink ? lastDrink.ts : null,
+      currentDrinkingRun: currentDrinkingRun,
+      longestDrinkingRun: longestDrinkingRun,
+      dryDays30: w30.dryDays,
+      trackedDays30: w30.trackedDays,
+      dryPct30: w30.trackedDays ? Math.round((w30.dryDays / w30.trackedDays) * 100) : 0,
+      dryDaysAll: allTime.dryDays,
+      dryPctAll: trackedDays ? Math.round((allTime.dryDays / trackedDays) * 100) : 0,
+    },
+    today: { ml:Math.round(today.ml), g:r1(today.g), stdDrinks:r1(today.g / cfg.stdDrinkG), kcal:Math.round(today.kcal), count:today.count },
+    week: { ml:Math.round(w7.ml), g:r1(w7.g), stdDrinks:r1(w7.stdDrinks), kcal:Math.round(w7.kcal), count:w7.count, drinkingDays:w7.drinkingDays, dryDays:w7.dryDays, trackedDays:w7.trackedDays, avgMlPerDay:Math.round(w7.avgMlPerDay), vsPrevPct:pctChange(w7.ml, prev7.ml), prevMl:Math.round(prev7.ml) },
+    month: { ml:Math.round(w30.ml), g:r1(w30.g), stdDrinks:r1(w30.stdDrinks), kcal:Math.round(w30.kcal), count:w30.count, drinkingDays:w30.drinkingDays, dryDays:w30.dryDays, trackedDays:w30.trackedDays, avgMlPerDay:Math.round(w30.avgMlPerDay), vsPrevPct:pctChange(w30.ml, prev30.ml), prevMl:Math.round(prev30.ml) },
+    allTime: { ml:Math.round(allTime.ml), g:r1(allTime.g), stdDrinks:r1(allTime.stdDrinks), kcal:Math.round(allTime.kcal), count:allTime.count, drinkingDays:allTime.drinkingDays, dryDays:allTime.dryDays },
+    daily30: daily30,
+    last14: last14,
+    weekly8: weekly8,
+    timeOfDay: { byHour:byHour, bands:bands, dangerBand:dangerBand, avgFirstDrinkHour: avgFirstDrinkHour == null ? null : r1(avgFirstDrinkHour) },
+    dayOfWeek: { byDow:byDow, worst:worstDow },
+    triggers: { byTrigger:byTrigger, top:topTrigger, hint: topTrigger && TRIGGERS[topTrigger] ? TRIGGERS[topTrigger].hint : null },
+    urges: { total:urges.length, last7:urges7, resistRateAll: resistRateAll == null ? null : Math.round(resistRateAll * 100), resistRate7: resistRate7 == null ? null : Math.round(resistRate7 * 100), bySwap:bySwap, bestSwap:bestSwap },
+    flags: flags,
+    wins: wins,
+    milestones: milestoneProgress,
+    nextMilestone: nextMilestone,
+    budget: budget,
+    money: money,
+    guidelines: LOW_RISK,
+  };
+}
+
+// ── EXPORT ───────────────────────────────────────────────────────────────────
+export function beerLogToCsv(rawLog, rawCfg) {
+  var cfg = normalizeBeerCfg(rawCfg);
+  var log = normalizeBeerLog(rawLog);
+  var head = ["id","ts_utc","local_time","day","hour","type","ml","abv","grams_alcohol","std_drinks","kcal","trigger","swap","note"];
+  function q(v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  var rows = log.map(function(e) {
+    var abv = e.abv != null ? e.abv : cfg.abv;
+    var g = e.resisted ? 0 : gramsAlcohol(e.ml, abv);
+    var ld = localDate(e.ts, e.tzOff);
+    var local = ld.toISOString().replace("Z", "").replace("T", " ").slice(0, 16);
+    return [e.id, e.ts, local, dayKey(e.ts, e.tzOff, cfg.rolloverHour), localHour(e.ts, e.tzOff),
+      e.resisted ? "urge_beaten" : "beer", e.ml, e.resisted ? "" : abv,
+      Math.round(g * 10) / 10, Math.round((g / cfg.stdDrinkG) * 100) / 100, e.resisted ? 0 : Math.round(kcalBeer(e.ml, abv)),
+      e.trigger || "", e.swap || "", e.note || ""].map(q).join(",");
+  });
+  return head.join(",") + "\n" + rows.join("\n") + (rows.length ? "\n" : "");
+}
+
+export function beerExportJson(rawLog, rawCfg, now) {
+  return {
+    exportedAt: new Date().toISOString(),
+    cfg: normalizeBeerCfg(rawCfg),
+    log: normalizeBeerLog(rawLog),
+    insights: computeBeerInsights(rawLog, rawCfg, now),
+  };
+}

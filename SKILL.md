@@ -27,6 +27,7 @@ This returns a clean parsed summary with:
 - `current_cycle_fails` — failed sets this cycle with actual weight/reps achieved
 - `todays_sets` — done/fail/idle status for current day
 - `hold_config` — calisthenics configuration
+- `beer` — beer tracker insights: `streak`, `today`/`week`/`month` (ml, std drinks, g, kcal), `timeOfDay.dangerBand`, `triggers.top`, `urges`, `flags`, `wins`, `nextMilestone`
 
 Finding Nic's token:
 ```bash
@@ -44,7 +45,22 @@ node cli/dadlift.js set-weight deadlift 105
 node cli/dadlift.js set-weight squat 80
 node cli/dadlift.js set-prog ohp 2.5 5
 node cli/dadlift.js health
+
+# Beer tracker
+node cli/dadlift.js beer                         # precalculated insights
+node cli/dadlift.js beer-log 440 winddown        # Nic had a 440ml beer now, after work
+node cli/dadlift.js beer-log 330 social --at 2026-10-17T20:30:00+02:00
+node cli/dadlift.js beer-resist walk bored       # Nic beat an urge by going for a walk
+node cli/dadlift.js beer-export > beer.csv       # or: beer-export json
 ```
+
+Triggers: `bored` `winddown` `thirsty` `social` `stress` `craving`
+Swaps: `walk` `water` `train` `cold` `tea` `call` `cook` `read` `breathe` `sleep`
+
+When Nic asks how the beer thing is going: run `beer`, lead with `streak.current`,
+`week.ml` vs `week.prevMl`, any `flags`, and `timeOfDay.dangerBand`. If `flags`
+contains `daily` or `binge`, mention tapering and the withdrawal guide — don't
+tell him to stop cold.
 
 ---
 

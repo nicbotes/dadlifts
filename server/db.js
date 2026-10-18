@@ -128,6 +128,25 @@ db.exec(`
     s.updated_at
   FROM users u
   JOIN app_state s ON s.token = u.token AND s.key = 'main';
+
+  -- Beer log: one row per entry, unpacked from the blob's beerLog array
+  DROP VIEW IF EXISTS v_beer_log;
+  CREATE VIEW v_beer_log AS
+  SELECT
+    u.token,
+    u.name,
+    json_extract(e.value, '$.id')       AS id,
+    json_extract(e.value, '$.ts')       AS ts_utc,
+    json_extract(e.value, '$.tzOff')    AS tz_offset_min,
+    json_extract(e.value, '$.ml')       AS ml,
+    json_extract(e.value, '$.abv')      AS abv,
+    json_extract(e.value, '$.trigger')  AS trigger_tag,
+    json_extract(e.value, '$.resisted') AS resisted,
+    json_extract(e.value, '$.swap')     AS swap,
+    json_extract(e.value, '$.note')     AS note
+  FROM users u
+  JOIN app_state s ON s.token = u.token AND s.key = 'main',
+  json_each(COALESCE(json_extract(s.value, '$.beerLog'), '[]')) e;
 `);
 
 // Also populate the weights table from blob on startup so direct queries work
