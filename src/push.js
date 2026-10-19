@@ -4,7 +4,7 @@
 //   1. The phone subscribes to Web Push with the public VAPID key below and
 //      shows you its "device key" (the PushSubscription JSON).
 //   2. You paste that into the GitHub secret PUSH_SUBSCRIPTIONS once.
-//   3. .github/workflows/beer-notify.yml runs at ~17:00 and ~19:30 SAST and
+//   3. .github/workflows/beer-notify.yml runs at ~16:35 and ~19:30 SAST and
 //      sends a tiny push: { kind: "nudge" | "checkin" }.
 //   4. The service worker (public/sw.js) turns that into today's personalised
 //      message, which the app pre-computed and saved in Cache Storage
@@ -91,7 +91,7 @@ export async function showSample(kind) {
   const day = localDayKey(new Date());
   const msg = (ctx && ctx.days && ctx.days[day] && ctx.days[day][kind]) || (kind === 'checkin'
     ? { title: 'Evening check-in 🍺?', body: 'Stayed dry? Tap to confirm. Had a beer? Log the ml.', tag: 'beer-checkin', url: '?beer=checkin' }
-    : { title: '5pm check-in 🍺→💧', body: "Sparkling water's in the fridge. Crack one, then 20 minutes of training.", tag: 'beer-nudge', url: '?beer=log' });
+    : { title: 'Afternoon check-in 🍺→💧', body: "Sparkling water's in the fridge. Crack one, then 20 minutes of training.", tag: 'beer-nudge', url: '?beer=log' });
   await reg.showNotification(msg.title, { body: msg.body, tag: msg.tag, icon: reg.scope + 'icon-192.png', data: { url: msg.url } });
 }
 

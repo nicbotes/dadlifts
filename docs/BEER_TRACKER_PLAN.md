@@ -232,10 +232,10 @@ node cli/dadlift.js beer-export > beer.csv     # or: beer-export json
 ## 11. Notifications ✅ (Web Push, no backend)
 
 Two pushes a day, sent by `.github/workflows/beer-notify.yml`:
-**~17:00 SAST nudge** (something to do instead of a beer) and **~19:30 SAST check-in**
+**~16:35 SAST nudge** (something to do instead of a beer) and **~19:30 SAST check-in**
 (stayed dry or had beer?). Setup: DEPLOY.md.
 
-* **Sender** — the workflow runs on two UTC crons (`55 14`, `25 17`) or manually
+* **Sender** — the workflow runs on two UTC crons (`31 14`, `25 17`) or manually
   (`workflow_dispatch` with nudge/checkin) and runs `scripts/send-beer-push.cjs`, which
   signs with `VAPID_PRIVATE_KEY` and sends `{ "kind": "nudge" | "checkin" }` to every
   device in `PUSH_SUBSCRIPTIONS`. Nothing personal leaves the phone. Missing secrets →
@@ -257,7 +257,7 @@ Two pushes a day, sent by `.github/workflows/beer-notify.yml`:
   handler, so pages are never cached; old caches except the message cache are cleared.
 * **App** — *Notifications* card on the LOG tab: previews of today's two messages,
   TURN ON (permission + subscribe with the public key in `src/push.js`), the device key
-  with COPY KEY and setup steps, local SAMPLE 5PM / SAMPLE 7:30, TURN OFF, and a plain
+  with COPY KEY and setup steps, local SAMPLE 4:35 / SAMPLE 7:30, TURN OFF, and a plain
   reason when push can't work (not https, iPhone not on the Home Screen, blocked).
 
 ### Evening check-in ✅ (19:30)

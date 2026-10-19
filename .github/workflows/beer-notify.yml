@@ -1,14 +1,15 @@
 name: Beer notifications
 
 # Daily beer pushes to the phone — no backend.
-#   16:55 SAST  5pm nudge: something to do instead of a beer
+#   16:31 SAST  4:35pm nudge: something to do instead of a beer
 #   19:25 SAST  7:30pm check-in: stayed dry or had beer?
 # Cron is UTC (SAST = UTC+2, no daylight saving). Scheduled runs often start a
-# few minutes late, so both fire 5 minutes early.
+# few minutes late, so both fire a few minutes early.
+# Changing the nudge time? Also update NUDGE_TIME in src/beer.mjs.
 # Setup: add repo secrets VAPID_PRIVATE_KEY and PUSH_SUBSCRIPTIONS (DEPLOY.md).
 on:
   schedule:
-    - cron: '55 14 * * *'
+    - cron: '31 14 * * *'
     - cron: '25 17 * * *'
   workflow_dispatch:
     inputs:

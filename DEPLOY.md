@@ -15,7 +15,7 @@ If a deploy fails, open the repo's **Actions** tab, find the failed
 
 ---
 
-## Beer notifications (5pm nudge, 7:30pm check-in)
+## Beer notifications (4:35pm nudge, 7:30pm check-in)
 
 No backend. `.github/workflows/beer-notify.yml` sends a tiny push
 (`{ "kind": "nudge" }` or `{ "kind": "checkin" }`) on a schedule; the phone's
@@ -23,11 +23,13 @@ service worker shows today's message, which the app pre-computed on the phone.
 
 | Run (UTC cron) | SAST  | What |
 |----------------|-------|------|
-| `55 14 * * *`  | 16:55 | 5pm nudge — something to do instead of a beer |
+| `31 14 * * *`  | 16:31 | 4:35pm nudge — something to do instead of a beer |
 | `25 17 * * *`  | 19:25 | 7:30pm check-in — stayed dry or had beer? |
 
-Scheduled runs often start a few minutes late, so both fire 5 minutes early.
-To change a time, edit the cron lines (UTC = SAST − 2h) and merge.
+Scheduled runs often start a few minutes late, so both fire a few minutes early.
+To change a time, edit the cron lines (UTC = SAST − 2h) and merge. For the
+nudge, also change `NUDGE_TIME` in `src/beer.mjs` so the message is worked out
+for the right moment.
 
 ### One-time setup
 
