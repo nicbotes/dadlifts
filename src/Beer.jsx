@@ -191,8 +191,8 @@ export function NudgeCard(props) {
 
   return (
     <div className="bz-card" style={{ borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
-      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Notifications · 17:00 & 19:30 SAST{on ? " · ON HERE" : ""}</div>
-      <div className="bz-p"><b>5pm nudge</b> with something to do instead of a beer. <b>7:30pm check-in</b> to log whether you stayed dry or had beer. Today's would read:</div>
+      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Notifications · 16:35 & 19:30 SAST{on ? " · ON HERE" : ""}</div>
+      <div className="bz-p"><b>4:35pm nudge</b> with something to do instead of a beer. <b>7:30pm check-in</b> to log whether you stayed dry or had beer. Today's would read:</div>
       <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 6 }}>
         <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>{preview.title}</div>
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 3 }}>{preview.body}</div>
@@ -217,7 +217,7 @@ export function NudgeCard(props) {
       <div className="xrow" style={{ marginTop: 8 }}>
         {canEnable && <button className="xbtn pri" disabled={busy} style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={enable}>{busy ? "…" : "TURN ON"}</button>}
         {on && <button className="xbtn pri" style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={copyKey}>COPY KEY</button>}
-        {on && <button className="xbtn" onClick={function() { sample("nudge"); }}>SAMPLE 5PM</button>}
+        {on && <button className="xbtn" onClick={function() { sample("nudge"); }}>SAMPLE 4:35</button>}
         {on && <button className="xbtn" onClick={function() { sample("checkin"); }}>SAMPLE 7:30</button>}
         {on && <button className="xbtn" disabled={busy} onClick={disable}>TURN OFF</button>}
       </div>
@@ -672,7 +672,7 @@ export function BeerInsightsTab(props) {
 
       <Collapsible icon="🧠" title="Playbook · habit & pace" open>
         <div className="bz-p"><b>What you're working on.</b> Not a dependency: a habit loop, and drinking fast once you start. Two levers: fewer evenings that start with a beer, and slower, smaller nights when they do.</div>
-        <div className="bz-p"><b>Replace, don't remove.</b> The habit is cue → routine → reward. Keep the cue (home from work, 5pm, bored) and the reward (relief, a ritual, something cold in hand). Swap only the routine: <b>"When I get home, I change, train or walk, and pour a sparkling water."</b></div>
+        <div className="bz-p"><b>Replace, don't remove.</b> The habit is cue → routine → reward. Keep the cue (home from work, late afternoon, bored) and the reward (relief, a ritual, something cold in hand). Swap only the routine: <b>"When I get home, I change, train or walk, and pour a sparkling water."</b></div>
         <div className="bz-p"><b>Slowing down when you do drink.</b></div>
         <div className="bz-p" style={{ paddingLeft:10 }}>
           • Decide the number before the first one, and tell someone.<br />

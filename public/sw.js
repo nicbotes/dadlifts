@@ -27,8 +27,8 @@ function todayKey() { const d = new Date(); return d.getFullYear() + '-' + pad2(
 // Used when the app hasn't been opened for a week (no saved context for today)
 const FALLBACK = {
   nudge: [
-    { title: '5pm check-in 🍺→💧', body: "Sparkling water's in the fridge. Crack one, then 20 minutes of training." },
-    { title: '5pm check-in 🍺→💧', body: 'Thirsty? 500ml of fizz first, wait 15 minutes, then decide. A walk beats the urge.' },
+    { title: 'Afternoon check-in 🍺→💧', body: "Sparkling water's in the fridge. Crack one, then 20 minutes of training." },
+    { title: 'Afternoon check-in 🍺→💧', body: 'Thirsty? 500ml of fizz first, wait 15 minutes, then decide. A walk beats the urge.' },
   ],
   checkin: [
     { title: 'Evening check-in 🍺?', body: 'Stayed dry? Tap to confirm. Had a beer? Log the ml. Honest data beats a perfect streak.' },

@@ -89,6 +89,10 @@ export const LOW_RISK = {
 };
 
 // ── DEFAULTS / NORMALISATION ─────────────────────────────────────────────────
+// When the afternoon nudge lands (SAST). Must match the first cron in
+// .github/workflows/beer-notify.yml, which fires a few minutes earlier.
+export const NUDGE_TIME = "16:35";
+
 export function makeDefaultBeerCfg() {
   return {
     sizeMl: 440,         // default quick-log size
@@ -99,9 +103,9 @@ export function makeDefaultBeerCfg() {
     rolloverHour: 4,     // a beer at 01:00 belongs to the previous day
     startDate: null,     // ISO date tracking started (set on first log)
     tzOff: 0,            // device getTimezoneOffset() — kept fresh on save
-    notifyTime: "17:00", // daily nudge, local wall-clock time in notifyTz
+    notifyTime: NUDGE_TIME, // daily nudge, local time in notifyTz (fixed: set by the workflow schedule)
     notifyTz: "Africa/Johannesburg", // IANA zone the nudge time is read in (SAST)
-    nudgeOn: true,       // 5pm nudge
+    nudgeOn: true,       // afternoon nudge
     checkinTime: "19:30",// evening check-in: did you stay dry or have beer?
     checkinOn: true,
   };
@@ -118,7 +122,7 @@ export function normalizeBeerCfg(raw) {
   cfg.rolloverHour = Math.min(12, Math.max(0, Math.round(num(cfg.rolloverHour, 4))));
   cfg.tzOff = num(cfg.tzOff, 0);
   if (cfg.startDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(cfg.startDate))) cfg.startDate = null;
-  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cfg.notifyTime))) cfg.notifyTime = "17:00";
+  cfg.notifyTime = NUDGE_TIME; // the workflow decides when it's sent; older saves said 17:00
   if (!cfg.notifyTz || typeof cfg.notifyTz !== "string") cfg.notifyTz = "Africa/Johannesburg";
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(cfg.checkinTime))) cfg.checkinTime = "19:30";
   cfg.nudgeOn = cfg.nudgeOn !== false;
@@ -514,7 +518,7 @@ export function beerExportJson(rawLog, rawCfg, now, rawCheckins) {
 }
 
 // ── DAILY NUDGE ──────────────────────────────────────────────────────────────
-// Composes the 5pm push notification. Pure and deterministic: the same insights,
+// Composes the afternoon (16:35) push notification. Pure and deterministic: the same insights,
 // context and seed always give the same message, so it is testable and the
 // copy rotates day to day without repeating.
 //   ins:  computeBeerInsights() output
@@ -546,14 +550,14 @@ export function composeBeerNudge(ins, ctx, seed) {
   var s = ins && ins.streak ? ins.streak : null;
   var drankToday = !!(ins && ins.today && ins.today.ml > 0);
   var title;
-  if (!s || (!s.lastDrinkAt && (!ins.urges || !ins.urges.total))) title = "5pm check-in 🍺→💧";
+  if (!s || (!s.lastDrinkAt && (!ins.urges || !ins.urges.total))) title = "Afternoon check-in 🍺→💧";
   else if (drankToday) title = "One's enough tonight";
   else if (s.current >= 1) {
     title = "Day " + s.current + " dry 🔥";
     var nm = ins.nextMilestone;
     if (nm) { var left = nm.days - s.daysSinceLastDrink; if (left > 0 && left <= 3) title += " · " + left + " to " + nm.title; }
   }
-  else title = "5pm reset 🌱 Tonight is day 1";
+  else title = "Fresh start 🌱 Tonight is day 1";
 
   var first;
   if (drankToday) first = "Switch to water now and make tonight's count stop here.";
