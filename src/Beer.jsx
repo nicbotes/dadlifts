@@ -1,11 +1,11 @@
 // ── BEER TRACKER UI ───────────────────────────────────────────────────────────
 // Mode 3 (🍺). Two tabs: LOG (quick log, urge surfing, today) and INSIGHTS
-// (precalculated metrics from src/beer.mjs, recovery timeline, withdrawal
+// (precalculated metrics from src/beer.mjs, pace, dry-stretch timeline, habit
 // guide, settings, export). All state lives in the main app blob:
 // beerLog / beerCfg / beerInsights.
 import { useState, useEffect, useRef } from "react";
 import {
-  BEER_COLOR, SIZES, TRIGGERS, SWAPS, STD_DRINK_OPTIONS, MILESTONES, WITHDRAWAL, RED_FLAGS,
+  BEER_COLOR, SIZES, TRIGGERS, SWAPS, STD_DRINK_OPTIONS, MILESTONES, CHECK_SIGNS, PACE,
   beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge, composeBeerCheckin,
 } from "./beer.mjs";
 import { pushStatus, enablePush, disablePush, showSample } from "./push.js";
@@ -317,6 +317,21 @@ export function BeerLogTab(props) {
   var drankToday = ins.today.ml > 0;
   var tz = cfg.tzOff || 0;
   var todayEntries = log.filter(function(e) { return dayKey(e.ts, e.tzOff, cfg.rolloverHour) === ins.todayKey; });
+  // Pace check: right after a beer, say when the next one is OK (one an hour)
+  var todayDrinks = todayEntries.filter(function(e) { return !e.resisted && e.ml > 0; });
+  var paceNote = null;
+  if (todayDrinks.length) {
+    var lastT = new Date(todayDrinks[todayDrinks.length - 1].ts).getTime();
+    var agoMin = (Date.now() - lastT) / 60000;
+    if (agoMin >= 0 && agoMin < PACE.targetMin) {
+      var nextAt = fmtHM(new Date(lastT + PACE.targetMin * 60000).toISOString(), tz);
+      if (todayDrinks.length === 1) paceNote = "First one logged. Make the next drink water. Next beer not before " + nextAt + ".";
+      else {
+        var gap = Math.round((lastT - new Date(todayDrinks[todayDrinks.length - 2].ts).getTime()) / 60000);
+        paceNote = (gap < PACE.fastMin ? "Pace check: " + todayDrinks.length + " today, the last two " + gap + " min apart. " : "That's " + todayDrinks.length + " today. ") + "Water next. Next beer not before " + nextAt + ".";
+      }
+    }
+  }
 
   function whenTs() {
     var now = new Date();
@@ -332,14 +347,14 @@ export function BeerLogTab(props) {
   function doLog() {
     onLog({ ml: ml, trigger: trig, ts: whenTs() });
     setBackH(0); setTimeStr("");
-    flash("Logged. No judgement — the data is the point.");
+    flash("Logged. Honest numbers are the point.");
   }
   function doUrge(e) {
     var q = e.currentTarget.getBoundingClientRect();
     if (burst) burst(q.left + q.width / 2, q.top, ["🌊","💪","🧠","⚡","🔥","🏆","✨","🙌"]);
     onUrge({ trigger: trig, swap: swap, ts: new Date().toISOString() });
     setSwap(null);
-    flash("Urge beaten. That's the loop rewiring.");
+    flash("Urge beaten. That's the habit getting weaker.");
   }
 
   var next = ins.nextMilestone;
@@ -355,7 +370,7 @@ export function BeerLogTab(props) {
           <div>
             <div className="bz-hero-n drank">{ins.today.ml}<span style={{ fontSize:20, letterSpacing:0, marginLeft:4 }}>ml</span></div>
             <div className="bz-hero-l">today · {ins.today.stdDrinks} std drinks · {ins.today.kcal} kcal</div>
-            <div className="bz-hero-sub">Streak reset. Tomorrow is day 1 again — the brain doesn't keep score the way you do. {ins.week.vsPrevPct != null && ins.week.vsPrevPct < 0 ? "Week is still " + Math.abs(ins.week.vsPrevPct) + "% down on last week." : ""}</div>
+            <div className="bz-hero-sub">{todayDrinks.length <= 1 ? "Logged. Keep it to this one? Tomorrow is a fresh day either way." : todayDrinks.length + " today. Slow it right down from here: water between each."} {ins.week.vsPrevPct != null && ins.week.vsPrevPct < 0 ? "Week is still " + Math.abs(ins.week.vsPrevPct) + "% down on last week." : ""}</div>
           </div>
         ) : (
           <div>
@@ -396,6 +411,7 @@ export function BeerLogTab(props) {
           <input className="bz-time" type="time" value={timeStr} onChange={function(e) { setTimeStr(e.target.value); }} />
         </div>
         <button className="bz-big" style={{ background:AMBER }} onClick={doLog}>🍺 LOG {ml}ml</button>
+        {paceNote && <div className="bz-flag mid" style={{ marginTop:10, marginBottom:0 }}>⏱️ <span>{paceNote}</span></div>}
       </div>
 
       <div className="bz-card" style={{ borderColor:BEER_COLOR, boxShadow:"4px 4px 0 " + BEER_COLOR }}>
@@ -573,9 +589,34 @@ export function BeerInsightsTab(props) {
         </div>
       </div>
 
+      {ins.pace.sessions30 > 0 && (
+        <div className="asec">
+          <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Pace</div>
+          <div className="bz-tiles c3">
+            <div className="bz-tile"><div className="bz-tile-v">{ins.pace.avgBeersPerSession}</div><div className="bz-tile-l">beers / session</div></div>
+            <div className="bz-tile"><div className="bz-tile-v" style={{ color: ins.pace.avgMinPerBeer != null && ins.pace.avgMinPerBeer < PACE.fastMin ? AMBER : "var(--ink)" }}>{ins.pace.avgMinPerBeer == null ? "—" : ins.pace.avgMinPerBeer}<span className="bz-tile-u">min</span></div><div className="bz-tile-l">per beer</div></div>
+            <div className="bz-tile"><div className="bz-tile-v" style={{ color:BEER_COLOR }}>{PACE.targetMin}<span className="bz-tile-u">min</span></div><div className="bz-tile-l">target</div></div>
+          </div>
+          <div className="bz-card" style={{ marginTop:10 }}>
+            <div className="bz-hd">Recent sessions</div>
+            {ins.pace.recent.map(function(x) {
+              var fast = x.minPerBeer != null && x.minPerBeer < PACE.fastMin;
+              return (
+                <div key={x.day} className="bz-hbar">
+                  <div className="bz-hbar-l" style={{ width:84 }}>{x.label}</div>
+                  <div style={{ flex:1, fontSize:11, fontWeight:700 }}>{x.count} × · {fmtMl(x.ml)}</div>
+                  <div className="bz-hbar-v" style={{ width:80, color: fast ? AMBER : "var(--mid)" }}>{x.minPerBeer == null ? "single" : x.minPerBeer + " min each"}</div>
+                </div>
+              );
+            })}
+            <div className="bz-p" style={{ marginTop:6, marginBottom:0 }}>Your body clears roughly one standard drink an hour, and a 500ml beer is about two. Faster than one an hour and it stacks, which is how 2 turns into 6. Minutes per beer is the time between your first and last, divided by the gaps.</div>
+          </div>
+        </div>
+      )}
+
       {ins.flags.length > 0 && (
         <div className="asec">
-          <div className="at" style={{ color:"var(--red)", borderColor:"var(--red)" }}>Flags</div>
+          <div className="at" style={{ color:AMBER, borderColor:AMBER }}>Worth a look</div>
           {ins.flags.map(function(f, i) { return <div key={i} className={"bz-flag " + f.level}>⚠️ <span>{f.text}</span></div>; })}
         </div>
       )}
@@ -610,13 +651,13 @@ export function BeerInsightsTab(props) {
           <div className="bz-tile"><div className="bz-tile-v">{ins.urges.resistRateAll == null ? "—" : ins.urges.resistRateAll + "%"}</div><div className="bz-tile-l">resist rate</div></div>
         </div>
         {swaps.length > 0 && <div className="bz-card" style={{ marginTop:10 }}><div className="bz-hd">What worked</div><HBars data={swaps} color={BEER_COLOR} fmt={function(v) { return v + "×"; }} /></div>}
-        <div className="bz-p" style={{ marginTop:8 }}>Resist rate = urges beaten ÷ (urges beaten + beers). Every beaten urge weakens the cue→beer link and strengthens cue→swap. That's the actual rewiring.</div>
+        <div className="bz-p" style={{ marginTop:8 }}>Resist rate = urges beaten ÷ (urges beaten + beers). Every beaten urge weakens the cue→beer link and strengthens cue→swap.</div>
       </div>
 
       <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Brain rewiring timeline</div>
+        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>What a dry stretch does</div>
         <div className="bz-card">
-          <div className="bz-p">Days since last beer: <b>{s.daysSinceLastDrink}</b>. Each milestone is what research reports for people abstaining after regular drinking — treat them as approximate.</div>
+          <div className="bz-p">Days since last beer: <b>{s.daysSinceLastDrink}</b>. What studies report for regular drinkers taking a break. Averages, not promises.</div>
           {ins.milestones.map(function(ms) {
             return (
               <div key={ms.days} className="bz-ms" style={{ opacity: ms.reached ? 1 : 0.7 }}>
@@ -625,25 +666,33 @@ export function BeerInsightsTab(props) {
               </div>
             );
           })}
-          <div className="bz-src">Sources: NIAAA & WHO guidance; Mehta et al. 2018 (BMJ Open, one-month abstinence); Volkow et al. PET studies of dopamine D2 receptor recovery; Durazzo & Meyerhoff brain-volume recovery imaging; Šrámek et al. 2000 (cold-water dopamine).</div>
+          <div className="bz-src">Sources: Ebrahim et al. 2013 (alcohol and sleep); de Visser et al. 2016 (Dry January follow-up); Mehta et al. 2018 (BMJ Open, one-month abstinence); Lally et al. 2010 (habit formation, median 66 days); WHO and UK CMO low-risk guidelines.</div>
         </div>
       </div>
 
-      <Collapsible icon="🧠" title="Rewire playbook · dopamine">
-        <div className="bz-p"><b>What beer does.</b> Alcohol spikes dopamine, then the baseline dips below normal for the next day — the flat, restless evening-after. Repeat it nightly and the brain lowers the baseline to compensate, so you need the beer just to feel normal. Stopping lets the baseline climb back. The first 2–4 weeks feel flat: that is the repair, not the new normal.</div>
-        <div className="bz-p"><b>Replace, don't remove.</b> The habit is cue → routine → reward. Keep the cue (home from work, 6pm, bored) and the reward (relief, a ritual, something cold in hand). Swap only the routine. Write it as an if-then: <b>"When I get home, I shower, change, and pour a sparkling water."</b></div>
-        <div className="bz-p"><b>Slow dopamine beats fast.</b> Training raises dopamine and keeps it up for hours. Cold water (shower or plunge) produced a ~250% rise in one study, sustained for hours, without the crash. Morning sunlight, protein, and 7–9h sleep set the baseline. Lift on the days your danger window hits.</div>
-        <div className="bz-p"><b>Thirst rule.</b> 500ml water or sparkling first. Wait 15 minutes. Then decide. Most "thirsty" beers don't survive the wait.</div>
-        <div className="bz-p"><b>Urge surfing.</b> Cravings crest in ~20–30 minutes and pass on their own. Name it ("this is a craving"), breathe, start the timer, do the swap. Each wave you ride without drinking makes the next one smaller.</div>
-        <div className="bz-p" style={{ marginBottom:0 }}><b>Dry days in a row.</b> Three or more consecutive dry days per week do more for receptor recovery than the same number scattered. Protect a Mon–Wed block.</div>
+      <Collapsible icon="🧠" title="Playbook · habit & pace" open>
+        <div className="bz-p"><b>What you're working on.</b> Not a dependency: a habit loop, and drinking fast once you start. Two levers: fewer evenings that start with a beer, and slower, smaller nights when they do.</div>
+        <div className="bz-p"><b>Replace, don't remove.</b> The habit is cue → routine → reward. Keep the cue (home from work, 5pm, bored) and the reward (relief, a ritual, something cold in hand). Swap only the routine: <b>"When I get home, I change, train or walk, and pour a sparkling water."</b></div>
+        <div className="bz-p"><b>Slowing down when you do drink.</b></div>
+        <div className="bz-p" style={{ paddingLeft:10 }}>
+          • Decide the number before the first one, and tell someone.<br />
+          • First drink is water or a 0%. That's the thirsty, gulping one.<br />
+          • 330ml, not 500ml. Glass, not can. Put it down between sips.<br />
+          • Water between every beer, and nothing until an hour after the last one. The app shows the time after you log.<br />
+          • Eat first. Food slows how fast alcohol hits.<br />
+          • Buy singles, not a case. What's in the fridge gets drunk.
+        </div>
+        <div className="bz-p"><b>Why pace matters.</b> Your body clears roughly one standard drink an hour, and a 500ml beer is about two. Drink faster and it stacks. Each beer also lowers the brakes on the next, so the decision is easiest before the second one.</div>
+        <div className="bz-p"><b>Slow lift beats a quick one.</b> Training, a walk or a cold shower lift your mood for hours. Beer gives a quick lift and a dip later, which is what pulls you to the next one.</div>
+        <div className="bz-p"><b>Thirst rule.</b> 500ml water or sparkling first. Wait 15 minutes. Then decide.</div>
+        <div className="bz-p" style={{ marginBottom:0 }}><b>Dry days in a row.</b> Three back-to-back dry days a week keeps beer a choice rather than a routine. Mon–Wed is the easy block.</div>
       </Collapsible>
 
-      <Collapsible icon="🩺" title="Withdrawal · symptoms & safety">
-        <div className="bz-p">This applies if you've been drinking <b>daily or heavily</b>. A couple of beers most evenings is usually mild, but know the timeline so a bad night doesn't surprise you.</div>
-        {WITHDRAWAL.map(function(x, i) { return <div key={i} className="bz-ms"><div style={{ minWidth:78, fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:13, color:BEER_COLOR }}>{x.when}</div><div className="bz-ms-n" style={{ marginTop:0 }}>{x.what}</div></div>; })}
-        <div className="bz-hd" style={{ marginTop:12, color:"var(--red)" }}>Red flags</div>
-        {RED_FLAGS.map(function(x, i) { return <div key={i} className="bz-flag">🚨 <span>{x}</span></div>; })}
-        <div className="bz-p" style={{ marginTop:8, marginBottom:0 }}>Mild symptoms (sleep, sweats, edgy, cravings) are normal for the first week and mean the reset is happening. Hydrate, eat, train lightly, sleep. If you're unsure, a GP visit costs you nothing but an hour.</div>
+      <Collapsible icon="🩺" title="Staying on the right side">
+        <div className="bz-p">You're tracking this early, which is the right time. A habit becomes something more when a few of these start to fit:</div>
+        {CHECK_SIGNS.map(function(x, i) { return <div key={i} className="bz-ms"><div className="bz-ms-dot" style={{ width:18, height:18 }} /><div className="bz-ms-n" style={{ marginTop:0 }}>{x}</div></div>; })}
+        <div className="bz-p" style={{ marginTop:8 }}>If two or more fit, have a chat with your GP. Not because something's wrong with you, but because it's much easier to turn around early. The WHO's three-question AUDIT-C quiz is a quick self-check.</div>
+        <div className="bz-p" style={{ marginBottom:0 }}>One safety note for anyone drinking heavily every day: cut down gradually with a doctor's help rather than stopping overnight.</div>
       </Collapsible>
 
       <Collapsible icon="⚙️" title="Settings">

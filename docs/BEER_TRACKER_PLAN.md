@@ -30,16 +30,16 @@ implemented on this branch; ⏳ items are deliberate follow-ups.
 * **Low-risk guidelines (flags).** ≤ 112 g/week (UK CMO 14 units, WHO-aligned) spread over
   3+ days; ≥ 60 g in one day is WHO "heavy episodic" drinking; 4+ consecutive drinking days
   triggers the daily-pattern caution.
-* **Withdrawal timeline** (daily/heavy drinkers): 6–12 h mild symptoms → 12–24 h peak →
-  24–48 h seizure window → 48–72 h delirium tremens risk → day 5–7 resolution →
-  weeks–months post-acute (sleep, mood, cravings in waves). Red flags route to emergency care.
-* **Neuroadaptation / dopamine.** Alcohol spikes dopamine then drops the baseline; chronic
-  use lowers the set-point (tolerance). Abstinence restores it over weeks–months.
-  Milestones shown at 1, 3, 7, 14, 30, 60, 90, 180, 365 days draw on: NIAAA/WHO guidance,
-  Mehta et al. 2018 (BMJ Open, one-month abstinence: liver, insulin resistance, BP),
-  Volkow et al. PET work on D2 receptor recovery, Durazzo & Meyerhoff brain-volume imaging,
-  Šrámek et al. 2000 (cold-water immersion raising dopamine ~250%). Wording in the app is
-  hedged ("studies report") on purpose.
+* **Who it's for.** Calibrated for a habit-level drinker who drinks fast once started,
+  not for dependence. No withdrawal timeline in the app. Instead, *Staying on the right
+  side* lists signs a habit is becoming more (most days, tolerance, failed cut-downs,
+  morning shakes, friction) and suggests a GP chat and the WHO AUDIT-C self-check if two
+  or more fit, plus one line on cutting down gradually for heavy daily drinkers.
+* **Dry-stretch milestones** (1, 3, 7, 14, 30, 66 days): sleep (Ebrahim et al. 2013),
+  Dry January follow-up (de Visser et al. 2016), one-month abstinence (Mehta et al. 2018,
+  BMJ Open), habit formation median 66 days (Lally et al. 2010). Hedged wording.
+* **Pace.** The body clears roughly one standard drink (~10 g) an hour; a 500 ml 5% beer is
+  ~20 g. Target is one beer an hour; under 45 min per beer is flagged as fast.
 * **Behaviour change.** Cue → routine → reward (keep cue and reward, swap routine);
   implementation intentions ("when I get home, I…"); urge surfing (cravings crest in
   ~20–30 min) with a built-in 20-minute timer; the 500 ml water + 15 min "thirst rule".
@@ -176,6 +176,21 @@ node cli/dadlift.js beer-export > beer.csv     # or: beer-export json
 * The main Export/Import (barbell Stats tab) carries `beerLog`, `beerCfg`, `beerInsights`.
 
 ---
+
+### Pace ✅
+
+* `insights.pace`: sessions in the last 30 days, average beers per session, average minutes
+  per beer (first to last, divided by the gaps), fastest and biggest session, count of fast
+  sessions, last 5 sessions. Shown as a *Pace* section in Insights.
+* Flags (now amber, under *Worth a look*): big session named by date with litres and
+  standard drinks; fast pace naming the fastest session. Wording is factual, not alarming.
+* **Speed bump** under the LOG button for an hour after a beer: "First one logged. Make the
+  next drink water. Next beer not before 19:00", or "Pace check: 2 today, the last two
+  20 min apart…".
+* Playbook (open by default): habit loop plus pace tactics: decide the number first, first
+  drink water or 0%, 330 not 500, glass not can, water between, an hour between beers, eat
+  first, buy singles.
+* Nudge copy gains "Having one tonight? Pick the number now. 330 not 500, water between each."
 
 ### Import past entries ✅
 
