@@ -349,6 +349,7 @@ export function BeerLogTab(props) {
 
   return (
     <div>
+      {props.notice && <div className="bz-win" style={{ marginBottom: 10 }}>✓ <span>{props.notice}</span></div>}
       <div className={"bz-hero" + (drankToday ? " drank" : "")}>
         {drankToday ? (
           <div>
@@ -470,6 +471,28 @@ function Stepper(props) {
         <span className="cv">{props.fmt ? props.fmt(props.value) : props.value}</span>
         <button className="cb" onClick={function() { props.onChange(props.value + props.step); }}>+</button>
       </div>
+    </div>
+  );
+}
+
+// Paste a beer JSON export, a list of entries, or an import link. Merges —
+// never replaces — and skips anything already logged.
+function PastEntries(props) {
+  var tPair = useState(""); var text = tPair[0]; var setText = tPair[1];
+  var mPair = useState(""); var msg = mPair[0]; var setMsg = mPair[1];
+  if (!props.onImport) return null;
+  function go() {
+    var r = props.onImport(text);
+    setMsg(r.error ? "✕ " + r.error : "✓ Added " + r.added + (r.added === 1 ? " entry" : " entries") + (r.skipped ? " · " + r.skipped + " already there" : ""));
+    if (!r.error) setText("");
+  }
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="xhd">Add past entries</div>
+      <div className="bz-p">Paste a beer JSON export or an import link. Entries are added to your log; nothing is replaced and duplicates are skipped.</div>
+      <textarea className="xtxt" value={text} onChange={function(e) { setText(e.target.value); }} placeholder="Paste JSON or a #beer-import= link…" spellCheck={false} />
+      <div className="xrow" style={{ marginTop: 6 }}><button className="xbtn pri" style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} disabled={!text.trim()} onClick={go}>ADD</button></div>
+      {msg && <div style={{ marginTop: 6, fontSize: 11, fontWeight: 700, color: msg.charAt(0) === "✕" ? "var(--red)" : "var(--green)" }}>{msg}</div>}
     </div>
   );
 }
@@ -646,6 +669,7 @@ export function BeerInsightsTab(props) {
         </div>
         {copyMsg && <div style={{ marginTop:6, fontSize:11, color:"var(--green)", letterSpacing:"1px", fontWeight:700 }}>✓ {copyMsg}</div>}
         <div className="bz-src">{log.length} entries · the main Export / Import on the barbell Stats tab also carries this log.</div>
+        <PastEntries onImport={props.onImport} />
       </div>
     </div>
   );
