@@ -57,34 +57,30 @@ export const STD_DRINK_OPTIONS = [
 
 // Recovery milestones — days since last drink. Wording is deliberately hedged:
 // figures are what the cited studies report for abstinence after regular use.
+// What a dry stretch does for a regular, habit-level drinker (not dependence).
+// Hedged on purpose: these are what studies report on average.
 export const MILESTONES = [
-  { days:1,   title:"24 hours",  note:"Alcohol is out of your blood. Hydration and blood sugar normalise. Tonight's sleep gets its REM back." },
-  { days:3,   title:"3 days",    note:"Acute withdrawal window closed for most people. The glutamate rebound behind 'hangxiety' is easing." },
-  { days:7,   title:"1 week",    note:"Sleep architecture improving. GABA/glutamate balance resetting. Cravings often spike here — that's the brain asking for its old shortcut, not a sign it's failing." },
-  { days:14,  title:"2 weeks",   note:"Blood pressure trending down. Everyday pleasures start registering again as the reward system re-sensitises." },
-  { days:30,  title:"1 month",   note:"Dry-month studies report lower liver fat, insulin resistance and blood pressure. Dopamine D2 receptor availability begins to recover." },
-  { days:60,  title:"2 months",  note:"Mood baseline stabilising. Post-acute symptoms (flat mood, broken sleep, low drive) fading." },
-  { days:90,  title:"90 days",   note:"The clinical 90-day mark: reward sensitivity and receptor density substantially recovered. Your new routines are now habits." },
-  { days:180, title:"6 months",  note:"Imaging studies show grey-matter volume recovering. Cravings are rare and short." },
-  { days:365, title:"1 year",    note:"Cardiovascular and cancer-risk markers meaningfully lower. The old default is gone." },
+  { days:1,  title:"24 hours", note:"Better sleep tonight. Even 2–3 beers cut deep and REM sleep, which is a big part of why the morning after feels flat." },
+  { days:3,  title:"3 days",   note:"The after-work cue starts to weaken when it isn't followed by a beer. Energy, hydration and training recovery are back to normal." },
+  { days:7,  title:"1 week",   note:"Proof the evening doesn't need a beer. Expect a craving or two around now; they pass in 20–30 minutes." },
+  { days:14, title:"2 weeks",  note:"Two weeks of proper sleep shows up in mood, focus and the gym. The habit loop is loosening." },
+  { days:30, title:"1 month",  note:"Dry-month studies report better sleep, energy and blood pressure, and most people drinking less for months afterwards." },
+  { days:66, title:"66 days",  note:"The typical time for a new routine to become automatic. A beer is now a choice, not a reflex." },
 ];
 
-// Withdrawal timeline — applies to people who have been drinking daily / heavily.
-// Shown as education, with the safety red flags.
-export const WITHDRAWAL = [
-  { when:"6–12 h",   what:"Mild: anxiety, shaky hands, sweating, nausea, headache, poor sleep." },
-  { when:"12–24 h",  what:"Symptoms peak. Rarely: hallucinations (seeing/hearing things, aware they aren't real)." },
-  { when:"24–48 h",  what:"Seizure risk window for heavily dependent drinkers." },
-  { when:"48–72 h",  what:"Delirium tremens risk (confusion, fever, racing heart, agitation). Medical emergency — rare, but real." },
-  { when:"Day 5–7",  what:"Acute symptoms resolve for most." },
-  { when:"Weeks–months", what:"Post-acute phase: sleep, mood swings, low energy, cravings, foggy thinking. Comes in waves; each wave shorter." },
+// Signs a habit is turning into something more. Calm, honest, and the point is
+// to catch it early — not a diagnosis.
+export const CHECK_SIGNS = [
+  "You drink most days, or can't unwind without one.",
+  "You need more than you used to for the same effect.",
+  "You've tried to cut down and it didn't stick.",
+  "Mornings bring shakes, sweats or anxiety that a drink settles.",
+  "It's causing friction at home, at work or with your health.",
 ];
 
-export const RED_FLAGS = [
-  "Seizure, severe confusion, hallucinations or fever → emergency care now.",
-  "Heart rate over 100 with heavy tremor and sweating → seek medical help.",
-  "If you drink daily (≈6+ beers) or wake needing a drink, do NOT stop cold. Taper, and talk to a doctor — withdrawal from that level needs supervision.",
-];
+// Pace — the body clears roughly one standard drink (~10g) an hour; a 500ml 5%
+// beer is ~20g. Faster than about one an hour and it stacks.
+export const PACE = { targetMin: 60, fastMin: 45 };
 
 export const LOW_RISK = {
   weeklyG: 112,       // UK CMO / WHO-aligned: ≤14 units (8g) ≈ 112g pure alcohol per week
@@ -303,6 +299,7 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   allTime.dryDays = Math.max(0, trackedDays - allTime.drinkingDays);
   allTime.stdDrinks = allTime.g / cfg.stdDrinkG;
 
+  function fmtL(ml) { return ml >= 1000 ? (Math.round(ml / 100) / 10) + "L" : Math.round(ml) + "ml"; }
   function pctChange(cur, prev) {
     if (!prev && !cur) return 0;
     if (!prev) return null; // from zero — undefined %
@@ -367,24 +364,51 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   var resistRateAll = (urges.length + drinks.length) ? urges.length / (urges.length + drinks.length) : null;
   var resistRate7 = (urges7 + w7.count) ? urges7 / (urges7 + w7.count) : null;
 
-  // Risk flags
+  // Pace — per drinking day: how many, over how long, minutes per beer
+  var dayLabel = function(k) { var p = k.split("-").map(Number); var d = new Date(Date.UTC(p[0], p[1] - 1, p[2])); return dowNames[d.getUTCDay()] + " " + p[2] + " " + ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][p[1] - 1]; };
+  var sessions = Object.keys(byDay).sort().map(function(k) {
+    var ds = drinks.filter(function(e) { return dayKey(e.ts, e.tzOff, roll) === k; });
+    var first = new Date(ds[0].ts).getTime(), last = new Date(ds[ds.length - 1].ts).getTime();
+    var span = Math.round((last - first) / 60000);
+    return { day: k, label: dayLabel(k), count: ds.length, ml: Math.round(byDay[k].ml), spanMin: span, minPerBeer: ds.length >= 2 ? Math.round(span / (ds.length - 1)) : null };
+  });
+  var sess30 = sessions.filter(function(x) { return daysBetweenKeys(x.day, todayKey) < 30; });
+  var multi30 = sess30.filter(function(x) { return x.minPerBeer != null; });
+  var fastest = null;
+  multi30.forEach(function(x) { if (!fastest || x.minPerBeer < fastest.minPerBeer) fastest = x; });
+  var biggest = null;
+  sess30.forEach(function(x) { if (!biggest || x.count > biggest.count) biggest = x; });
+  var pace = {
+    sessions30: sess30.length,
+    avgBeersPerSession: sess30.length ? r1x(sess30.reduce(function(a, x) { return a + x.count; }, 0) / sess30.length) : null,
+    avgMinPerBeer: multi30.length ? Math.round(multi30.reduce(function(a, x) { return a + x.minPerBeer; }, 0) / multi30.length) : null,
+    fastest: fastest, biggest: biggest,
+    fastSessions30: multi30.filter(function(x) { return x.minPerBeer < PACE.fastMin; }).length,
+    recent: sessions.slice(-5).reverse(),
+    targetMin: PACE.targetMin, fastMin: PACE.fastMin,
+  };
+  function r1x(x) { return Math.round(x * 10) / 10; }
+
+  // Flags — calm and specific: what happened, what to do about it
   var flags = [];
   var bingeDays = Object.keys(byDay).filter(function(k) { return byDay[k].g >= LOW_RISK.bingeG; });
   var binge30 = bingeDays.filter(function(k) { return daysBetweenKeys(k, todayKey) < 30; });
-  if (binge30.length) flags.push({ level:"high", key:"binge", text: binge30.length + " heavy day" + (binge30.length > 1 ? "s" : "") + " in the last 30 (≥60g alcohol in one day — WHO heavy episodic threshold)." });
-  if (w7.g > LOW_RISK.weeklyG) flags.push({ level:"high", key:"weekly", text:"Last 7 days: " + Math.round(w7.g) + "g alcohol — over the 112g/week low-risk guideline." });
-  if (currentDrinkingRun >= LOW_RISK.dailyRunCaution) flags.push({ level:"high", key:"daily", text: currentDrinkingRun + " drinking days in a row. Daily use is where dependence and withdrawal start — if you stop, taper rather than cold turkey, and read the withdrawal guide." });
+  if (binge30.length === 1) flags.push({ level:"mid", key:"binge", text:"Big session on " + dayLabel(binge30[0]) + ": " + fmtL(byDay[binge30[0]].ml) + " (≈" + Math.round(byDay[binge30[0]].g / cfg.stdDrinkG) + " std drinks). Nights like this, not the odd beer, are the thing to cut first." });
+  if (binge30.length > 1) flags.push({ level:"mid", key:"binge", text: binge30.length + " big sessions in the last 30 days (60g+ of alcohol in a day, about 3 × 500ml). These are the thing to cut first." });
+  if (pace.fastest && pace.fastest.minPerBeer < PACE.fastMin) flags.push({ level:"mid", key:"pace", text:"Fast pace: on " + pace.fastest.label + " it was a beer every " + pace.fastest.minPerBeer + " min. Slow to one an hour, with water between, and the night stops at 2 instead of 6." });
+  if (w7.g > LOW_RISK.weeklyG) flags.push({ level:"mid", key:"weekly", text:"Last 7 days: " + Math.round(w7.g) + "g of alcohol, over the 112g low-risk weekly guideline (about 5 × 500ml)." });
+  if (currentDrinkingRun >= LOW_RISK.dailyRunCaution) flags.push({ level:"mid", key:"daily", text: currentDrinkingRun + " days in a row with beer. Break the run with a dry day tomorrow; runs are how a habit settles in." });
   if (w7.drinkingDays >= 5 && !flags.some(function(f) { return f.key === "daily"; })) flags.push({ level:"mid", key:"frequent", text: w7.drinkingDays + " of the last 7 days had beer. Aim for at least 3 dry days a week, back-to-back if you can." });
   if (cfg.weeklyBudgetMl > 0 && w7.ml > cfg.weeklyBudgetMl) flags.push({ level:"mid", key:"budget", text:"Over your weekly budget by " + Math.round(w7.ml - cfg.weeklyBudgetMl) + "ml." });
   if (w7.ml > 0 && prev7.ml > 0 && w7.ml > prev7.ml * 1.25) flags.push({ level:"mid", key:"rising", text:"Up " + pctChange(w7.ml, prev7.ml) + "% on the week before. Catch the slide early." });
 
   // Wins — positive reinforcement is the point
   var wins = [];
-  if (currentStreak >= 1 && lastDrink) wins.push("Day " + currentStreak + " dry" + (currentStreak >= 3 ? " — the acute reset is behind you." : "."));
+  if (currentStreak >= 1 && lastDrink) wins.push("Day " + currentStreak + " dry" + (currentStreak >= 3 ? ". The after-work cue is already weaker." : "."));
   if (!lastDrink && trackedDays >= 1) wins.push("No beer logged since you started tracking. Keep the log honest and the streak real.");
   if (w7.ml > 0 && prev7.ml > 0 && w7.ml < prev7.ml) wins.push("Down " + Math.abs(pctChange(w7.ml, prev7.ml)) + "% on last week.");
   if (w7.ml === 0 && prev7.ml > 0) wins.push("A full dry week after " + Math.round(prev7.ml) + "ml the week before.");
-  if (urges7 > 0) wins.push(urges7 + " urge" + (urges7 > 1 ? "s" : "") + " beaten this week — every one rewires the loop a little.");
+  if (urges7 > 0) wins.push(urges7 + " urge" + (urges7 > 1 ? "s" : "") + " beaten this week. Each one weakens the habit a little.");
   if (longestStreak > 0 && currentStreak === longestStreak && currentStreak >= 3) wins.push("This is your longest streak yet.");
 
   // Milestones against days since last drink (or tracked days if never drank)
@@ -456,6 +480,7 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
     money: money,
     guidelines: LOW_RISK,
     checkins: { today: checkins[todayKey] || null, confirmedDry7: confirmedDry7, confirmedDry30: confirmedDry30 },
+    pace: pace,
   };
 }
 
@@ -496,6 +521,7 @@ export function beerExportJson(rawLog, rawCfg, now, rawCheckins) {
 //   ctx:  { enabledModes, barbellDay, kbBellKg }  (all optional)
 //   seed: integer, e.g. days since epoch in the user's zone
 var NUDGE_DRINKS = [
+  "Having one tonight? Pick the number now. 330 not 500, water between each.",
   "Sparkling water's in the fridge. Crack one before the beer thought finishes.",
   "Thirsty? 500ml of fizz first, wait 15 minutes, then decide.",
   "Ice, lemon, sparkling water. Same ritual, no dip tomorrow.",
