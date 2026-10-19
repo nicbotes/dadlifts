@@ -2667,7 +2667,6 @@ export default function App() {
       return next;
     });
   }
-  function logBeer(fields) { appendBeer(fields, false); }
   function logUrge(fields) { appendBeer(fields, true); }
   function deleteBeerEntry(id) {
     setSt(function(prev) { return Object.assign({}, prev, { beerLog: (prev.beerLog || []).filter(function(e) { return e.id !== id; }) }); });
@@ -2718,14 +2717,24 @@ export default function App() {
     });
   }
   // Check-in: log what you had (several beers at once)
-  function checkinLog(entries) {
-    setForceCheckin(false);
+  // Log one or more beers. During the evening check-in it also answers the
+  // check-in; otherwise it clears an earlier "dry" mark for today, so the
+  // evening check-in still asks "anything since?".
+  function logBeers(entries, asCheckin) {
+    if (asCheckin) setForceCheckin(false);
     setSt(function(prev) {
       var cfg = Object.assign({}, prev.beerCfg, { tzOff: new Date().getTimezoneOffset() });
       var made = entries.map(function(f) { return makeEntry(Object.assign({}, f, { resisted:false, tzOff: cfg.tzOff }), cfg); });
       if (!cfg.startDate && made.length) cfg.startDate = beerDayKey(made[0].ts, made[0].tzOff, cfg.rolloverHour);
-      var ck = Object.assign({}, prev.beerCheckins); ck[todayBeerKey(cfg)] = "drank";
+      var ck = Object.assign({}, prev.beerCheckins), key = todayBeerKey(cfg);
+      if (asCheckin) ck[key] = "drank"; else if (ck[key] === "dry") delete ck[key];
       return Object.assign({}, prev, { beerCfg: cfg, beerLog: (prev.beerLog || []).concat(made), beerCheckins: ck });
+    });
+  }
+  function clearCheckin() {
+    setSt(function(prev) {
+      var ck = Object.assign({}, prev.beerCheckins); delete ck[todayBeerKey(prev.beerCfg)];
+      return Object.assign({}, prev, { beerCheckins: ck });
     });
   }
 
@@ -3214,15 +3223,8 @@ export default function App() {
         {/* BEER LOG */}
         {st.mode === 3 && atab === 0 && (
           <div className="pg">
-            <div className="wtag" style={{background:BEER_COLOR,borderColor:"var(--ink)",color:"#fff"}}>🍺 {beerIns.today.ml > 0 ? "TODAY " + beerIns.today.ml + "ML" : "DAY " + beerIns.streak.current + " DRY"} · {beerIns.month.dryDays}/{beerIns.month.trackedDays} DRY</div>
-            <div className="motd" style={{ background:"#CCFBF1", borderColor:BEER_COLOR }}>
-              <button className="qref" onClick={refreshQuote} aria-label="New quote">↻</button>
-              <div className="motd-q">"{motiv.q}"</div>
-              {motiv.a && <div className="motd-a" style={{ color:"#0F766E" }}>— {motiv.a}</div>}
-            </div>
-            <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }}
-              nudgeCtx={Object.assign({ enabledModes: st.enabledModes }, nudgeExtras(st))}
-              showCheckin={showCheckin} onCheckinDry={checkinDry} onCheckinLog={checkinLog} notice={beerNotice} />
+            <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLogMany={logBeers} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }}
+              showCheckin={showCheckin} onDry={checkinDry} onClearCheckin={clearCheckin} notice={beerNotice} />
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
         )}
@@ -3231,7 +3233,8 @@ export default function App() {
         {st.mode === 3 && atab === 1 && (
           <div className="pg">
             <div style={{ fontSize:10, color:"var(--mid)", letterSpacing:"1.5px", marginBottom:14, fontWeight:700 }}>PRECALCULATED · SWIPE → LOG</div>
-            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} checkins={st.beerCheckins} onImport={function(t) { return importBeer(t, false, st); }} />
+            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} checkins={st.beerCheckins} onImport={function(t) { return importBeer(t, false, st); }}
+              nudgeCtx={Object.assign({ enabledModes: st.enabledModes }, nudgeExtras(st))} />
             <div className="xsec">
               <div className="xhd">Workouts · Show / Hide</div>
               <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />

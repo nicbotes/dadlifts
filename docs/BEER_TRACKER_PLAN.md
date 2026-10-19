@@ -111,18 +111,20 @@ Also exported: `beerLogToCsv`, `beerExportJson`, `makeEntry`, `normalizeBeerLog`
 
 Mode 3 (🍺, teal `#0D9488`). Tab labels become **LOG / INSIGHTS**. Swipe works as before.
 
-**LOG**
-1. Hero: dry-day count + hours since last beer + progress bar to the next milestone.
-   If you drank today it flips to amber with today's ml / std drinks / kcal and a
-   no-judgement reset message.
-2. Up to two wins and the top flag.
-3. Quick log: size chips (330 / 440 / 500 / pint, ±50), trigger chips with a hint for
-   the chosen trigger, when (NOW / −1h / −2h / −3h / time picker, a future time = last
-   night), big amber **LOG** button.
-4. Urge card: 20-minute surf timer, swap chips, big teal **I BEAT IT** button with a
-   celebration burst; shows best swap and this week's resist rate.
-5. Today's entries (delete with ×) and a 14-day strip (teal dry / amber beer / grey
-   untracked).
+**LOG** (simplified, about 45 words on screen)
+1. Hero: days dry (or ml today), one short line, the last 14 days as coloured dots, a
+   thin bar to the next milestone, and one win if there is one.
+2. One action row: **💧 Dry** (one tap, marks today dry; undo from Today), **🍺 Beer**
+   (panel: size, how many, when, optional why → LOG; several beers are spaced 20 min
+   apart ending at the chosen time) and **🌊 Urge** (panel: six swaps, 20-min timer,
+   I BEAT IT). After the check-in time, or from the check-in notification, the same row
+   is the evening check-in ("How was today?" / "Anything since?", Stayed dry / That's
+   all). Logging a beer clears an earlier dry mark so the evening check-in still asks.
+3. Pace line under the row for an hour after a beer: "Water next. Next beer after 19:00."
+4. Today: compact rows for beers, urges and the dry / check-in mark, each with ×.
+
+Moved off LOG: the quote, flags (in Insights), explanations, and the Notifications
+card (now on Insights).
 
 **INSIGHTS**
 Streak tiles → volume tiles with trends, guideline comparison, optional budget bar and
