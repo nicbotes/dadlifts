@@ -69,6 +69,27 @@ export var beerCss = `
 .bz-p b{color:var(--ink)}
 .bz-src{font-size:9px;color:var(--sub);font-style:italic;font-weight:700;line-height:1.5;margin-top:6px}
 .bz-time{padding:6px 10px;border:2.5px solid var(--ink);border-radius:10px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;background:var(--bg);color:var(--ink)}
+.bz-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bz-act{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px 10px;border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.bz-act:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.bz-act-e{font-size:28px;line-height:1}
+.bz-act.on.beer{background:${AMBER_BG};border-color:${AMBER}}
+.bz-act.on.urge{background:${TEAL_BG};border-color:${BEER_COLOR}}
+.bz-act.done{background:${TEAL_BG};border-color:${BEER_COLOR};color:${BEER_COLOR};box-shadow:3px 3px 0 ${BEER_COLOR}}
+.bz-panel{margin-top:14px;padding-top:12px;border-top:2px solid var(--light)}
+.bz-panel .bz-chips{margin-bottom:10px}
+.bz-line{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bz-chip.sm{padding:5px 9px;font-size:10px}
+.bz-mini{font-size:11px;font-weight:700;color:var(--mid);line-height:1.45;margin-top:10px}
+.bz-mini.pace{color:#92400E;background:${AMBER_BG};border:2px solid ${AMBER};border-radius:10px;padding:7px 10px}
+.bz-strip{display:flex;gap:3px;margin-top:12px}
+.bz-sd{flex:1;height:12px;border-radius:4px}
+.bz-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:2px solid var(--light)}
+.bz-row:last-child{border-bottom:none}
+.bz-row-t{font-size:11px;font-weight:700;color:var(--mid);min-width:40px}
+.bz-row-v{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;flex:1}
+.bz-row-s{font-family:'Space Mono',monospace;font-size:10px;color:var(--mid);font-weight:700}
+.bz-row-x{width:26px;height:26px;border:2px solid var(--rule);border-radius:50%;background:var(--card);color:var(--mid);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .bz-timer{font-family:'Nunito',sans-serif;font-size:40px;font-weight:900;letter-spacing:-1px;line-height:1;color:${BEER_COLOR};text-align:center;padding:6px 0}
 `;
 
@@ -227,86 +248,16 @@ export function NudgeCard(props) {
   );
 }
 
-// ── EVENING CHECK-IN ──────────────────────────────────────────────────────────
-// Shown on the LOG tab after checkinTime (or when the check-in notification is
-// tapped) until you answer: stayed dry, or log what you had.
-export function CheckinCard(props) {
-  var cfg = props.cfg, ins = props.ins, onDry = props.onDry, onLogMany = props.onLogMany, burst = props.burst;
-  var openPair = useState(false); var open = openPair[0]; var setOpen = openPair[1];
-  var cPair = useState(1); var count = cPair[0]; var setCount = cPair[1];
-  var mPair = useState(cfg.sizeMl); var ml = mPair[0]; var setMl = mPair[1];
-  var tPair = useState(null); var trig = tPair[0]; var setTrig = tPair[1];
-  var aPair = useState("now"); var around = aPair[0]; var setAround = aPair[1];
-  var already = ins.today.ml;
-  var total = count * ml;
-  var std = Math.round(total * cfg.abv / 100 * 0.789 / cfg.stdDrinkG * 10) / 10;
-
-  function endTs() {
-    var now = new Date();
-    if (around === "now") return now;
-    var d = new Date(now); d.setHours(Number(around), 0, 0, 0);
-    if (d.getTime() > now.getTime()) d.setDate(d.getDate() - 1);
-    return d;
-  }
-  function dry(e) {
-    var q = e.currentTarget.getBoundingClientRect();
-    if (burst && !already) burst(q.left + q.width / 2, q.top, ["💧","🔥","💪","🏆","✨","🧠","🙌","⚡"]);
-    onDry();
-  }
-  function logIt() {
-    var end = endTs().getTime();
-    var entries = [];
-    for (var i = 0; i < count; i++) entries.push({ ml: ml, trigger: trig, ts: new Date(end - (count - 1 - i) * 20 * 60000).toISOString() });
-    onLogMany(entries);
-  }
-
-  return (
-    <div className="bz-card" style={{ borderColor: "#6366F1", boxShadow: "4px 4px 0 #6366F1" }}>
-      <div className="bz-hd" style={{ color: "#4F46E5" }}>🌙 Evening check-in</div>
-      <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 20, lineHeight: 1.15, marginBottom: 10 }}>
-        {already ? "You've logged " + already + "ml today. Anything since?" : "Did you have beer today?"}
-      </div>
-      {!open && (
-        <div className="xrow">
-          <button className="xbtn pri" style={{ background: BEER_COLOR, borderColor: BEER_COLOR }} onClick={dry}>{already ? "✓ THAT'S ALL" : "💧 STAYED DRY"}</button>
-          <button className="xbtn" style={{ background: AMBER_BG, borderColor: AMBER, color: "#92400E" }} onClick={function() { setOpen(true); }}>🍺 {already ? "HAD MORE" : "HAD BEER"}</button>
-        </div>
-      )}
-      {open && (
-        <div>
-          <div className="crow">
-            <div className="clabel" style={{ width:84 }}>How many</div>
-            <div className="cst">
-              <button className="cb" onClick={function() { setCount(Math.max(1, count - 1)); }}>−</button>
-              <span className="cv">{count}</span>
-              <button className="cb" onClick={function() { setCount(Math.min(12, count + 1)); }}>+</button>
-            </div>
-          </div>
-          <div className="bz-chips" style={{ marginBottom: 8 }}>
-            {SIZES.map(function(sz) { return <button key={sz.ml} className={"bz-chip" + (ml === sz.ml ? " on" : "")} onClick={function() { setMl(sz.ml); }}>{sz.label}{sz.label === "PINT" ? "" : "ml"}</button>; })}
-          </div>
-          <div className="bz-hd">Last one around</div>
-          <div className="bz-chips" style={{ marginBottom: 8 }}>
-            {["17","18","19","20","now"].map(function(h) { return <button key={h} className={"bz-chip" + (around === h ? " on" : "")} onClick={function() { setAround(h); }}>{h === "now" ? "NOW" : h + ":00"}</button>; })}
-          </div>
-          <div className="bz-hd">Why?</div>
-          <div className="bz-chips" style={{ marginBottom: 10 }}>
-            {Object.keys(TRIGGERS).map(function(t) { return <button key={t} className={"bz-chip" + (trig === t ? " on" : "")} onClick={function() { setTrig(trig === t ? null : t); }}>{TRIGGERS[t].emoji} {TRIGGERS[t].label}</button>; })}
-          </div>
-          <button className="bz-big" style={{ background: AMBER }} onClick={logIt}>🍺 LOG {count > 1 ? count + " × " + ml + "ml = " : ""}{total}ml · {std} std</button>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 6 }}>
-            <button className="fhb" onClick={function() { setOpen(false); }}>CANCEL</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── LOG TAB ───────────────────────────────────────────────────────────────────
+// One glance (days dry, last 14 days) and one row of actions: Dry · Beer · Urge.
+// After the check-in time the same row is the evening check-in.
+var URGE_SWAPS = ["walk", "water", "train", "cold", "call", "breathe"];
+
 export function BeerLogTab(props) {
-  var cfg = props.cfg, log = props.log || [], ins = props.ins, onLog = props.onLog, onUrge = props.onUrge, onDelete = props.onDelete, burst = props.burst;
+  var cfg = props.cfg, log = props.log || [], ins = props.ins, burst = props.burst;
+  var panelPair = useState(null); var panel = panelPair[0]; var setPanel = panelPair[1];   // null | "beer" | "urge"
   var sz = useState(cfg.sizeMl); var ml = sz[0]; var setMl = sz[1];
+  var cn = useState(1); var count = cn[0]; var setCount = cn[1];
   var tr = useState(null); var trig = tr[0]; var setTrig = tr[1];
   var wh = useState(0); var backH = wh[0]; var setBackH = wh[1];
   var tm = useState(""); var timeStr = tm[0]; var setTimeStr = tm[1];
@@ -314,149 +265,182 @@ export function BeerLogTab(props) {
   var msgPair = useState(""); var msg = msgPair[0]; var setMsg = msgPair[1];
 
   var streak = ins.streak;
-  var drankToday = ins.today.ml > 0;
   var tz = cfg.tzOff || 0;
+  var checkedIn = ins.checkins && ins.checkins.today;     // "dry" | "drank" | null
+  var evening = !!props.showCheckin;                        // after 19:30, or opened from the notification
   var todayEntries = log.filter(function(e) { return dayKey(e.ts, e.tzOff, cfg.rolloverHour) === ins.todayKey; });
-  // Pace check: right after a beer, say when the next one is OK (one an hour)
   var todayDrinks = todayEntries.filter(function(e) { return !e.resisted && e.ml > 0; });
+  var drankToday = todayDrinks.length > 0;
+
+  // Pace: for an hour after a beer, say when the next one is OK
   var paceNote = null;
-  if (todayDrinks.length) {
+  if (drankToday) {
     var lastT = new Date(todayDrinks[todayDrinks.length - 1].ts).getTime();
     var agoMin = (Date.now() - lastT) / 60000;
     if (agoMin >= 0 && agoMin < PACE.targetMin) {
       var nextAt = fmtHM(new Date(lastT + PACE.targetMin * 60000).toISOString(), tz);
-      if (todayDrinks.length === 1) paceNote = "First one logged. Make the next drink water. Next beer not before " + nextAt + ".";
-      else {
-        var gap = Math.round((lastT - new Date(todayDrinks[todayDrinks.length - 2].ts).getTime()) / 60000);
-        paceNote = (gap < PACE.fastMin ? "Pace check: " + todayDrinks.length + " today, the last two " + gap + " min apart. " : "That's " + todayDrinks.length + " today. ") + "Water next. Next beer not before " + nextAt + ".";
-      }
+      var gap = todayDrinks.length > 1 ? Math.round((lastT - new Date(todayDrinks[todayDrinks.length - 2].ts).getTime()) / 60000) : null;
+      paceNote = (gap != null && gap < PACE.fastMin ? "Last two " + gap + " min apart. " : "") + "Water next. Next beer after " + nextAt + ".";
     }
   }
 
-  function whenTs() {
+  function flash(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 2600); }
+  function toggle(p) { setPanel(panel === p ? null : p); }
+  function whenEnd() {
     var now = new Date();
     if (timeStr) {
       var p = timeStr.split(":").map(Number);
       var d = new Date(now); d.setHours(p[0], p[1], 0, 0);
       if (d.getTime() > now.getTime() + 60000) d.setDate(d.getDate() - 1); // a future time means "last night"
-      return d.toISOString();
+      return d.getTime();
     }
-    return new Date(now.getTime() - backH * 3600000).toISOString();
+    return now.getTime() - backH * 3600000;
   }
-  function flash(t) { setMsg(t); setTimeout(function() { setMsg(""); }, 2600); }
+  function doDry(e) {
+    if (checkedIn) return;
+    var q = e.currentTarget.getBoundingClientRect();
+    if (burst && !drankToday) burst(q.left + q.width / 2, q.top, ["💧","🔥","💪","🏆","✨","🙌"]);
+    props.onDry();
+    setPanel(null);
+    flash(drankToday ? "Checked in for today." : "Marked dry 💧");
+  }
   function doLog() {
-    onLog({ ml: ml, trigger: trig, ts: whenTs() });
-    setBackH(0); setTimeStr("");
-    flash("Logged. Honest numbers are the point.");
+    var end = whenEnd(), entries = [];
+    for (var i = 0; i < count; i++) entries.push({ ml: ml, trigger: trig, ts: new Date(end - (count - 1 - i) * 20 * 60000).toISOString() });
+    props.onLogMany(entries, evening);
+    setPanel(null); setCount(1); setBackH(0); setTimeStr(""); setTrig(null);
+    flash("Logged.");
   }
   function doUrge(e) {
     var q = e.currentTarget.getBoundingClientRect();
     if (burst) burst(q.left + q.width / 2, q.top, ["🌊","💪","🧠","⚡","🔥","🏆","✨","🙌"]);
-    onUrge({ trigger: trig, swap: swap, ts: new Date().toISOString() });
-    setSwap(null);
-    flash("Urge beaten. That's the habit getting weaker.");
+    props.onUrge({ trigger: trig, swap: swap, ts: new Date().toISOString() });
+    setSwap(null); setPanel(null);
+    flash("Urge beaten 💪");
   }
 
   var next = ins.nextMilestone;
   var prevDays = 0;
   if (next) { for (var i = 0; i < MILESTONES.length; i++) { if (MILESTONES[i].days < next.days) prevDays = MILESTONES[i].days; } }
   var pct = next ? Math.min(100, Math.round(((streak.daysSinceLastDrink - prevDays) / (next.days - prevDays)) * 100)) : 100;
+  var win = (ins.wins || []).filter(function(w) { return w.indexOf("Day ") !== 0 && w.indexOf("No beer logged") !== 0; })[0];
+
+  var dryLabel = checkedIn ? (checkedIn === "dry" ? "Dry ✓" : "Done ✓") : drankToday ? (evening ? "That's all" : "Done today") : (evening ? "Stayed dry" : "Dry today");
+  var total = count * ml;
 
   return (
     <div>
       {props.notice && <div className="bz-win" style={{ marginBottom: 10 }}>✓ <span>{props.notice}</span></div>}
+
       <div className={"bz-hero" + (drankToday ? " drank" : "")}>
         {drankToday ? (
-          <div>
-            <div className="bz-hero-n drank">{ins.today.ml}<span style={{ fontSize:20, letterSpacing:0, marginLeft:4 }}>ml</span></div>
-            <div className="bz-hero-l">today · {ins.today.stdDrinks} std drinks · {ins.today.kcal} kcal</div>
-            <div className="bz-hero-sub">{todayDrinks.length <= 1 ? "Logged. Keep it to this one? Tomorrow is a fresh day either way." : todayDrinks.length + " today. Slow it right down from here: water between each."} {ins.week.vsPrevPct != null && ins.week.vsPrevPct < 0 ? "Week is still " + Math.abs(ins.week.vsPrevPct) + "% down on last week." : ""}</div>
+          <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+            <div className="bz-hero-n drank" style={{ fontSize:52 }}>{ins.today.ml}</div>
+            <div className="bz-hero-l" style={{ marginTop:0 }}>ml today · {ins.today.stdDrinks} std</div>
           </div>
         ) : (
-          <div>
-            <div className="bz-hero-n">{streak.current}<span style={{ fontSize:20, letterSpacing:0, marginLeft:6 }}>{streak.current === 1 ? "DAY" : "DAYS"}</span></div>
-            <div className="bz-hero-l">dry{streak.lastDrinkAt ? " · " + Math.floor(streak.hoursSinceLastDrink) + "h since last beer" : " · nothing logged yet"}{streak.longest > streak.current ? " · best " + streak.longest : streak.current >= 3 ? " · best ever" : ""}</div>
-            {next && (
-              <div>
-                <div className="bz-track"><div className="bz-fill" style={{ width: pct + "%" }} /></div>
-                <div className="bz-hero-sub"><b style={{ color:BEER_COLOR }}>Next: {next.title}</b> — {next.note}</div>
-              </div>
-            )}
+          <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
+            <div className="bz-hero-n" style={{ fontSize:52 }}>{streak.current}</div>
+            <div className="bz-hero-l" style={{ marginTop:0 }}>{streak.current === 1 ? "day" : "days"} dry</div>
           </div>
         )}
-      </div>
-
-      {ins.wins.slice(0, 2).map(function(w, i) { return <div key={i} className="bz-win">🏆 <span>{w}</span></div>; })}
-      {ins.flags.slice(0, 1).map(function(f, i) { return <div key={i} className={"bz-flag " + f.level}>⚠️ <span>{f.text}</span></div>; })}
-
-      {props.showCheckin && <div style={{ marginTop: 12 }}><CheckinCard cfg={cfg} ins={ins} onDry={props.onCheckinDry} onLogMany={props.onCheckinLog} burst={burst} /></div>}
-      {ins.checkins && ins.checkins.today && <div className="bz-win" style={{ marginTop: 8 }}>🌙 <span>{ins.checkins.today === "dry" ? "Checked in dry tonight." : "Checked in for tonight."}</span></div>}
-
-      <div className="bz-card" style={{ marginTop:12 }}>
-        <div className="bz-hd">Log a beer</div>
-        <div className="bz-chips" style={{ marginBottom:8 }}>
-          {SIZES.map(function(s) { return <button key={s.ml} className={"bz-chip" + (ml === s.ml ? " on" : "")} onClick={function() { setMl(s.ml); }}>{s.label}{s.label === "PINT" ? "" : "ml"}</button>; })}
-          <button className="bz-chip" onClick={function() { setMl(Math.max(50, ml - 50)); }}>−50</button>
-          <button className="bz-chip" onClick={function() { setMl(ml + 50); }}>+50</button>
+        <div className="bz-hero-sub" style={{ marginTop:4 }}>
+          {drankToday ? todayDrinks.length + (todayDrinks.length === 1 ? " beer" : " beers") + " today. Tomorrow's a fresh start."
+            : streak.lastDrinkAt ? Math.floor(streak.hoursSinceLastDrink) + "h since your last beer · best " + streak.longest : "Nothing logged yet."}
         </div>
-        <div style={{ fontFamily:"'Nunito',sans-serif", fontSize:30, fontWeight:900, color:AMBER, letterSpacing:-1, lineHeight:1, marginBottom:10 }}>{ml}<span style={{ fontSize:13, color:"var(--mid)", marginLeft:4 }}>ml · {cfg.abv}% · {Math.round(ml * cfg.abv / 100 * 0.789 / cfg.stdDrinkG * 10) / 10} std</span></div>
-        <div className="bz-hd">Why?</div>
-        <div className="bz-chips" style={{ marginBottom:10 }}>
-          {Object.keys(TRIGGERS).map(function(t) { return <button key={t} className={"bz-chip" + (trig === t ? " on" : "")} onClick={function() { setTrig(trig === t ? null : t); }}>{TRIGGERS[t].emoji} {TRIGGERS[t].label}</button>; })}
-        </div>
-        {trig && TRIGGERS[trig] && <div className="bz-p" style={{ background:TEAL_BG, border:"2px solid " + BEER_COLOR, borderRadius:10, padding:"8px 10px", color:"#134E4A" }}>{TRIGGERS[trig].hint}</div>}
-        <div className="bz-hd">When?</div>
-        <div className="bz-chips" style={{ marginBottom:12, alignItems:"center" }}>
-          {[0,1,2,3].map(function(h) { return <button key={h} className={"bz-chip" + (!timeStr && backH === h ? " on" : "")} onClick={function() { setBackH(h); setTimeStr(""); }}>{h === 0 ? "NOW" : "-" + h + "H"}</button>; })}
-          <input className="bz-time" type="time" value={timeStr} onChange={function(e) { setTimeStr(e.target.value); }} />
-        </div>
-        <button className="bz-big" style={{ background:AMBER }} onClick={doLog}>🍺 LOG {ml}ml</button>
-        {paceNote && <div className="bz-flag mid" style={{ marginTop:10, marginBottom:0 }}>⏱️ <span>{paceNote}</span></div>}
-      </div>
-
-      <div className="bz-card" style={{ borderColor:BEER_COLOR, boxShadow:"4px 4px 0 " + BEER_COLOR }}>
-        <div className="bz-hd" style={{ color:BEER_COLOR }}>Got an urge? Surf it.</div>
-        <div className="bz-p">Cravings crest in about 20–30 minutes and pass whether or not you drink. Pick what you'll do instead, start the timer, decide after.</div>
-        <div style={{ textAlign:"center", marginBottom:10 }}><SurfTimer /></div>
-        <div className="bz-chips" style={{ marginBottom:12 }}>
-          {Object.keys(SWAPS).map(function(s) { return <button key={s} className={"bz-chip" + (swap === s ? " on" : "")} style={swap === s ? { background:BEER_COLOR, borderColor:BEER_COLOR } : {}} onClick={function() { setSwap(swap === s ? null : s); }}>{SWAPS[s].emoji} {SWAPS[s].label}</button>; })}
-        </div>
-        <button className="bz-big" style={{ background:BEER_COLOR }} onClick={doUrge}>💪 I BEAT IT{swap && SWAPS[swap] ? " · " + SWAPS[swap].label.toUpperCase() : ""}</button>
-        {ins.urges.bestSwap && <div className="bz-p" style={{ marginTop:8, marginBottom:0 }}>Your best swap so far: <b>{swapLabel(ins.urges.bestSwap)}</b> ({ins.urges.bySwap[ins.urges.bestSwap]}×). Resist rate this week: <b>{ins.urges.resistRate7 == null ? "—" : ins.urges.resistRate7 + "%"}</b>.</div>}
-      </div>
-
-      {msg && <div className="bz-win" style={{ marginBottom:10 }}>✓ <span>{msg}</span></div>}
-
-      <div className="bz-card">
-        <div className="bz-hd">Today</div>
-        {todayEntries.length === 0 && <div className="bz-p" style={{ marginBottom:0 }}>Nothing logged today. {streak.current > 0 ? "Keep it that way, or log honestly — both are useful." : ""}</div>}
-        {todayEntries.slice().reverse().map(function(e) {
-          return (
-            <div key={e.id} className={"bz-entry" + (e.resisted ? " urge" : "")}>
-              <div className="bz-entry-t">{fmtHM(e.ts, e.tzOff)}</div>
-              {e.resisted
-                ? <div className="bz-entry-v" style={{ color:BEER_COLOR, fontSize:14 }}>URGE BEATEN{e.swap ? " · " + swapLabel(e.swap) : ""}</div>
-                : <div className="bz-entry-v" style={{ color:AMBER }}>{e.ml}<span style={{ fontSize:10, color:"var(--mid)" }}>ml</span></div>}
-              {!e.resisted && e.trigger && <div style={{ fontSize:10, fontWeight:700, color:"var(--mid)" }}>{triggerLabel(e.trigger)}</div>}
-              <button className="bz-entry-x" onClick={function() { onDelete(e.id); }} aria-label="delete">×</button>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="bz-card">
-        <div className="bz-hd">Last 14 days</div>
-        <div className="bz-dots">
+        <div className="bz-strip" title="Last 14 days">
           {ins.last14.map(function(d) {
-            var on = d.ml > 0;
-            var shade = !d.tracked ? "var(--light)" : on ? (d.ml >= 1500 ? "#B45309" : d.ml >= 880 ? AMBER : "#FBBF24") : BEER_COLOR;
-            return <div key={d.day} className="bz-dot" style={{ background: shade, color: "#fff", borderColor: !d.tracked ? "var(--rule)" : on ? "var(--ink)" : BEER_COLOR }} title={d.day + " · " + d.ml + "ml"}>{on ? Math.round(d.ml / 100) : ""}</div>;
+            var shade = !d.tracked ? "var(--light)" : d.ml > 0 ? (d.ml >= 1500 ? "#B45309" : d.ml >= 880 ? AMBER : "#FBBF24") : BEER_COLOR;
+            return <div key={d.day} className="bz-sd" style={{ background: shade }} title={d.day + " · " + d.ml + "ml"} />;
           })}
         </div>
-        <div className="bz-p" style={{ marginTop:8, marginBottom:0 }}>Teal = dry. Amber = beer (number is ml ÷ 100). Grey = before tracking. {ins.month.dryDays}/{ins.month.trackedDays} dry days in the last 30.</div>
+        {!drankToday && next && (
+          <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:8 }}>
+            <div className="bz-track" style={{ flex:1, marginTop:0, height:8 }}><div className="bz-fill" style={{ width: pct + "%" }} /></div>
+            <div style={{ fontSize:10, fontWeight:700, color:BEER_COLOR, letterSpacing:1, whiteSpace:"nowrap" }}>NEXT: {next.title.toUpperCase()}</div>
+          </div>
+        )}
+        {win && <div className="bz-hero-sub" style={{ marginTop:8, color:"var(--green)" }}>🏆 {win}</div>}
       </div>
 
-      <NudgeCard ins={ins} ctx={props.nudgeCtx} />
+      <div className="bz-card" style={evening && !checkedIn ? { borderColor:"#6366F1", boxShadow:"4px 4px 0 #6366F1" } : {}}>
+        {evening && !checkedIn && <div className="bz-hd" style={{ color:"#4F46E5" }}>🌙 {drankToday ? "Anything since?" : "How was today?"}</div>}
+        <div className="bz-acts">
+          <button className={"bz-act" + (checkedIn ? " done" : "")} onClick={doDry} aria-label="Dry">
+            <span className="bz-act-e">💧</span>{dryLabel}
+          </button>
+          <button className={"bz-act" + (panel === "beer" ? " on beer" : "")} onClick={function() { toggle("beer"); }} aria-label="Beer">
+            <span className="bz-act-e">🍺</span>Beer
+          </button>
+          <button className={"bz-act" + (panel === "urge" ? " on urge" : "")} onClick={function() { toggle("urge"); }} aria-label="Urge">
+            <span className="bz-act-e">🌊</span>Urge
+          </button>
+        </div>
+
+        {panel === "beer" && (
+          <div className="bz-panel">
+            <div className="bz-chips">
+              {SIZES.map(function(s) { return <button key={s.ml} className={"bz-chip" + (ml === s.ml ? " on" : "")} onClick={function() { setMl(s.ml); }}>{s.label}{s.label === "PINT" ? "" : "ml"}</button>; })}
+            </div>
+            <div className="bz-line">
+              <div className="cst">
+                <button className="cb" onClick={function() { setCount(Math.max(1, count - 1)); }} aria-label="fewer">−</button>
+                <span className="cv">{count}×</span>
+                <button className="cb" onClick={function() { setCount(Math.min(12, count + 1)); }} aria-label="more">+</button>
+              </div>
+              <div className="bz-mini" style={{ marginTop:0 }}>{count > 1 ? "= " + fmtMl(total) : "how many"}</div>
+            </div>
+            <div className="bz-chips" style={{ alignItems:"center" }}>
+              {[0,1,2].map(function(h) { return <button key={h} className={"bz-chip sm" + (!timeStr && backH === h ? " on" : "")} onClick={function() { setBackH(h); setTimeStr(""); }}>{h === 0 ? "NOW" : "-" + h + "H"}</button>; })}
+              <input className="bz-time" type="time" value={timeStr} onChange={function(e) { setTimeStr(e.target.value); }} aria-label="time" style={{ padding:"4px 8px", fontSize:11 }} />
+            </div>
+            <div className="bz-chips">
+              {Object.keys(TRIGGERS).map(function(t) { return <button key={t} className={"bz-chip sm" + (trig === t ? " on" : "")} onClick={function() { setTrig(trig === t ? null : t); }}>{TRIGGERS[t].emoji} {TRIGGERS[t].label}</button>; })}
+            </div>
+            <button className="bz-big" style={{ background:AMBER, marginTop:12 }} onClick={doLog}>🍺 LOG {count > 1 ? count + " × " + ml + "ml" : ml + "ml"}</button>
+          </div>
+        )}
+
+        {panel === "urge" && (
+          <div className="bz-panel">
+            <div className="bz-mini" style={{ marginTop:0, marginBottom:8 }}>It passes in 20–30 min. What will you do instead?</div>
+            <div className="bz-chips">
+              {URGE_SWAPS.map(function(k) { return <button key={k} className={"bz-chip" + (swap === k ? " on" : "")} style={swap === k ? { background:BEER_COLOR, borderColor:BEER_COLOR } : {}} onClick={function() { setSwap(swap === k ? null : k); }}>{SWAPS[k].emoji} {SWAPS[k].label}</button>; })}
+            </div>
+            <div className="bz-line" style={{ marginTop:12 }}>
+              <SurfTimer />
+              <button className="bz-big" style={{ background:BEER_COLOR, flex:1, padding:"12px" }} onClick={doUrge}>💪 I BEAT IT</button>
+            </div>
+          </div>
+        )}
+
+        {paceNote && <div className="bz-mini pace">⏱️ {paceNote}</div>}
+        {msg && <div className="bz-mini" style={{ color:"var(--green)" }}>✓ {msg}</div>}
+      </div>
+
+      {(todayEntries.length > 0 || checkedIn) && (
+        <div className="bz-card">
+          <div className="bz-hd">Today</div>
+          {todayEntries.slice().reverse().map(function(e) {
+            return (
+              <div key={e.id} className="bz-row">
+                <span className="bz-row-t">{fmtHM(e.ts, e.tzOff)}</span>
+                {e.resisted
+                  ? <span className="bz-row-v" style={{ color:BEER_COLOR }}>🌊 Urge beaten{e.swap && SWAPS[e.swap] ? " · " + SWAPS[e.swap].label : ""}</span>
+                  : <span className="bz-row-v" style={{ color:AMBER }}>🍺 {e.ml}ml{e.trigger && TRIGGERS[e.trigger] ? <span className="bz-row-s"> · {TRIGGERS[e.trigger].label}</span> : null}</span>}
+                <button className="bz-row-x" onClick={function() { props.onDelete(e.id); }} aria-label="delete">×</button>
+              </div>
+            );
+          })}
+          {checkedIn && (
+            <div className="bz-row">
+              <span className="bz-row-t">{evening ? "🌙" : "💧"}</span>
+              <span className="bz-row-v" style={{ color:BEER_COLOR }}>{checkedIn === "dry" ? "Marked dry" : "Checked in"}</span>
+              <button className="bz-row-x" onClick={props.onClearCheckin} aria-label="undo">×</button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display:"flex", justifyContent:"flex-end", marginTop:4 }}>
         <button className="fhb" style={{ borderColor:BEER_COLOR, color:BEER_COLOR }} onClick={props.onInsights}>INSIGHTS ▶</button>
@@ -668,6 +652,11 @@ export function BeerInsightsTab(props) {
           })}
           <div className="bz-src">Sources: Ebrahim et al. 2013 (alcohol and sleep); de Visser et al. 2016 (Dry January follow-up); Mehta et al. 2018 (BMJ Open, one-month abstinence); Lally et al. 2010 (habit formation, median 66 days); WHO and UK CMO low-risk guidelines.</div>
         </div>
+      </div>
+
+      <div className="asec">
+        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Notifications</div>
+        <NudgeCard ins={ins} ctx={props.nudgeCtx} />
       </div>
 
       <Collapsible icon="🧠" title="Playbook · habit & pace" open>
