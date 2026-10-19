@@ -590,3 +590,56 @@ export function composeBeerCheckin(ins, seed) {
   }
   return { title: title, body: body, tag: "beer-checkin", url: "?beer=checkin" };
 }
+
+// ── IMPORT PAST ENTRIES (merge, never replace) ───────────────────────────────
+// Accepts: an array of entries · { entries, startDate } · the beer JSON export
+// ({ log, cfg }) · a full app link containing #beer-import=<base64url JSON>.
+function fromBase64Url(s) {
+  var b64 = s.replace(/-/g, "+").replace(/_/g, "/");
+  b64 += "===".slice((b64.length + 3) % 4);
+  var bin = atob(b64), bytes = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+export function parseBeerImport(text) {
+  var raw = String(text || "").trim();
+  var m = raw.match(/#?beer-import=([A-Za-z0-9_-]+)/);
+  if (m) raw = fromBase64Url(m[1]);
+  var v = JSON.parse(raw);
+  var entries = Array.isArray(v) ? v : (v && (v.entries || v.log || v.beerLog)) || [];
+  var startDate = v && !Array.isArray(v) ? (v.startDate || (v.cfg && v.cfg.startDate) || null) : null;
+  if (startDate && !/^\d{4}-\d{2}-\d{2}$/.test(String(startDate))) startDate = null;
+  var checkins = v && !Array.isArray(v) ? normalizeBeerCheckins(v.checkins) : {};
+  return { entries: normalizeBeerLog(entries), startDate: startDate, checkins: checkins };
+}
+
+// Same beer twice (same id, or same time + ml + type) is only kept once,
+// so opening an import link again adds nothing.
+export function mergeBeerLogs(existing, incoming) {
+  var cur = normalizeBeerLog(existing);
+  var ids = {}, sigs = {};
+  function sig(e) { return e.ts + "|" + e.ml + "|" + (e.resisted ? 1 : 0); }
+  cur.forEach(function(e) { ids[e.id] = 1; sigs[sig(e)] = 1; });
+  var added = 0, skipped = 0;
+  normalizeBeerLog(incoming).forEach(function(e) {
+    if (ids[e.id] || sigs[sig(e)]) { skipped++; return; }
+    ids[e.id] = 1; sigs[sig(e)] = 1; cur.push(e); added++;
+  });
+  return { log: normalizeBeerLog(cur), added: added, skipped: skipped };
+}
+
+// Apply an import to the beer part of app state. Moves the tracking start date
+// back to the earliest imported day, so the dry days in between count.
+export function applyBeerImport(state, imp) {
+  var cfg = normalizeBeerCfg(state.beerCfg);
+  var merged = mergeBeerLogs(state.beerLog, imp.entries);
+  var earliest = imp.startDate || null;
+  merged.log.forEach(function(e) {
+    var k = dayKey(e.ts, e.tzOff, cfg.rolloverHour);
+    if (!earliest || k < earliest) earliest = k;
+  });
+  if (earliest && (!cfg.startDate || earliest < cfg.startDate)) cfg.startDate = earliest;
+  var checkins = Object.assign({}, normalizeBeerCheckins(imp.checkins), normalizeBeerCheckins(state.beerCheckins));
+  return { beerLog: merged.log, beerCfg: cfg, beerCheckins: checkins, added: merged.added, skipped: merged.skipped };
+}

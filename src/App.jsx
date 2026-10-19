@@ -270,7 +270,7 @@ function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 import api from './api.js';
 import { BeerLogTab, BeerInsightsTab, beerCss } from './Beer.jsx';
 import { saveNudgeContext } from './push.js';
-import { BEER_COLOR, computeBeerInsights, normalizeBeerCfg, normalizeBeerLog, normalizeBeerCheckins, makeEntry, makeDefaultBeerCfg, dayKey as beerDayKey } from './beer.mjs';
+import { BEER_COLOR, computeBeerInsights, normalizeBeerCfg, normalizeBeerLog, normalizeBeerCheckins, makeEntry, makeDefaultBeerCfg, dayKey as beerDayKey, parseBeerImport, applyBeerImport } from './beer.mjs';
 
 async function loadState() {
   try {
@@ -1908,6 +1908,7 @@ export default function App() {
   var importMsgPair = useState(""); var importMsg = importMsgPair[0]; var setImportMsg = importMsgPair[1];
   var copiedPair = useState(false); var copied = copiedPair[0]; var setCopied = copiedPair[1];
   var forceCkPair = useState(false); var forceCheckin = forceCkPair[0]; var setForceCheckin = forceCkPair[1];
+  var beerNoticePair = useState(""); var beerNotice = beerNoticePair[0]; var setBeerNotice = beerNoticePair[1];
   // Re-render once a minute so the evening check-in card appears on time and "hours since" stays fresh
   var tickPair = useState(0); var setTick = tickPair[1];
   useEffect(function() { var iv = setInterval(function() { setTick(function(t) { return t + 1; }); }, 60000); return function() { clearInterval(iv); }; }, []);
@@ -1915,6 +1916,9 @@ export default function App() {
   useEffect(function() {
     loadState().then(function(saved) {
       if (saved) { _setSt(function(prev) { return normalizeState(Object.assign({}, prev, saved)); }); }
+      // Import link: #beer-import=<base64url JSON> merges past entries (the data
+      // stays after the #, so it never reaches the server)
+      importFromHash(normalizeState(Object.assign({}, makeDefault(), saved || {})));
       var forNudge = normalizeState(saved || {});
       saveNudgeContext(forNudge, nudgeExtras(forNudge)); // refresh the week of notification text on every open
       // Notification tap opens ?beer=log or ?beer=checkin → beer LOG tab, then clean the URL
@@ -2672,6 +2676,36 @@ export default function App() {
     setSt(function(prev) { return Object.assign({}, prev, { beerCfg: Object.assign({}, prev.beerCfg, patch) }); });
   }
   function beerBurst(x, y, emojis) { emitBurst(makeDoneBurst(x, y, emojis)); }
+  function importFromHash(base) {
+    if (!/#beer-import=/.test(window.location.hash)) return;
+    var res = importBeer(window.location.hash, true, base);
+    setBeerNotice(res.error ? "Import link didn't work: " + res.error : "Added " + res.added + " past " + (res.added === 1 ? "entry" : "entries") + (res.skipped ? " · " + res.skipped + " already there" : "") + ".");
+    try { window.history.replaceState(null, "", window.location.pathname + window.location.search); } catch (e) {}
+  }
+  // Same link opened while the app is already open → hash change, no reload
+  var stRef = useRef(st); stRef.current = st;
+  useEffect(function() {
+    function onHash() { importFromHash(stRef.current); }
+    window.addEventListener("hashchange", onHash);
+    return function() { window.removeEventListener("hashchange", onHash); };
+  }, []);
+
+  // Merge past entries from pasted text or an import link. Returns { added, skipped } or { error }.
+  // `base` is the state the merge will apply to (used only for the reported counts;
+  // the update itself always merges into the latest state).
+  function importBeer(text, openBeerTab, base) {
+    var imp;
+    try { imp = parseBeerImport(text); } catch (e) { return { error: "not valid JSON or link" }; }
+    if (!imp.entries.length) return { error: "no entries found" };
+    setSt(function(prev) {
+      var r = applyBeerImport(prev, imp);
+      var next = Object.assign({}, prev, { beerLog: r.beerLog, beerCfg: r.beerCfg, beerCheckins: r.beerCheckins });
+      if (openBeerTab && (prev.enabledModes || {})[3] !== false) { next.mode = 3; next.beerTab = 0; }
+      return next;
+    });
+    var preview = applyBeerImport(base, imp);
+    return { added: preview.added, skipped: preview.skipped };
+  }
   function todayBeerKey(cfg) { return beerDayKey(new Date().toISOString(), new Date().getTimezoneOffset(), cfg.rolloverHour); }
   // Check-in: "stayed dry" (or "that's all" when beer was already logged today)
   function checkinDry() {
@@ -3188,7 +3222,7 @@ export default function App() {
             </div>
             <BeerLogTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onLog={logBeer} onUrge={logUrge} onDelete={deleteBeerEntry} burst={beerBurst} onInsights={function() { setAtab(1); }}
               nudgeCtx={Object.assign({ enabledModes: st.enabledModes }, nudgeExtras(st))}
-              showCheckin={showCheckin} onCheckinDry={checkinDry} onCheckinLog={checkinLog} />
+              showCheckin={showCheckin} onCheckinDry={checkinDry} onCheckinLog={checkinLog} notice={beerNotice} />
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
         )}
@@ -3197,7 +3231,7 @@ export default function App() {
         {st.mode === 3 && atab === 1 && (
           <div className="pg">
             <div style={{ fontSize:10, color:"var(--mid)", letterSpacing:"1.5px", marginBottom:14, fontWeight:700 }}>PRECALCULATED · SWIPE → LOG</div>
-            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} checkins={st.beerCheckins} />
+            <BeerInsightsTab cfg={st.beerCfg} log={st.beerLog} ins={beerIns} onCfg={updateBeerCfg} checkins={st.beerCheckins} onImport={function(t) { return importBeer(t, false, st); }} />
             <div className="xsec">
               <div className="xhd">Workouts · Show / Hide</div>
               <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />

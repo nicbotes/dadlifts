@@ -177,6 +177,21 @@ node cli/dadlift.js beer-export > beer.csv     # or: beer-export json
 
 ---
 
+### Import past entries ✅
+
+* **Add past entries** (Insights → Export): paste a beer JSON export, a list of entries,
+  or an import link. Merges into the log; never replaces. Duplicates (same id, or same
+  time + ml + type) are skipped. The tracking start date moves back to the earliest
+  imported day so dry days in between count; other settings and check-ins are kept.
+* **Import link**: `https://nicbotes.github.io/dadlifts/#beer-import=<base64url JSON>`.
+  The data sits after the `#`, so it never reaches the server. Opening it merges the
+  entries, switches to the beer LOG tab and shows how many were added. Works on a fresh
+  load and when the app is already open.
+* **iPhone Home Screen app**: it has its own storage, separate from Safari, so tapping a
+  link imports into Safari's copy. Copy the link and paste it into *Add past entries*
+  inside the installed app instead.
+* Functions: `parseBeerImport`, `mergeBeerLogs`, `applyBeerImport` in `src/beer.mjs`.
+
 ## 9. Verification done on this branch
 
 * Unit-style run of `computeBeerInsights` on synthetic data (streaks, rollover at 01:00,
