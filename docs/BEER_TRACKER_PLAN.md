@@ -126,13 +126,16 @@ Mode 3 (🍺, teal `#0D9488`). Tab labels become **LOG / INSIGHTS**. Swipe works
 Moved off LOG: the quote, flags (in Insights), explanations, and the Notifications
 card (now on Insights).
 
-**INSIGHTS**
-Streak tiles → volume tiles with trends, guideline comparison, optional budget bar and
-money → 30-day and 8-week bar charts → flags → time-of-day bands with the danger window
-and a concrete "put the swap before it" line → weekday bars → trigger bars with the top
-trigger's hint → urges tiles and "what worked" → brain-rewiring timeline → collapsible
-**Rewire playbook** (dopamine), **Withdrawal & safety**, **Settings** → export (CSV file,
-JSON file, copy JSON) → workouts show/hide (now includes the beer tracker).
+**INSIGHTS** (reduced, about 150 words)
+1. At a glance: days dry (best), this week (▼/▲ vs last week), minutes per beer (target 60),
+   plus up to two warnings that the patterns card doesn't already show.
+2. Last 30 days: one daily bar chart and a line: dry days · volume · standard drinks.
+3. Your patterns: danger window, heaviest day, main trigger, biggest session, fastest pace,
+   urges beaten and best swap, budget and money when set, and one tip for the main trigger.
+4. Collapsed: Playbook · What a dry stretch does · Staying on the right side ·
+   Notifications · Settings · Export & import.
+
+Untagged beers no longer count as the "other" trigger when picking the main trigger.
 
 ---
 

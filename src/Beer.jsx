@@ -52,7 +52,7 @@ export var beerCss = `
 .bz-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
 .bz-bar-f{width:100%;border-radius:4px 4px 0 0;border:2px solid var(--ink);border-bottom:none;min-height:0}
 .bz-bar-f.zero{border:none;height:3px;background:var(--green);border-radius:2px}
-.bz-bar-l{font-size:8px;font-weight:700;color:var(--mid);margin-top:4px;white-space:nowrap;overflow:hidden;max-width:100%}
+.bz-bar-l{font-size:8px;font-weight:700;color:var(--mid);margin-top:4px;white-space:nowrap;overflow:visible;height:10px}
 .bz-hbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .bz-hbar-l{font-size:10px;font-weight:700;color:var(--mid);width:84px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bz-hbar-t{flex:1;height:14px;background:var(--light);border:2px solid var(--ink);border-radius:100px;overflow:hidden}
@@ -69,6 +69,11 @@ export var beerCss = `
 .bz-p b{color:var(--ink)}
 .bz-src{font-size:9px;color:var(--sub);font-style:italic;font-weight:700;line-height:1.5;margin-top:6px}
 .bz-time{padding:6px 10px;border:2.5px solid var(--ink);border-radius:10px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;background:var(--bg);color:var(--ink)}
+.bz-tile-s{font-size:10px;font-weight:700;color:var(--mid);margin-top:2px}
+.bz-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:2px solid var(--light)}
+.bz-kv:last-of-type{border-bottom:none}
+.bz-kv-k{font-size:11px;font-weight:700;color:var(--mid);white-space:nowrap}
+.bz-kv-v{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;text-align:right}
 .bz-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .bz-act{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px 10px;border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;white-space:nowrap}
 .bz-act:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
@@ -111,8 +116,6 @@ function downloadFile(name, content, type) {
     return true;
   } catch(e) { return false; }
 }
-function triggerLabel(t) { return TRIGGERS[t] ? TRIGGERS[t].emoji + " " + TRIGGERS[t].label : (t || "—"); }
-function swapLabel(s) { return SWAPS[s] ? SWAPS[s].emoji + " " + SWAPS[s].label : (s || "—"); }
 
 // ── small charts ──────────────────────────────────────────────────────────────
 function Bars(props) {
@@ -128,23 +131,6 @@ function Bars(props) {
               ? <div className="bz-bar-f" style={{ height: Math.max(6, pct * 56) + "px", background: d.hi ? "var(--red)" : color }} />
               : <div className="bz-bar-f zero" />}
             <div className="bz-bar-l">{i % every === 0 ? d.label : ""}</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-function HBars(props) {
-  var data = props.data || [], color = props.color || BEER_COLOR, fmt = props.fmt || function(v) { return v; };
-  var max = Math.max.apply(null, data.map(function(d) { return d.value; }).concat([1]));
-  return (
-    <div>
-      {data.map(function(d, i) {
-        return (
-          <div key={i} className="bz-hbar">
-            <div className="bz-hbar-l">{d.label}</div>
-            <div className="bz-hbar-t"><div className="bz-hbar-f" style={{ width: (d.value / max * 100) + "%", background: d.hi ? AMBER : color }} /></div>
-            <div className="bz-hbar-v">{fmt(d.value)}</div>
           </div>
         );
       })}
@@ -211,8 +197,8 @@ export function NudgeCard(props) {
   var blocked = !on && !canEnable && status.state !== "loading";
 
   return (
-    <div className="bz-card" style={{ borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
-      <div className="bz-hd" style={{ color: BEER_COLOR }}>🔔 Notifications · 16:35 & 19:30 SAST{on ? " · ON HERE" : ""}</div>
+    <div className={props.bare ? "" : "bz-card"} style={props.bare ? {} : { borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
+      <div className="bz-hd" style={{ color: BEER_COLOR }}>16:35 & 19:30 SAST{on ? " · ON HERE" : ""}</div>
       <div className="bz-p"><b>4:35pm nudge</b> with something to do instead of a beer. <b>7:30pm check-in</b> to log whether you stayed dry or had beer. Today's would read:</div>
       <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 6 }}>
         <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>{preview.title}</div>
@@ -502,10 +488,7 @@ export function BeerInsightsTab(props) {
   var copied = useState(""); var copyMsg = copied[0]; var setCopyMsg = copied[1];
   var s = ins.streak, w = ins.week, m = ins.month;
 
-  function trend(pct) {
-    if (pct == null || pct === 0) return <span style={{ color:"var(--mid)" }}>{pct === 0 ? "= same" : "no prior data"}</span>;
-    return <span style={{ color: pct < 0 ? "var(--green)" : "var(--red)" }}>{pct < 0 ? "▼ " : "▲ "}{Math.abs(pct)}% vs prev</span>;
-  }
+
   function exportCsv() {
     var csv = beerLogToCsv(log, cfg);
     if (!downloadFile("beer-log-" + ins.todayKey + ".csv", csv, "text/csv")) { navigator.clipboard && navigator.clipboard.writeText(csv); }
@@ -522,144 +505,62 @@ export function BeerInsightsTab(props) {
   }
 
   var daily = ins.daily30.map(function(d) { return { label: d.day.slice(8), value: d.ml, hi: d.g >= ins.guidelines.bingeG }; });
-  var weekly = ins.weekly8.map(function(x) { return { label: x.weeksAgo === 0 ? "now" : "-" + x.weeksAgo + "w", value: x.ml, hi: x.g > ins.guidelines.weeklyG }; });
-  var bands = ins.timeOfDay.bands.map(function(b) { return { label: hourLabel(b.from) + "–" + hourLabel(b.to), value: b.count, hi: ins.timeOfDay.dangerBand && b.from === ins.timeOfDay.dangerBand.from }; });
-  var dows = ins.dayOfWeek.byDow.slice(1).concat([ins.dayOfWeek.byDow[0]]).map(function(d) { return { label: d.dow, value: d.ml, hi: ins.dayOfWeek.worst && d.dow === ins.dayOfWeek.worst.dow }; });
-  var trigs = Object.keys(ins.triggers.byTrigger).filter(function(t) { return ins.triggers.byTrigger[t].count > 0 || ins.triggers.byTrigger[t].urges > 0; })
-    .sort(function(a, b) { return ins.triggers.byTrigger[b].count - ins.triggers.byTrigger[a].count; })
-    .map(function(t) { var x = ins.triggers.byTrigger[t]; return { label: triggerLabel(t), value: x.count, hi: t === ins.triggers.top, urges: x.urges }; });
-  var swaps = Object.keys(ins.urges.bySwap).sort(function(a, b) { return ins.urges.bySwap[b] - ins.urges.bySwap[a]; }).map(function(k) { return { label: swapLabel(k), value: ins.urges.bySwap[k], hi: k === ins.urges.bestSwap }; });
+  var pace = ins.pace || {};
+  var band = ins.timeOfDay.dangerBand;
+  var topTrig = ins.triggers.top && TRIGGERS[ins.triggers.top];
+  var patterns = [];
+  if (band) patterns.push({ k:"⏰ Danger window", v: (band.from < 10 ? "0" : "") + band.from + ":00–" + (band.to < 10 ? "0" : "") + (band.to % 24) + ":00" });
+  if (ins.dayOfWeek.worst) patterns.push({ k:"📅 Heaviest day", v: ins.dayOfWeek.worst.dow });
+  if (topTrig) patterns.push({ k:"🎯 Main trigger", v: topTrig.label });
+  if (pace.biggest && pace.biggest.count > 1) patterns.push({ k:"🍻 Biggest session", v: pace.biggest.label + " · " + pace.biggest.count + " beers", warn: ins.daily30.some(function(d) { return d.day === pace.biggest.day && d.g >= ins.guidelines.bingeG; }) });
+  if (pace.fastest) patterns.push({ k:"⚡ Fastest pace", v: pace.fastest.label + " · " + pace.fastest.minPerBeer + " min each", warn: pace.fastest.minPerBeer < PACE.fastMin });
+  if (ins.urges.total) patterns.push({ k:"🌊 Urges beaten", v: ins.urges.total + (ins.urges.bestSwap && SWAPS[ins.urges.bestSwap] ? " · best: " + SWAPS[ins.urges.bestSwap].label : "") });
+  if (ins.budget) patterns.push({ k:"🎯 Weekly budget", v: fmtMl(ins.budget.usedMl) + " / " + fmtMl(ins.budget.weeklyMl), warn: ins.budget.pct >= 100 });
+  if (ins.money) patterns.push({ k:"💸 Spent · 30 days", v: String(ins.money.spent30) });
+  var weekPct = w.vsPrevPct;
 
   return (
     <div>
       <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Streak</div>
-        <div className="bz-tiles">
-          <div className="bz-tile"><div className="bz-tile-v" style={{ color:BEER_COLOR }}>{s.current}</div><div className="bz-tile-l">current dry days</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{s.longest}</div><div className="bz-tile-l">longest streak</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{s.dryDays30}<span className="bz-tile-u">/{s.trackedDays30}</span></div><div className="bz-tile-l">dry days · 30d</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{s.dryPctAll}<span className="bz-tile-u">%</span></div><div className="bz-tile-l">dry since {ins.startDate}</div></div>
-        </div>
-        {s.lastDrinkAt && <div className="bz-p" style={{ marginTop:8 }}>Last beer: <b>{s.lastDrinkAt.slice(0, 10)} {fmtHM(s.lastDrinkAt, cfg.tzOff)}</b> · {Math.floor(s.hoursSinceLastDrink)}h ago.{s.currentDrinkingRun > 0 ? " Currently " + s.currentDrinkingRun + " drinking day" + (s.currentDrinkingRun > 1 ? "s" : "") + " in a row." : ""}</div>}
-        {ins.checkins && ins.checkins.confirmedDry30 > 0 && <div className="bz-p">Confirmed dry at check-in: <b>{ins.checkins.confirmedDry7}</b> this week, <b>{ins.checkins.confirmedDry30}</b> in 30 days.</div>}
-        {ins.wins.map(function(x, i) { return <div key={i} className="bz-win">🏆 <span>{x}</span></div>; })}
-      </div>
-
-      <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Volume</div>
+        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>At a glance</div>
         <div className="bz-tiles c3">
-          <div className="bz-tile"><div className="bz-tile-v" style={{ color:AMBER }}>{fmtMl(ins.today.ml)}</div><div className="bz-tile-l">today</div></div>
-          <div className="bz-tile"><div className="bz-tile-v" style={{ color:AMBER }}>{fmtMl(w.ml)}</div><div className="bz-tile-l">7 days</div></div>
-          <div className="bz-tile"><div className="bz-tile-v" style={{ color:AMBER }}>{fmtMl(m.ml)}</div><div className="bz-tile-l">30 days</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{w.stdDrinks}</div><div className="bz-tile-l">std drinks · 7d</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{Math.round(w.g)}<span className="bz-tile-u">g</span></div><div className="bz-tile-l">alcohol · 7d</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{w.kcal}</div><div className="bz-tile-l">kcal · 7d</div></div>
-        </div>
-        <div className="bz-p" style={{ marginTop:8 }}>7-day: {trend(w.vsPrevPct)} · 30-day: {trend(m.vsPrevPct)} · avg {w.avgMlPerDay}ml/day this week · {w.drinkingDays}/7 drinking days.</div>
-        <div className="bz-p">Low-risk guideline is ≤112g/week (14 UK units) spread over 3+ days, with no single day ≥60g. You're at <b style={{ color: w.g > ins.guidelines.weeklyG ? "var(--red)" : "var(--green)" }}>{Math.round(w.g)}g</b> this week.</div>
-        {ins.budget && (
-          <div style={{ marginTop:6 }}>
-            <div className="bz-hd">Weekly budget · {ins.budget.usedMl} / {ins.budget.weeklyMl}ml</div>
-            <div className="bz-track" style={{ marginTop:0 }}><div className="bz-fill" style={{ width: ins.budget.pct + "%", background: ins.budget.pct >= 100 ? "var(--red)" : AMBER }} /></div>
+          <div className="bz-tile">
+            <div className="bz-tile-v" style={{ color:BEER_COLOR }}>{s.current}</div>
+            <div className="bz-tile-l">days dry</div>
+            <div className="bz-tile-s">best {s.longest}</div>
           </div>
-        )}
-        {ins.money && <div className="bz-p" style={{ marginTop:8 }}>Spent ~<b>{ins.money.spent30}</b> in 30 days, <b>{ins.money.spentAll}</b> since start. Current streak has saved ~<b>{ins.money.savedStreak}</b> vs your pre-streak average.</div>}
-        <div className="bz-card" style={{ marginTop:10 }}>
-          <div className="bz-hd">Daily ml · last 30 days</div>
-          <Bars data={daily} color={AMBER} labelEvery={5} />
-          <div className="bz-hd" style={{ marginTop:12 }}>Weekly ml · last 8 weeks</div>
-          <Bars data={weekly} color={AMBER} />
-          <div className="bz-src">Red bars cross a guideline (≥60g in a day / &gt;112g in a week). Green ticks are dry days.</div>
-        </div>
-      </div>
-
-      {ins.pace.sessions30 > 0 && (
-        <div className="asec">
-          <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Pace</div>
-          <div className="bz-tiles c3">
-            <div className="bz-tile"><div className="bz-tile-v">{ins.pace.avgBeersPerSession}</div><div className="bz-tile-l">beers / session</div></div>
-            <div className="bz-tile"><div className="bz-tile-v" style={{ color: ins.pace.avgMinPerBeer != null && ins.pace.avgMinPerBeer < PACE.fastMin ? AMBER : "var(--ink)" }}>{ins.pace.avgMinPerBeer == null ? "—" : ins.pace.avgMinPerBeer}<span className="bz-tile-u">min</span></div><div className="bz-tile-l">per beer</div></div>
-            <div className="bz-tile"><div className="bz-tile-v" style={{ color:BEER_COLOR }}>{PACE.targetMin}<span className="bz-tile-u">min</span></div><div className="bz-tile-l">target</div></div>
+          <div className="bz-tile">
+            <div className="bz-tile-v" style={{ color:AMBER }}>{fmtMl(w.ml)}</div>
+            <div className="bz-tile-l">this week</div>
+            <div className="bz-tile-s" style={{ color: weekPct == null || weekPct === 0 ? "var(--mid)" : weekPct < 0 ? "var(--green)" : "var(--red)" }}>{weekPct == null ? "—" : weekPct === 0 ? "same" : (weekPct < 0 ? "▼ " : "▲ ") + Math.abs(weekPct) + "%"}</div>
           </div>
-          <div className="bz-card" style={{ marginTop:10 }}>
-            <div className="bz-hd">Recent sessions</div>
-            {ins.pace.recent.map(function(x) {
-              var fast = x.minPerBeer != null && x.minPerBeer < PACE.fastMin;
-              return (
-                <div key={x.day} className="bz-hbar">
-                  <div className="bz-hbar-l" style={{ width:84 }}>{x.label}</div>
-                  <div style={{ flex:1, fontSize:11, fontWeight:700 }}>{x.count} × · {fmtMl(x.ml)}</div>
-                  <div className="bz-hbar-v" style={{ width:80, color: fast ? AMBER : "var(--mid)" }}>{x.minPerBeer == null ? "single" : x.minPerBeer + " min each"}</div>
-                </div>
-              );
-            })}
-            <div className="bz-p" style={{ marginTop:6, marginBottom:0 }}>Your body clears roughly one standard drink an hour, and a 500ml beer is about two. Faster than one an hour and it stacks, which is how 2 turns into 6. Minutes per beer is the time between your first and last, divided by the gaps.</div>
+          <div className="bz-tile">
+            <div className="bz-tile-v" style={{ color: pace.avgMinPerBeer != null && pace.avgMinPerBeer < PACE.fastMin ? AMBER : "var(--ink)" }}>{pace.avgMinPerBeer == null ? "—" : pace.avgMinPerBeer}<span className="bz-tile-u">{pace.avgMinPerBeer == null ? "" : "min"}</span></div>
+            <div className="bz-tile-l">per beer</div>
+            <div className="bz-tile-s">target {PACE.targetMin}</div>
           </div>
         </div>
-      )}
-
-      {ins.flags.length > 0 && (
-        <div className="asec">
-          <div className="at" style={{ color:AMBER, borderColor:AMBER }}>Worth a look</div>
-          {ins.flags.map(function(f, i) { return <div key={i} className={"bz-flag " + f.level}>⚠️ <span>{f.text}</span></div>; })}
-        </div>
-      )}
+        {ins.flags.filter(function(f) { return f.key !== "binge" && f.key !== "pace"; }).slice(0, 2).map(function(f, i) { return <div key={i} className="bz-flag mid" style={{ marginTop: i ? 5 : 10 }}>⚠️ <span>{f.text}</span></div>; })}
+      </div>
 
       <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>When it happens</div>
+        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Last 30 days</div>
         <div className="bz-card">
-          <div className="bz-hd">Beers by time of day</div>
-          <Bars data={bands} color={BEER_COLOR} />
-          {ins.timeOfDay.dangerBand ? (
-            <div className="bz-p" style={{ marginTop:8 }}>Danger window: <b>{hourLabel(ins.timeOfDay.dangerBand.from)}–{hourLabel(ins.timeOfDay.dangerBand.to)}</b> ({ins.timeOfDay.dangerBand.count} beers, {fmtMl(ins.timeOfDay.dangerBand.ml)}).{ins.timeOfDay.avgFirstDrinkHour != null ? " First beer of the day averages " + hourLabel(Math.floor(ins.timeOfDay.avgFirstDrinkHour)) + "." : ""} Put the swap <b>before</b> that window: plan the walk, the training session or the sparkling water for {hourLabel(Math.max(0, ins.timeOfDay.dangerBand.from - 1))}.</div>
-          ) : <div className="bz-p" style={{ marginTop:8 }}>Log a few beers with times and your danger window shows up here.</div>}
-          <div className="bz-hd" style={{ marginTop:12 }}>ml by day of week</div>
-          <Bars data={dows} color={BEER_COLOR} />
-          {ins.dayOfWeek.worst && <div className="bz-p" style={{ marginTop:8, marginBottom:0 }}>Heaviest day: <b>{ins.dayOfWeek.worst.dow}</b> ({fmtMl(ins.dayOfWeek.worst.ml)} over {ins.dayOfWeek.worst.days} day{ins.dayOfWeek.worst.days > 1 ? "s" : ""}). Book something for that evening.</div>}
+          <Bars data={daily} color={AMBER} labelEvery={10} />
+          <div className="bz-mini">{m.dryDays}/{m.trackedDays} dry days · {fmtMl(m.ml)} · {m.stdDrinks} std drinks</div>
         </div>
       </div>
 
       <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Why it happens</div>
+        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Your patterns</div>
         <div className="bz-card">
-          {trigs.length ? <HBars data={trigs} color={BEER_COLOR} fmt={function(v) { return v + "×"; }} /> : <div className="bz-p" style={{ marginBottom:0 }}>Tag a trigger when you log and the pattern shows up here.</div>}
-          {ins.triggers.top && TRIGGERS[ins.triggers.top] && <div className="bz-p" style={{ marginTop:8, marginBottom:0, background:TEAL_BG, border:"2px solid " + BEER_COLOR, borderRadius:10, padding:"8px 10px", color:"#134E4A" }}><b>{triggerLabel(ins.triggers.top)}</b> is your main cue. {TRIGGERS[ins.triggers.top].hint}</div>}
+          {patterns.length === 0 && <div className="bz-mini" style={{ marginTop:0 }}>Log a few beers with times and a reason, and your patterns show up here.</div>}
+          {patterns.map(function(x) { return <div key={x.k} className="bz-kv"><span className="bz-kv-k">{x.k}</span><span className="bz-kv-v" style={x.warn ? { color:AMBER } : {}}>{x.v}</span></div>; })}
+          {topTrig && <div className="bz-mini" style={{ color:"#134E4A" }}>💡 {topTrig.hint}</div>}
         </div>
       </div>
 
-      <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Urges beaten</div>
-        <div className="bz-tiles c3">
-          <div className="bz-tile"><div className="bz-tile-v" style={{ color:BEER_COLOR }}>{ins.urges.total}</div><div className="bz-tile-l">all time</div></div>
-          <div className="bz-tile"><div className="bz-tile-v" style={{ color:BEER_COLOR }}>{ins.urges.last7}</div><div className="bz-tile-l">this week</div></div>
-          <div className="bz-tile"><div className="bz-tile-v">{ins.urges.resistRateAll == null ? "—" : ins.urges.resistRateAll + "%"}</div><div className="bz-tile-l">resist rate</div></div>
-        </div>
-        {swaps.length > 0 && <div className="bz-card" style={{ marginTop:10 }}><div className="bz-hd">What worked</div><HBars data={swaps} color={BEER_COLOR} fmt={function(v) { return v + "×"; }} /></div>}
-        <div className="bz-p" style={{ marginTop:8 }}>Resist rate = urges beaten ÷ (urges beaten + beers). Every beaten urge weakens the cue→beer link and strengthens cue→swap.</div>
-      </div>
-
-      <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>What a dry stretch does</div>
-        <div className="bz-card">
-          <div className="bz-p">Days since last beer: <b>{s.daysSinceLastDrink}</b>. What studies report for regular drinkers taking a break. Averages, not promises.</div>
-          {ins.milestones.map(function(ms) {
-            return (
-              <div key={ms.days} className="bz-ms" style={{ opacity: ms.reached ? 1 : 0.7 }}>
-                <div className={"bz-ms-dot" + (ms.reached ? " on" : "")}>{ms.reached ? "✓" : ""}</div>
-                <div><div className="bz-ms-t" style={{ color: ms.reached ? BEER_COLOR : "var(--ink)" }}>{ms.title}</div><div className="bz-ms-n">{ms.note}</div></div>
-              </div>
-            );
-          })}
-          <div className="bz-src">Sources: Ebrahim et al. 2013 (alcohol and sleep); de Visser et al. 2016 (Dry January follow-up); Mehta et al. 2018 (BMJ Open, one-month abstinence); Lally et al. 2010 (habit formation, median 66 days); WHO and UK CMO low-risk guidelines.</div>
-        </div>
-      </div>
-
-      <div className="asec">
-        <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Notifications</div>
-        <NudgeCard ins={ins} ctx={props.nudgeCtx} />
-      </div>
-
-      <Collapsible icon="🧠" title="Playbook · habit & pace" open>
+      <Collapsible icon="🧠" title="Playbook · habit & pace">
         <div className="bz-p"><b>What you're working on.</b> Not a dependency: a habit loop, and drinking fast once you start. Two levers: fewer evenings that start with a beer, and slower, smaller nights when they do.</div>
         <div className="bz-p"><b>Replace, don't remove.</b> The habit is cue → routine → reward. Keep the cue (home from work, late afternoon, bored) and the reward (relief, a ritual, something cold in hand). Swap only the routine: <b>"When I get home, I change, train or walk, and pour a sparkling water."</b></div>
         <div className="bz-p"><b>Slowing down when you do drink.</b></div>
@@ -677,11 +578,28 @@ export function BeerInsightsTab(props) {
         <div className="bz-p" style={{ marginBottom:0 }}><b>Dry days in a row.</b> Three back-to-back dry days a week keeps beer a choice rather than a routine. Mon–Wed is the easy block.</div>
       </Collapsible>
 
+      <Collapsible icon="🌱" title="What a dry stretch does">
+        <div className="bz-p">Days since your last beer: <b>{s.daysSinceLastDrink}</b>. What studies report for regular drinkers taking a break. Averages, not promises.</div>
+          {ins.milestones.map(function(ms) {
+            return (
+              <div key={ms.days} className="bz-ms" style={{ opacity: ms.reached ? 1 : 0.7 }}>
+                <div className={"bz-ms-dot" + (ms.reached ? " on" : "")}>{ms.reached ? "✓" : ""}</div>
+                <div><div className="bz-ms-t" style={{ color: ms.reached ? BEER_COLOR : "var(--ink)" }}>{ms.title}</div><div className="bz-ms-n">{ms.note}</div></div>
+              </div>
+            );
+          })}
+          <div className="bz-src">Sources: Ebrahim et al. 2013 (alcohol and sleep); de Visser et al. 2016 (Dry January follow-up); Mehta et al. 2018 (BMJ Open, one-month abstinence); Lally et al. 2010 (habit formation, median 66 days); WHO and UK CMO low-risk guidelines.</div>
+      </Collapsible>
+
       <Collapsible icon="🩺" title="Staying on the right side">
         <div className="bz-p">You're tracking this early, which is the right time. A habit becomes something more when a few of these start to fit:</div>
         {CHECK_SIGNS.map(function(x, i) { return <div key={i} className="bz-ms"><div className="bz-ms-dot" style={{ width:18, height:18 }} /><div className="bz-ms-n" style={{ marginTop:0 }}>{x}</div></div>; })}
         <div className="bz-p" style={{ marginTop:8 }}>If two or more fit, have a chat with your GP. Not because something's wrong with you, but because it's much easier to turn around early. The WHO's three-question AUDIT-C quiz is a quick self-check.</div>
         <div className="bz-p" style={{ marginBottom:0 }}>One safety note for anyone drinking heavily every day: cut down gradually with a doctor's help rather than stopping overnight.</div>
+      </Collapsible>
+
+      <Collapsible icon="🔔" title="Notifications">
+        <NudgeCard ins={ins} ctx={props.nudgeCtx} bare />
       </Collapsible>
 
       <Collapsible icon="⚙️" title="Settings">
@@ -697,18 +615,16 @@ export function BeerInsightsTab(props) {
         <div className="bz-p" style={{ marginBottom:0 }}>Budget 0 = aiming dry. "Day rolls at" means a beer at 01:00 counts for the night before. Cost is in whatever currency you think in; 0 hides money stats.</div>
       </Collapsible>
 
-      <div className="xsec">
-        <div className="xhd">Beer log · Export</div>
-        <div className="bz-p">CSV has one row per beer or beaten urge with local time, day, grams, standard drinks, kcal, trigger and swap. JSON includes the precalculated insights.</div>
+      <Collapsible icon="💾" title="Export & import">
+        <div className="bz-p">CSV: one row per beer or beaten urge. JSON: everything, including insights.</div>
         <div className="xrow">
           <button className="xbtn pri" style={{ background:BEER_COLOR, borderColor:BEER_COLOR }} onClick={exportCsv}>CSV</button>
           <button className="xbtn" onClick={exportJson}>JSON FILE</button>
           <button className="xbtn" onClick={copyJson}>COPY JSON</button>
         </div>
         {copyMsg && <div style={{ marginTop:6, fontSize:11, color:"var(--green)", letterSpacing:"1px", fontWeight:700 }}>✓ {copyMsg}</div>}
-        <div className="bz-src">{log.length} entries · the main Export / Import on the barbell Stats tab also carries this log.</div>
         <PastEntries onImport={props.onImport} />
-      </div>
+      </Collapsible>
     </div>
   );
 }

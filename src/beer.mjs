@@ -357,7 +357,8 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   drinks.forEach(function(e) { var t = e.trigger && byTrigger[e.trigger] ? e.trigger : "other"; if (!byTrigger[t]) byTrigger[t] = { count:0, ml:0, urges:0, beaten:0 }; byTrigger[t].count++; byTrigger[t].ml += e.ml; });
   urges.forEach(function(e) { var t = e.trigger && byTrigger[e.trigger] ? e.trigger : "other"; if (!byTrigger[t]) byTrigger[t] = { count:0, ml:0, urges:0, beaten:0 }; byTrigger[t].urges++; byTrigger[t].beaten++; });
   var topTrigger = null;
-  Object.keys(byTrigger).forEach(function(t) { if (byTrigger[t].count > 0 && (!topTrigger || byTrigger[t].count > byTrigger[topTrigger].count)) topTrigger = t; });
+  // Untagged beers sit under "other", which is not a trigger, so it can't be the top one
+  Object.keys(byTrigger).forEach(function(t) { if (t !== "other" && byTrigger[t].count > 0 && (!topTrigger || byTrigger[t].count > byTrigger[topTrigger].count)) topTrigger = t; });
 
   // Urges / swaps — "resist rate" = urges beaten ÷ (urges beaten + drinking occasions)
   var bySwap = {};
