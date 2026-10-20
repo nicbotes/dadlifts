@@ -23,10 +23,13 @@ service worker shows today's message, which the app pre-computed on the phone.
 
 | Run (UTC cron) | SAST  | What |
 |----------------|-------|------|
-| `31 14 * * *`  | 16:31 | 4:35pm nudge — something to do instead of a beer |
-| `25 17 * * *`  | 19:25 | 7:30pm check-in — stayed dry or had beer? |
+| `31 10 * * *`  | 12:31 | afternoon nudge — something to do instead of a beer |
+| `25 13 * * *`  | 15:25 | evening check-in — stayed dry or had beer? |
 
-Scheduled runs often start a few minutes late, so both fire a few minutes early.
+GitHub's free scheduler has been running these about 4 hours late, so they are
+scheduled 4 hours before the intended ~16:35 / ~19:30. On a day it runs on time
+they arrive early, which is fine. If the delay changes, shift both crons and the
+check-in cron check (`KIND`) in the workflow together.
 To change a time, edit the cron lines (UTC = SAST − 2h) and merge. For the
 nudge, also change `NUDGE_TIME` in `src/beer.mjs` so the message is worked out
 for the right moment.

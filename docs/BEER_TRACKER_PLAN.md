@@ -240,7 +240,7 @@ Two pushes a day, sent by `.github/workflows/beer-notify.yml`:
 **~16:35 SAST nudge** (something to do instead of a beer) and **~19:30 SAST check-in**
 (stayed dry or had beer?). Setup: DEPLOY.md.
 
-* **Sender** — the workflow runs on two UTC crons (`31 14`, `25 17`) or manually
+* **Sender** — the workflow runs on two UTC crons (`31 10`, `25 13`: 12:31 and 15:25 SAST, set 4 hours early because GitHub's free scheduler has been running about 4 hours late) or manually
   (`workflow_dispatch` with nudge/checkin) and runs `scripts/send-beer-push.cjs`, which
   signs with `VAPID_PRIVATE_KEY` and sends `{ "kind": "nudge" | "checkin" }` to every
   device in `PUSH_SUBSCRIPTIONS`. Nothing personal leaves the phone. Missing secrets →
