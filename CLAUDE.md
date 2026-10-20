@@ -13,8 +13,9 @@
 
 ## Beer notifications
 
-`.github/workflows/beer-notify.yml` sends Web Push at ~16:35 (nudge) and ~19:30
-(check-in) SAST. Setup and how it works: DEPLOY.md and docs/BEER_TRACKER_PLAN.md.
+`.github/workflows/beer-notify.yml` sends Web Push for the afternoon nudge and the
+evening check-in. Crons are 12:31 and 15:25 SAST, set 4 hours early because
+GitHub's scheduler has been running about 4 hours late. Setup and how it works: DEPLOY.md and docs/BEER_TRACKER_PLAN.md.
 
 ## Before merging
 

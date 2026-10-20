@@ -1,16 +1,18 @@
 name: Beer notifications
 
 # Daily beer pushes to the phone — no backend.
-#   16:31 SAST  4:35pm nudge: something to do instead of a beer
-#   19:25 SAST  7:30pm check-in: stayed dry or had beer?
-# Cron is UTC (SAST = UTC+2, no daylight saving). Scheduled runs often start a
-# few minutes late, so both fire a few minutes early.
-# Changing the nudge time? Also update NUDGE_TIME in src/beer.mjs.
+#   12:31 SAST  afternoon nudge: something to do instead of a beer
+#   15:25 SAST  evening check-in: stayed dry or had beer?
+# Cron is UTC (SAST = UTC+2, no daylight saving). GitHub's free scheduler has
+# been running these about 4 hours late, so they are scheduled 4 hours before
+# the intended ~16:35 / ~19:30. On a day it runs on time they arrive early,
+# which is fine.
+# Changing a time? Update the KIND check below to match the check-in cron.
 # Setup: add repo secrets VAPID_PRIVATE_KEY and PUSH_SUBSCRIPTIONS (DEPLOY.md).
 on:
   schedule:
-    - cron: '31 14 * * *'
-    - cron: '25 17 * * *'
+    - cron: '31 10 * * *'
+    - cron: '25 13 * * *'
   workflow_dispatch:
     inputs:
       kind:
@@ -35,7 +37,7 @@ jobs:
         run: npm install --prefix "$RUNNER_TEMP/wp" --no-audit --no-fund web-push@3.6.7
       - name: Send
         env:
-          KIND: ${{ github.event_name == 'workflow_dispatch' && inputs.kind || (github.event.schedule == '25 17 * * *' && 'checkin' || 'nudge') }}
+          KIND: ${{ github.event_name == 'workflow_dispatch' && inputs.kind || (github.event.schedule == '25 13 * * *' && 'checkin' || 'nudge') }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           PUSH_SUBSCRIPTIONS: ${{ secrets.PUSH_SUBSCRIPTIONS }}
           WEBPUSH_DIR: ${{ runner.temp }}/wp
