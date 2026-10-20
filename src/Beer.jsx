@@ -11,72 +11,72 @@ import {
 import { pushStatus, enablePush, disablePush, showSample } from "./push.js";
 
 var AMBER = "#D97706";
-var AMBER_BG = "#FEF3C7";
-var TEAL_BG = "#CCFBF1";
+var AMBER_BG = "var(--amber-bg)";
+var TEAL_BG = "var(--teal-bg)";
 
 export var beerCss = `
-.bz-hero{background:var(--card);border:3px solid var(--ink);border-radius:16px;padding:16px 16px 14px;box-shadow:5px 5px 0 var(--ink);margin-bottom:12px;position:relative;overflow:hidden}
+.bz-hero{background:var(--card);border:3px solid var(--line);border-radius:16px;padding:16px 16px 14px;box-shadow:5px 5px 0 var(--line);margin-bottom:12px;position:relative;overflow:hidden}
 .bz-hero.drank{border-color:${AMBER};box-shadow:5px 5px 0 ${AMBER}}
 .bz-hero-n{font-family:'Nunito',sans-serif;font-size:64px;font-weight:900;line-height:1;letter-spacing:-3px;color:${BEER_COLOR}}
 .bz-hero-n.drank{color:${AMBER}}
 .bz-hero-l{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-top:4px}
 .bz-hero-sub{font-size:11px;font-weight:700;color:var(--mid);margin-top:8px;line-height:1.5}
-.bz-track{height:12px;background:var(--light);border:2px solid var(--ink);border-radius:100px;overflow:hidden;margin-top:10px}
+.bz-track{height:12px;background:var(--light);border:2px solid var(--line);border-radius:100px;overflow:hidden;margin-top:10px}
 .bz-fill{height:100%;background:${BEER_COLOR};transition:width .6s ease;border-radius:100px}
-.bz-chip{display:inline-flex;align-items:center;gap:4px;padding:7px 11px;border:2.5px solid var(--ink);border-radius:100px;background:var(--card);color:var(--mid);font-family:'Space Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.bz-chip{display:inline-flex;align-items:center;gap:4px;padding:7px 11px;border:2.5px solid var(--line);border-radius:100px;background:var(--card);color:var(--mid);font-family:'Space Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;white-space:nowrap}
 .bz-chip:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
-.bz-chip.on{color:#fff;background:var(--ink)}
+.bz-chip.on{color:var(--inv-ink);background:var(--inv-bg)}
 .bz-chips{display:flex;flex-wrap:wrap;gap:6px}
-.bz-card{background:var(--card);border:3px solid var(--ink);border-radius:14px;padding:13px 14px;box-shadow:4px 4px 0 var(--ink);margin-bottom:10px}
+.bz-card{background:var(--card);border:3px solid var(--line);border-radius:14px;padding:13px 14px;box-shadow:4px 4px 0 var(--line);margin-bottom:10px}
 .bz-hd{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:8px}
-.bz-big{width:100%;padding:15px;border:3px solid var(--ink);border-radius:100px;font-family:'Nunito',sans-serif;font-size:19px;font-weight:900;color:#fff;cursor:pointer;box-shadow:3px 3px 0 var(--ink);letter-spacing:-0.5px;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
+.bz-big{width:100%;padding:15px;border:3px solid var(--line);border-radius:100px;font-family:'Nunito',sans-serif;font-size:19px;font-weight:900;color:#fff;cursor:pointer;box-shadow:3px 3px 0 var(--line);letter-spacing:-0.5px;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
 .bz-big:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .bz-big:disabled{opacity:.5;cursor:default}
-.bz-win{display:flex;align-items:flex-start;gap:8px;padding:8px 11px;background:var(--green-bg);border:2px solid var(--green);border-radius:10px;font-size:11px;font-weight:700;color:#065F46;line-height:1.45;margin-bottom:5px}
-.bz-flag{display:flex;align-items:flex-start;gap:8px;padding:8px 11px;background:var(--red-bg);border:2px solid var(--red);border-radius:10px;font-size:11px;font-weight:700;color:#991B1B;line-height:1.45;margin-bottom:5px}
-.bz-flag.mid{background:${AMBER_BG};border-color:${AMBER};color:#92400E}
+.bz-win{display:flex;align-items:flex-start;gap:8px;padding:8px 11px;background:var(--green-bg);border:2px solid var(--green);border-radius:10px;font-size:11px;font-weight:700;color:var(--green-ink);line-height:1.45;margin-bottom:5px}
+.bz-flag{display:flex;align-items:flex-start;gap:8px;padding:8px 11px;background:var(--red-bg);border:2px solid var(--red);border-radius:10px;font-size:11px;font-weight:700;color:var(--red-ink);line-height:1.45;margin-bottom:5px}
+.bz-flag.mid{background:${AMBER_BG};border-color:${AMBER};color:var(--amber-ink)}
 .bz-entry{display:flex;align-items:center;gap:10px;padding:9px 11px;border:2px solid var(--rule);border-radius:10px;margin-bottom:5px;background:var(--bg)}
 .bz-entry.urge{border-color:${BEER_COLOR};background:${TEAL_BG}}
 .bz-entry-t{font-size:11px;font-weight:700;color:var(--mid);min-width:42px}
 .bz-entry-v{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;letter-spacing:-0.5px}
 .bz-entry-x{margin-left:auto;width:28px;height:28px;border:2px solid var(--rule);border-radius:50%;background:var(--card);color:var(--mid);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .bz-dots{display:flex;gap:4px;justify-content:space-between}
-.bz-dot{flex:1;aspect-ratio:1;border-radius:6px;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--mid)}
+.bz-dot{flex:1;aspect-ratio:1;border-radius:6px;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--mid)}
 .bz-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .bz-tiles.c3{grid-template-columns:repeat(3,1fr)}
-.bz-tile{background:var(--bg);border:2.5px solid var(--ink);border-radius:12px;padding:10px 10px 8px}
+.bz-tile{background:var(--bg);border:2.5px solid var(--line);border-radius:12px;padding:10px 10px 8px}
 .bz-tile-v{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;line-height:1;letter-spacing:-1px}
 .bz-tile-u{font-size:10px;font-weight:700;color:var(--mid);margin-left:2px}
 .bz-tile-l{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--mid);margin-top:4px}
 .bz-bars{display:flex;align-items:flex-end;gap:3px;height:70px;padding-top:6px}
 .bz-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
-.bz-bar-f{width:100%;border-radius:4px 4px 0 0;border:2px solid var(--ink);border-bottom:none;min-height:0}
+.bz-bar-f{width:100%;border-radius:4px 4px 0 0;border:2px solid var(--line);border-bottom:none;min-height:0}
 .bz-bar-f.zero{border:none;height:3px;background:var(--green);border-radius:2px}
 .bz-bar-l{font-size:8px;font-weight:700;color:var(--mid);margin-top:4px;white-space:nowrap;overflow:visible;height:10px}
 .bz-hbar{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .bz-hbar-l{font-size:10px;font-weight:700;color:var(--mid);width:84px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bz-hbar-t{flex:1;height:14px;background:var(--light);border:2px solid var(--ink);border-radius:100px;overflow:hidden}
+.bz-hbar-t{flex:1;height:14px;background:var(--light);border:2px solid var(--line);border-radius:100px;overflow:hidden}
 .bz-hbar-f{height:100%;border-radius:100px}
 .bz-hbar-v{font-size:10px;font-weight:700;color:var(--ink);width:44px;text-align:right;flex-shrink:0}
 .bz-ms{display:flex;gap:10px;padding:9px 0;border-bottom:2px solid var(--light)}
 .bz-ms:last-child{border-bottom:none}
-.bz-ms-dot{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--ink);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;background:var(--card)}
+.bz-ms-dot{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;background:var(--card)}
 .bz-ms-dot.on{background:${BEER_COLOR}}
 .bz-ms-t{font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;line-height:1.1}
 .bz-ms-n{font-size:11px;color:var(--mid);font-weight:700;line-height:1.45;margin-top:2px}
-.bz-tog{display:flex;align-items:center;gap:8px;width:100%;padding:11px 13px;border:3px solid var(--ink);border-radius:14px;background:var(--card);cursor:pointer;box-shadow:3px 3px 0 var(--ink);text-align:left;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:var(--ink);margin-bottom:8px;-webkit-tap-highlight-color:transparent}
+.bz-tog{display:flex;align-items:center;gap:8px;width:100%;padding:11px 13px;border:3px solid var(--line);border-radius:14px;background:var(--card);cursor:pointer;box-shadow:3px 3px 0 var(--line);text-align:left;font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:var(--ink);margin-bottom:8px;-webkit-tap-highlight-color:transparent}
 .bz-p{font-size:11px;color:var(--mid);font-weight:700;line-height:1.55;margin-bottom:8px}
 .bz-p b{color:var(--ink)}
 .bz-src{font-size:9px;color:var(--sub);font-style:italic;font-weight:700;line-height:1.5;margin-top:6px}
-.bz-time{padding:6px 10px;border:2.5px solid var(--ink);border-radius:10px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;background:var(--bg);color:var(--ink)}
+.bz-time{padding:6px 10px;border:2.5px solid var(--line);border-radius:10px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;background:var(--bg);color:var(--ink)}
 .bz-tile-s{font-size:10px;font-weight:700;color:var(--mid);margin-top:2px}
 .bz-kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-bottom:2px solid var(--light)}
 .bz-kv:last-of-type{border-bottom:none}
 .bz-kv-k{font-size:11px;font-weight:700;color:var(--mid);white-space:nowrap}
 .bz-kv-v{font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;text-align:right}
 .bz-acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.bz-act{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px 10px;border:3px solid var(--ink);border-radius:16px;background:var(--card);color:var(--ink);font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:3px 3px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;white-space:nowrap}
-.bz-act:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.bz-act{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px 10px;border:3px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;cursor:pointer;box-shadow:3px 3px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.bz-act:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--line)}
 .bz-act-e{font-size:28px;line-height:1}
 .bz-act.on.beer{background:${AMBER_BG};border-color:${AMBER}}
 .bz-act.on.urge{background:${TEAL_BG};border-color:${BEER_COLOR}}
@@ -86,7 +86,7 @@ export var beerCss = `
 .bz-line{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .bz-chip.sm{padding:5px 9px;font-size:10px}
 .bz-mini{font-size:11px;font-weight:700;color:var(--mid);line-height:1.45;margin-top:10px}
-.bz-mini.pace{color:#92400E;background:${AMBER_BG};border:2px solid ${AMBER};border-radius:10px;padding:7px 10px}
+.bz-mini.pace{color:var(--amber-ink);background:${AMBER_BG};border:2px solid ${AMBER};border-radius:10px;padding:7px 10px}
 .bz-strip{display:flex;gap:3px;margin-top:12px}
 .bz-sd{flex:1;height:12px;border-radius:4px}
 .bz-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:2px solid var(--light)}
@@ -200,7 +200,7 @@ export function NudgeCard(props) {
     <div className={props.bare ? "" : "bz-card"} style={props.bare ? {} : { borderColor: BEER_COLOR, boxShadow: "4px 4px 0 " + BEER_COLOR }}>
       <div className="bz-hd" style={{ color: BEER_COLOR }}>16:35 & 19:30 SAST{on ? " · ON HERE" : ""}</div>
       <div className="bz-p"><b>4:35pm nudge</b> with something to do instead of a beer. <b>7:30pm check-in</b> to log whether you stayed dry or had beer. Today's would read:</div>
-      <div style={{ border: "2px solid var(--ink)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 6 }}>
+      <div style={{ border: "2px solid var(--line)", borderRadius: 12, padding: "9px 11px", background: "var(--bg)", marginBottom: 6 }}>
         <div style={{ fontFamily: "'Nunito',sans-serif", fontWeight: 900, fontSize: 14, lineHeight: 1.2 }}>{preview.title}</div>
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--mid)", lineHeight: 1.45, marginTop: 3 }}>{preview.body}</div>
       </div>
@@ -350,7 +350,7 @@ export function BeerLogTab(props) {
       </div>
 
       <div className="bz-card" style={evening && !checkedIn ? { borderColor:"#6366F1", boxShadow:"4px 4px 0 #6366F1" } : {}}>
-        {evening && !checkedIn && <div className="bz-hd" style={{ color:"#4F46E5" }}>🌙 {drankToday ? "Anything since?" : "How was today?"}</div>}
+        {evening && !checkedIn && <div className="bz-hd" style={{ color:"var(--indigo-ink)" }}>🌙 {drankToday ? "Anything since?" : "How was today?"}</div>}
         <div className="bz-acts">
           <button className={"bz-act" + (checkedIn ? " done" : "")} onClick={doDry} aria-label="Dry">
             <span className="bz-act-e">💧</span>{dryLabel}
@@ -556,7 +556,7 @@ export function BeerInsightsTab(props) {
         <div className="bz-card">
           {patterns.length === 0 && <div className="bz-mini" style={{ marginTop:0 }}>Log a few beers with times and a reason, and your patterns show up here.</div>}
           {patterns.map(function(x) { return <div key={x.k} className="bz-kv"><span className="bz-kv-k">{x.k}</span><span className="bz-kv-v" style={x.warn ? { color:AMBER } : {}}>{x.v}</span></div>; })}
-          {topTrig && <div className="bz-mini" style={{ color:"#134E4A" }}>💡 {topTrig.hint}</div>}
+          {topTrig && <div className="bz-mini" style={{ color:"var(--teal-ink)" }}>💡 {topTrig.hint}</div>}
         </div>
       </div>
 

@@ -9,6 +9,19 @@
     <meta name="theme-color" content="#FF5C00" />
     <title>DADLIFTS</title>
     <link rel="apple-touch-icon" href="./icon-192.png" />
+    <style>
+      /* Avoid a white flash in dark mode before the app's styles load */
+      html[data-theme="dark"], html[data-theme="dark"] body { background: #121211; }
+    </style>
+    <script>
+      // Theme before first paint: saved choice (auto / light / dark), else the phone's setting
+      (function () {
+        var t = "auto";
+        try { var s = JSON.parse(localStorage.getItem("dadlift-standalone-state") || "{}"); if (s && s.theme) t = s.theme; } catch (e) {}
+        var dark = t === "dark" || (t !== "light" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      })();
+    </script>
     <script>
       (function () {
         // Build a manifest scoped to current path (works for VPS token URLs and GH Pages)

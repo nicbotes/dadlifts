@@ -435,6 +435,7 @@ function makeDefault() {
     kbWeight: KB_CIRCUIT.bellKg, kbSets: makeDefaultKbSets(), kbWarmup: {},
     // Beer tracker (mode 3) — see src/beer.mjs for the shape
     beerLog: [], beerCfg: makeDefaultBeerCfg(), beerInsights: null, beerCheckins: {},
+    theme: "auto",  // "auto" follows the phone · "light" · "dark"
     enabledModes: { 0:true, 1:true, 2:true, 3:true },
     weights: makeDefaultWeights(),
     progs: makeDefaultProgs(),
@@ -487,6 +488,7 @@ function normalizeState(raw) {
   state.beerLog = normalizeBeerLog(state.beerLog);
   state.beerCfg = normalizeBeerCfg(state.beerCfg);
   state.beerCheckins = normalizeBeerCheckins(state.beerCheckins);
+  if (["auto","light","dark"].indexOf(state.theme) < 0) state.theme = "auto";
   if (!Number.isFinite(Number(state.beerTab))) state.beerTab = 0;
   state.enabledModes = Object.assign({ 0:true, 1:true, 2:true, 3:true }, state.enabledModes || {});
   // Never allow every mode disabled — fall back to barbell on
@@ -582,7 +584,7 @@ function MiniChart(props) {
   var data = props.data;
   var color = props.color;
   if (!data || data.length === 0) {
-    return <div style={{ height:60, display:"flex", alignItems:"center", justifyContent:"center", color:"#999", fontSize:9, letterSpacing:"1px", fontWeight:700 }}>LOG SESSIONS TO SEE CHART</div>;
+    return <div style={{ height:60, display:"flex", alignItems:"center", justifyContent:"center", color:"var(--sub)", fontSize:9, letterSpacing:"1px", fontWeight:700 }}>LOG SESSIONS TO SEE CHART</div>;
   }
   var W = 320, H = 56, P = 8;
   var vals = data.map(function(d) { return d.y; });
@@ -599,7 +601,7 @@ function MiniChart(props) {
       <svg width="100%" height={H} viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none">
         <circle cx={pts[0][0]} cy={pts[0][1]} r={6} fill={color} />
         <text x={pts[0][0] + 10} y={pts[0][1] + 4} fontSize="10" fill={color} fontFamily="Space Mono" fontWeight="700">{Math.round(data[0].y)}</text>
-        <text x={P} y={H - 2} fontSize="8" fill="#ccc" fontFamily="Space Mono">session 1</text>
+        <text x={P} y={H - 2} fontSize="8" style={{ fill:"var(--sub)" }} fontFamily="Space Mono">session 1</text>
       </svg>
     );
   }
@@ -633,49 +635,71 @@ var css = `
   --green:#06C270;--green-bg:#DCFCE7;
   --red:#FF3B3B;--red-bg:#FEE2E2;
   --yellow:#FFD93D;--orange:#FF5C00;--purple:#8B5CF6;
+  --line:#111111;--inv-bg:#111111;--inv-ink:#FFFFFF;
+  --amber-bg:#FEF3C7;--teal-bg:#CCFBF1;--purple-bg:#EDE9FE;--orange-bg:#FFF3E0;--yellow-soft:#FFF9C4;
+  --off:#F0F0EA;--track-off:#D5D5CD;--dash:#E5E5DD;
+  --amber-ink:#92400E;--kb-ink:#B45309;--red-ink:#991B1B;--green-ink:#065F46;--teal-ink:#134E4A;--purple-ink:#7C3AED;--indigo-ink:#4F46E5;
+  color-scheme:light;
+}
+/* Dark theme — set on <html data-theme="dark"> (Auto follows the phone) */
+:root[data-theme="dark"]{
+  --bg:#121211;--card:#1C1C1A;--lift:#242422;--rule:#34342F;--light:#2B2B27;
+  --ink:#F2F2EC;--mid:#A9A9A0;--sub:#77776F;
+  --green:#22C55E;--green-bg:#0F2A1C;
+  --red:#FF5C5C;--red-bg:#341616;
+  --yellow:#3B3412;--orange:#FF6A1A;--purple:#A78BFA;
+  --line:#6E6E66;--inv-bg:#F2F2EC;--inv-ink:#121211;
+  --amber-bg:#33250B;--teal-bg:#0B2C28;--purple-bg:#231B3B;--orange-bg:#35210F;--yellow-soft:#2F2A11;
+  --off:#171715;--track-off:#4A4A44;--dash:#3A3A35;
+  --amber-ink:#FCD34D;--kb-ink:#FBBF24;--red-ink:#FCA5A5;--green-ink:#86EFAC;--teal-ink:#5EEAD4;--purple-ink:#C4B5FD;--indigo-ink:#A5B4FC;
+  color-scheme:dark;
 }
 html{-webkit-text-size-adjust:100%}
 body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;font-size:13px;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
-.bar{display:flex;align-items:center;gap:6px;padding:max(env(safe-area-inset-top),8px) 8px 0;height:calc(52px + max(env(safe-area-inset-top),8px));background:var(--bg);border-bottom:3px solid var(--ink);position:sticky;top:0;z-index:1000;overflow:hidden}
+.bar{display:flex;align-items:center;gap:6px;padding:max(env(safe-area-inset-top),8px) 8px 0;height:calc(52px + max(env(safe-area-inset-top),8px));background:var(--bg);border-bottom:3px solid var(--line);position:sticky;top:0;z-index:1000;overflow:hidden}
 .logo{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;letter-spacing:-1px;line-height:1;flex-shrink:1;min-width:0;overflow:hidden}
 
 .bar-gap{flex:1}
 .sdot{width:8px;height:8px;border-radius:50%;background:var(--light);border:2px solid var(--rule);transition:all .3s;flex-shrink:0}
 .sdot.on{background:var(--green);border-color:var(--green)}
-.mtabs{display:flex;border:2px solid var(--ink);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--ink)}
+.theme-seg{display:flex;border:3px solid var(--line);border-radius:100px;overflow:hidden;box-shadow:2px 2px 0 var(--line)}
+.theme-opt{flex:1;height:38px;border:none;background:var(--card);color:var(--mid);font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.theme-opt+.theme-opt{border-left:2px solid var(--light)}
+.theme-opt.on{background:var(--inv-bg);color:var(--inv-ink)}
+.mtabs{display:flex;border:2px solid var(--line);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--line)}
 .mtab{padding:0 6px;height:30px;font-size:13px;background:var(--card);color:var(--mid);border:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.stabs{display:flex;border:2px solid var(--ink);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--ink)}
+.stabs{display:flex;border:2px solid var(--line);border-radius:100px;overflow:hidden;flex-shrink:0;box-shadow:2px 2px 0 var(--line)}
 .stab{padding:0 8px;height:30px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.3px;background:var(--card);color:var(--mid);border:none;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .stab.on{background:var(--orange);color:#fff}
 .pg{padding:14px 12px 80px;max-width:390px;margin:0 auto}
-.motd{background:var(--yellow);border:3px solid var(--ink);border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:4px 4px 0 var(--ink)}
+.motd{background:var(--yellow);border:3px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;box-shadow:4px 4px 0 var(--line)}
 .motd{position:relative}
-.qref{position:absolute;top:8px;right:8px;width:28px;height:28px;border:2px solid var(--ink);border-radius:50%;background:var(--card);cursor:pointer;font-size:14px;font-weight:900;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;-webkit-tap-highlight-color:transparent;box-shadow:1px 1px 0 var(--ink)}
+.qref{position:absolute;top:8px;right:8px;width:28px;height:28px;border:2px solid var(--line);border-radius:50%;background:var(--card);cursor:pointer;font-size:14px;font-weight:900;line-height:1;color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;-webkit-tap-highlight-color:transparent;box-shadow:1px 1px 0 var(--line)}
 .qref:active{transform:translate(1px,1px);box-shadow:0 0 0 var(--ink)}
 .motd-q{padding-right:32px;font-family:'Fraunces',serif;font-style:italic;font-size:15px;line-height:1.55;color:var(--ink);margin-bottom:6px}
 .motd-a{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid)}
-.wtag{display:inline-flex;gap:6px;align-items:center;background:var(--yellow);border:3px solid var(--ink);border-radius:100px;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:12px;box-shadow:2px 2px 0 var(--ink)}
+.wtag{display:inline-flex;gap:6px;align-items:center;background:var(--yellow);border:3px solid var(--line);border-radius:100px;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:12px;box-shadow:2px 2px 0 var(--line)}
 .drow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
-.dbt{height:34px;padding:0 12px;border:3px solid var(--ink);border-radius:100px;background:var(--card);color:var(--mid);cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
+.dbt{height:34px;padding:0 12px;border:3px solid var(--line);border-radius:100px;background:var(--card);color:var(--mid);cursor:pointer;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
 .dbt:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
-.dbt.on{color:#fff;box-shadow:2px 2px 0 var(--ink)}
+.dbt.on{color:#fff;box-shadow:2px 2px 0 var(--line)}
 .shead{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;margin-bottom:12px;line-height:1;color:var(--orange)}
 .stack{display:flex;flex-direction:column;gap:8px}
-.bc{background:var(--card);border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--ink);transition:box-shadow .12s,border-color .12s}
+.bc{background:var(--card);border:3px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--line);transition:box-shadow .12s,border-color .12s}
 .bc.isdone{border-color:var(--green);box-shadow:5px 5px 0 var(--green)}
 .bc.isfail{border-color:var(--red);box-shadow:5px 5px 0 var(--red)}
 .bc-dl{padding:7px 14px;background:var(--red-bg);border-bottom:3px solid var(--red);color:var(--red);font-size:11px;font-weight:700;letter-spacing:1px}
 .bc-top{display:flex;align-items:stretch;padding:12px 12px 8px 14px;gap:10px}
-.bc-dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);flex-shrink:0;margin-top:4px}
+.bc-dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--line);flex-shrink:0;margin-top:4px}
 .bc-inf{flex:1;min-width:0}
 .bc-name{font-family:'Nunito',sans-serif;font-size:19px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;line-height:1.1;margin-bottom:4px}
 .bc-wrow{display:flex;align-items:baseline;gap:6px;margin-bottom:2px}
 .bc-w{font-family:'Nunito',sans-serif;font-size:58px;font-weight:900;line-height:1;letter-spacing:-3px}
 .bc-kg{font-family:'Space Mono',monospace;font-size:15px;color:var(--mid);font-weight:700}
-.bc-plates{display:inline-flex;align-items:center;font-size:12px;font-weight:700;color:#fff;background:var(--ink);border-radius:5px;padding:2px 7px;letter-spacing:0.3px;white-space:nowrap}
+.bc-plates{display:inline-flex;align-items:center;font-size:12px;font-weight:700;color:var(--inv-ink);background:var(--inv-bg);border-radius:5px;padding:2px 7px;letter-spacing:0.3px;white-space:nowrap}
 .bc-sch{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;letter-spacing:-1px;display:flex;align-items:center;gap:8px;line-height:1}
 .bc-pct{font-family:'Space Mono',monospace;font-size:11px;color:var(--mid);font-weight:700;background:var(--light);border:2px solid var(--rule);border-radius:100px;padding:1px 8px}
-.amrap-tag{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--yellow);border:2px solid var(--ink);border-radius:100px;padding:2px 8px;color:var(--ink)}
+.amrap-tag{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--yellow);border:2px solid var(--line);border-radius:100px;padding:2px 8px;color:var(--ink)}
 .bc-sdots{display:flex;flex-direction:column;gap:5px;padding-top:5px;align-self:flex-start;flex-shrink:0}
 .dot{width:11px;height:11px;border-radius:50%;border:3px solid var(--light);background:transparent;transition:all .1s}
 .dot.done{background:var(--green);border-color:var(--green)}
@@ -686,15 +710,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .sblk{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
 .slbl{font-size:10px;color:var(--mid);font-weight:700;letter-spacing:1px}
 .slbl.am{color:var(--orange)}
-.spair{display:flex;width:100%;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--ink)}
+.spair{display:flex;width:100%;border:3px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--line)}
 .sd,.sf{flex:1;height:50px;border:none;background:var(--bg);color:var(--light);font-size:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .08s,color .08s;-webkit-tap-highlight-color:transparent}
 .sd{border-right:2px solid var(--light)}
 .sd:active{background:var(--green-bg);color:var(--green)}
 .sf:active{background:var(--red-bg);color:var(--red)}
 .sd.on{background:var(--green-bg);color:var(--green)}
 .sf.on{background:var(--red-bg);color:var(--red)}
-.sf.pr{background:#FFF3E0;color:var(--orange)}
-.hc{background:var(--card);border:3px solid var(--ink);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--ink);transition:box-shadow .12s,border-color .12s}
+.sf.pr{background:var(--orange-bg);color:var(--orange)}
+.hc{background:var(--card);border:3px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:5px 5px 0 var(--line);transition:box-shadow .12s,border-color .12s}
 .hc.isdone{border-color:var(--green);box-shadow:5px 5px 0 var(--green)}
 .hc.isfail{border-color:var(--red);box-shadow:5px 5px 0 var(--red)}
 .hc-top{display:flex;align-items:stretch;padding:12px 12px 8px 14px;gap:10px}
@@ -711,12 +735,12 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .hsf:active{background:var(--red-bg);color:var(--red)}
 .hsd.on{background:var(--green-bg);color:var(--green)}
 .hsf.on{background:var(--red-bg);color:var(--red)}
-.rehab-card{display:flex;align-items:center;gap:12px;padding:14px;background:var(--light);border:3px solid var(--ink);border-radius:16px;box-shadow:4px 4px 0 var(--ink)}
+.rehab-card{display:flex;align-items:center;gap:12px;padding:14px;background:var(--light);border:3px solid var(--line);border-radius:16px;box-shadow:4px 4px 0 var(--line)}
 .rehab-name{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;text-transform:uppercase;color:var(--mid)}
 .rehab-sub{font-size:11px;color:var(--sub);font-weight:700;margin-top:2px}
 .at{font-family:'Nunito',sans-serif;font-size:20px;font-weight:900;letter-spacing:-0.5px;text-transform:uppercase;border-bottom:3px solid var(--orange);padding-bottom:7px;margin-bottom:12px;color:var(--orange)}
 .asec{margin-bottom:22px}
-.lac{background:var(--card);border:3px solid var(--ink);border-radius:14px;margin-bottom:7px;box-shadow:4px 4px 0 var(--ink)}
+.lac{background:var(--card);border:3px solid var(--line);border-radius:14px;margin-bottom:7px;box-shadow:4px 4px 0 var(--line)}
 .lach{display:flex;align-items:center;gap:8px;padding:12px 13px;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
 .lach:active{background:var(--lift)}
 .la-ab{font-family:'Nunito',sans-serif;font-size:21px;font-weight:900;line-height:1;letter-spacing:-0.5px;text-transform:uppercase}
@@ -728,7 +752,7 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .la-ch.op{transform:rotate(90deg)}
 .lacb{padding:0 13px 13px}
 .ctabs{display:flex;gap:5px;margin-bottom:8px;flex-wrap:wrap}
-.ctab{padding:5px 12px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:3px solid var(--ink);border-radius:100px;background:var(--bg);color:var(--mid);cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
+.ctab{padding:5px 12px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:3px solid var(--line);border-radius:100px;background:var(--bg);color:var(--mid);cursor:pointer;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
 .ctab:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .ctab.on{color:#fff;font-weight:700}
 .clbl{font-size:10px;color:var(--mid);font-weight:700;margin-bottom:5px}
@@ -736,15 +760,15 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .chd{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:7px}
 .crow{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .clabel{font-size:11px;font-weight:700;color:var(--mid);width:78px;flex-shrink:0}
-.cst{display:flex;align-items:center;border:3px solid var(--ink);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--ink)}
+.cst{display:flex;align-items:center;border:3px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:2px 2px 0 var(--line)}
 .cb{width:38px;height:38px;background:var(--card);border:none;color:var(--ink);cursor:pointer;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
 .cb:active{background:var(--lift)}
 .cv{min-width:50px;text-align:center;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:4px;background:var(--bg);color:var(--ink);border:none;border-left:2px solid var(--light);border-right:2px solid var(--light)}
 .crst{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--mid);background:none;border:3px solid var(--rule);border-radius:100px;padding:5px 12px;cursor:pointer;font-family:'Space Mono',monospace;margin-top:4px;-webkit-tap-highlight-color:transparent}
-.gbadge{font-size:11px;font-weight:700;background:#FFF9C4;border:2px solid var(--ink);border-radius:100px;padding:4px 12px;display:inline-block;margin-bottom:10px}
-.bm-card{background:var(--card);border:3px solid var(--ink);border-radius:14px;margin-bottom:8px;box-shadow:4px 4px 0 var(--ink);overflow:hidden}
+.gbadge{font-size:11px;font-weight:700;background:var(--yellow-soft);border:2px solid var(--line);border-radius:100px;padding:4px 12px;display:inline-block;margin-bottom:10px}
+.bm-card{background:var(--card);border:3px solid var(--line);border-radius:14px;margin-bottom:8px;box-shadow:4px 4px 0 var(--line);overflow:hidden}
 .bm-head{display:flex;align-items:center;gap:10px;padding:11px 13px}
-.bm-dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);flex-shrink:0}
+.bm-dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--line);flex-shrink:0}
 .bm-name{font-family:'Nunito',sans-serif;font-size:19px;font-weight:900;text-transform:uppercase;letter-spacing:-0.5px;color:var(--ink)}
 .bm-orm{margin-left:auto;text-align:right}
 .bm-orm-val{font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;line-height:1;letter-spacing:-0.5px}
@@ -754,20 +778,20 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .bm-tier-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
 .bm-tier-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink)}
 .bm-tier-kg{font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;line-height:1;letter-spacing:-0.5px;color:var(--ink)}
-.bm-track{height:10px;background:var(--light);border:2px solid var(--ink);border-radius:100px;overflow:hidden}
+.bm-track{height:10px;background:var(--light);border:2px solid var(--line);border-radius:100px;overflow:hidden}
 .bm-fill{height:100%;transition:width .6s ease;border-radius:100px}
 .bm-src{font-size:9px;color:var(--mid);margin-top:8px;font-style:italic;font-weight:700}
 .bm-achieved{font-size:9px;font-weight:700;background:var(--green-bg);border:2px solid var(--green);border-radius:100px;padding:1px 7px;margin-left:6px;color:var(--green)}
-.dlr{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;background:var(--red-bg);border:3px solid var(--red);border-radius:12px;margin-bottom:6px;box-shadow:3px 3px 0 var(--ink)}
+.dlr{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;background:var(--red-bg);border:3px solid var(--red);border-radius:12px;margin-bottom:6px;box-shadow:3px 3px 0 var(--line)}
 .xsec{margin-top:24px;padding-top:14px;border-top:3px solid var(--rule)}
 .xhd{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:10px}
 .xrow{display:flex;gap:7px;flex-wrap:wrap}
-.xbtn{flex:1;min-width:90px;padding:10px 8px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;border:3px solid var(--ink);border-radius:100px;background:var(--card);color:var(--mid);cursor:pointer;text-align:center;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
+.xbtn{flex:1;min-width:90px;padding:10px 8px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;border:3px solid var(--line);border-radius:100px;background:var(--card);color:var(--mid);cursor:pointer;text-align:center;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
 .xbtn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .xbtn.pri{background:var(--orange);border-color:var(--orange);color:#fff}
-.xtxt{width:100%;margin-top:8px;padding:10px;background:var(--lift);border:3px solid var(--ink);border-radius:12px;color:var(--ink);font-family:'Space Mono',monospace;font-size:11px;resize:vertical;min-height:80px}
-.fh{margin-top:18px;padding-top:12px;border-top:3px solid var(--ink);font-size:10px;font-weight:700;color:var(--ink);letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
-.fhb{background:none;border:3px solid var(--ink);border-radius:100px;color:var(--ink);padding:7px 14px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
+.xtxt{width:100%;margin-top:8px;padding:10px;background:var(--lift);border:3px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Space Mono',monospace;font-size:11px;resize:vertical;min-height:80px}
+.fh{margin-top:18px;padding-top:12px;border-top:3px solid var(--line);font-size:10px;font-weight:700;color:var(--ink);letter-spacing:1px;display:flex;justify-content:space-between;align-items:center}
+.fhb{background:none;border:3px solid var(--line);border-radius:100px;color:var(--ink);padding:7px 14px;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;cursor:pointer;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent}
 .fhb:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .sig{margin-top:36px;padding-bottom:16px;text-align:center;font-size:11px;color:var(--light);letter-spacing:1.5px;font-style:italic;line-height:1.8}
 .sig span{display:block;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--rule);margin-top:2px;font-style:normal;font-weight:700}
@@ -782,29 +806,29 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .fail-entry-day{margin-left:auto;font-size:9px;color:var(--mid);font-weight:700;letter-spacing:1px}
 
 .celebrate-banner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:150;pointer-events:none}
-.celebrate-card{background:#fff;border:4px solid var(--ink);border-radius:24px;padding:28px 36px;text-align:center;box-shadow:8px 8px 0 var(--ink);animation:popIn .35s cubic-bezier(.2,1.4,.4,1) forwards}
+.celebrate-card{background:var(--card);border:4px solid var(--line);border-radius:24px;padding:28px 36px;text-align:center;box-shadow:8px 8px 0 var(--line);animation:popIn .35s cubic-bezier(.2,1.4,.4,1) forwards}
 .celebrate-title{font-family:'Nunito',sans-serif;font-size:42px;font-weight:900;line-height:1;letter-spacing:-1px;margin-bottom:6px}
 .celebrate-sub{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid)}
 @keyframes popIn{0%{transform:scale(0.6);opacity:0}100%{transform:scale(1);opacity:1}}
 ` + beerCss + `
 .amrap-row{display:flex;gap:5px;width:100%}
-.amrap-btn{flex:1;padding:8px 2px;border:2.5px solid var(--ink);border-radius:10px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;line-height:1.3;text-align:center}
+.amrap-btn{flex:1;padding:8px 2px;border:2.5px solid var(--line);border-radius:10px;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;cursor:pointer;background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;line-height:1.3;text-align:center}
 .amrap-btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
-.amrap-btn.crushed{background:var(--green);border-color:var(--green);color:#fff;box-shadow:2px 2px 0 var(--ink)}
-.amrap-btn.done{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:2px 2px 0 var(--ink)}
-.amrap-btn.failed{background:var(--red);border-color:var(--red);color:#fff;box-shadow:2px 2px 0 var(--ink)}
+.amrap-btn.crushed{background:var(--green);border-color:var(--green);color:#fff;box-shadow:2px 2px 0 var(--line)}
+.amrap-btn.done{background:var(--inv-bg);border-color:var(--line);color:var(--inv-ink);box-shadow:2px 2px 0 var(--line)}
+.amrap-btn.failed{background:var(--red);border-color:var(--red);color:#fff;box-shadow:2px 2px 0 var(--line)}
 
-.ladder-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:2px dashed #E5E5DD}
-.lad-btn{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:5px 8px;border:2px solid var(--ink);border-radius:8px;background:var(--card);cursor:pointer;color:var(--ink);white-space:nowrap}
+.ladder-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:2px dashed var(--dash)}
+.lad-btn{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;padding:5px 8px;border:2px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;color:var(--ink);white-space:nowrap}
 .lad-btn:disabled{opacity:0.3;cursor:default}
 .lad-btn.grad{background:var(--green);color:#fff;border-color:var(--green)}
-.lad-btn.grad:disabled{background:var(--card);color:var(--ink);border-color:var(--ink)}
+.lad-btn.grad:disabled{background:var(--card);color:var(--ink);border-color:var(--line)}
 .lad-track{display:flex;gap:4px;flex:1;justify-content:center}
-.lad-pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);background:var(--card)}
-.lad-pip.on{border-color:var(--ink)}
+.lad-pip{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);background:var(--card)}
+.lad-pip.on{border-color:var(--line)}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0 0 20px}
-.modal{background:var(--card);border:3px solid var(--ink);border-radius:20px 20px 16px 16px;width:100%;max-width:390px;padding:20px 20px 24px;box-shadow:0 -4px 0 var(--ink)}
+.modal{background:var(--card);border:3px solid var(--line);border-radius:20px 20px 16px 16px;width:100%;max-width:390px;padding:20px 20px 24px;box-shadow:0 -4px 0 var(--line)}
 .modal-title{font-family:'Nunito',sans-serif;font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:4px}
 .modal-lift{font-family:'Nunito',sans-serif;font-size:24px;font-weight:900;text-transform:uppercase;margin-bottom:18px;letter-spacing:-0.5px}
 .modal-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:12px 14px;background:var(--lift);border:2px solid var(--rule);border-radius:12px}
@@ -812,10 +836,10 @@ body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;fo
 .modal-row-val{font-family:'Nunito',sans-serif;font-size:36px;font-weight:900;line-height:1;letter-spacing:-1px}
 .modal-row-unit{font-size:13px;color:var(--mid);font-family:'Space Mono',monospace;font-weight:700;margin-left:2px}
 .modal-row-target{font-size:11px;color:var(--mid);font-weight:700;margin-top:2px}
-.modal-dec{width:52px;height:52px;border:3px solid var(--ink);border-radius:12px;background:var(--card);font-size:22px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;font-family:'Nunito',sans-serif}
+.modal-dec{width:52px;height:52px;border:3px solid var(--line);border-radius:12px;background:var(--card);font-size:22px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;font-family:'Nunito',sans-serif}
 .modal-dec:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .modal-actions{display:flex;gap:8px;margin-top:4px}
-.modal-btn{flex:1;padding:13px;border:3px solid var(--ink);border-radius:100px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;background:var(--card);color:var(--ink)}
+.modal-btn{flex:1;padding:13px;border:3px solid var(--line);border-radius:100px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:2px 2px 0 var(--line);transition:transform 80ms,box-shadow 80ms;-webkit-tap-highlight-color:transparent;background:var(--card);color:var(--ink)}
 .modal-btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
 .modal-btn-confirm{background:var(--red);border-color:var(--red);color:#fff}
 
@@ -1009,11 +1033,11 @@ function CaliLiftCard(props) {
             <div key={i} className="sblk">
               <div className={"slbl" + (isAmrap ? " am" : "")}>{isAmrap ? "AMRP" : "S" + (i + 1)}</div>
               {isAmrap ? (
-                <div style={{display:"flex",border:"2.5px solid var(--ink)",borderRadius:12,overflow:"hidden",boxShadow:"2px 2px 0 var(--ink)",width:"100%"}}>
+                <div style={{display:"flex",border:"2.5px solid var(--line)",borderRadius:12,overflow:"hidden",boxShadow:"2px 2px 0 var(--line)",width:"100%"}}>
                   <button onClick={function(e) { if (state !== "crushed") { emitBurst(makeDoneBurst(e.currentTarget.getBoundingClientRect().left+30, e.currentTarget.getBoundingClientRect().top, ["🔥","💥","⚡","🏆","🎊"])); } onAmrap(i, state === "crushed" ? "idle" : "crushed"); }}
-                    style={{flex:1,padding:"7px 2px",background:state==="crushed"?"var(--green)":"var(--card)",color:state==="crushed"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>🔥<br/>CRUSHED</button>
+                    style={{flex:1,padding:"7px 2px",background:state==="crushed"?"var(--green)":"var(--card)",color:state==="crushed"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--line)"}}>🔥<br/>CRUSHED</button>
                   <button onClick={function() { onAmrap(i, state === "done" ? "idle" : "done"); }}
-                    style={{flex:1,padding:"7px 2px",background:state==="done"?"var(--ink)":"var(--card)",color:state==="done"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>✓<br/>DONE</button>
+                    style={{flex:1,padding:"7px 2px",background:state==="done"?"var(--inv-bg)":"var(--card)",color:state==="done"?"var(--inv-ink)":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--line)"}}>✓<br/>DONE</button>
                   <button onClick={function() { if (state === "fail") { onAmrap(i, "idle"); return; } setActiveModal({ setIdx: i }); }}
                     style={{flex:1,padding:"7px 2px",background:state==="fail"?"var(--red)":"var(--card)",color:state==="fail"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none"}}>✕<br/>FAIL</button>
                 </div>
@@ -1095,18 +1119,18 @@ function BarbellCard(props) {
             <div key={i} className="sblk">
               <div className={"slbl" + (isAmrap ? " am" : "")}>{isAmrap ? "AMRP" : "S" + (i + 1)}</div>
               {isAmrap ? (
-                <div style={{display:"flex",border:"2.5px solid var(--ink)",borderRadius:12,overflow:"hidden",boxShadow:"2px 2px 0 var(--ink)",width:"100%"}}>
+                <div style={{display:"flex",border:"2.5px solid var(--line)",borderRadius:12,overflow:"hidden",boxShadow:"2px 2px 0 var(--line)",width:"100%"}}>
                   <button
                     onClick={function(e) {
                       if (state !== "crushed") { emitBurst(makeDoneBurst(e.currentTarget.getBoundingClientRect().left + 30, e.currentTarget.getBoundingClientRect().top, ["🔥","💥","⚡","🏆","🎊"])); }
                       onAmrap(i, state === "crushed" ? "idle" : "crushed");
                     }}
-                    style={{flex:1,padding:"7px 2px",borderRight:"2px solid var(--ink)",background:state==="crushed"?"var(--green)":"var(--card)",color:state==="crushed"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>
+                    style={{flex:1,padding:"7px 2px",borderRight:"2px solid var(--line)",background:state==="crushed"?"var(--green)":"var(--card)",color:state==="crushed"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--line)"}}>
                     🔥<br/>CRUSHED<br/>≥8
                   </button>
                   <button
                     onClick={function() { onAmrap(i, state === "done" ? "idle" : "done"); }}
-                    style={{flex:1,padding:"7px 2px",borderRight:"2px solid var(--ink)",background:state==="done"?"var(--ink)":"var(--card)",color:state==="done"?"#fff":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--ink)"}}>
+                    style={{flex:1,padding:"7px 2px",borderRight:"2px solid var(--line)",background:state==="done"?"var(--inv-bg)":"var(--card)",color:state==="done"?"var(--inv-ink)":"var(--ink)",fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,letterSpacing:0.5,cursor:"pointer",lineHeight:1.4,textAlign:"center",border:"none",borderRight:"2px solid var(--line)"}}>
                     ✓<br/>DONE<br/>4–7
                   </button>
                   <button
@@ -1372,7 +1396,7 @@ function CaliLiftStats(props) {
             })}
           </div>
           <MiniChart data={chartD} color={lift.color} />
-          <div style={{ marginTop:14, paddingTop:12, borderTop:"2px dashed #E5E5DD" }}>
+          <div style={{ marginTop:14, paddingTop:12, borderTop:"2px dashed var(--dash)" }}>
             <div style={{ fontFamily:"'Space Mono',monospace", fontSize:11, letterSpacing:1, color:"var(--mid)", fontWeight:700, marginBottom:8 }}>ADDED WEIGHT</div>
             <div className="crow">
               <div className="clabel" style={{color:lift.color}}>{lift.abbr}</div>
@@ -1871,7 +1895,7 @@ function nudgeExtras(state) {
 
 // ── WORKOUT SHOW/HIDE ────────────────────────────────────────────────────────
 function WorkoutToggles(props) {
-  var st = props.st, acc = props.acc, onToggle = props.onToggle;
+  var st = props.st, acc = props.acc, onToggle = props.onToggle, onTheme = props.onTheme;
   var rows = [{m:0,icon:"🏋️",label:"Barbell",col:acc},{m:1,icon:"🤸",label:"Calisthenics",col:"#8B5CF6"},{m:2,icon:"🔔",label:"Kettlebell",col:KB_COLOR},{m:3,icon:"🍺",label:"Beer tracker",col:BEER_COLOR}];
   var enabledCount = MODES.filter(function(x){ return (st.enabledModes||{})[x]; }).length;
   return (
@@ -1881,15 +1905,27 @@ function WorkoutToggles(props) {
         var isLast = on && enabledCount <= 1;
         return (
           <button key={row.m} onClick={function(){ onToggle(row.m); }} disabled={isLast}
-            style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--ink)",borderRadius:14,background:on?"var(--card)":"#F0F0EA",cursor:isLast?"default":"pointer",boxShadow:"2px 2px 0 var(--ink)",textAlign:"left",opacity:on?1:0.55}}>
+            style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--line)",borderRadius:14,background:on?"var(--card)":"var(--off)",cursor:isLast?"default":"pointer",boxShadow:"2px 2px 0 var(--line)",textAlign:"left",opacity:on?1:0.55}}>
             <span style={{fontSize:20}}>{row.icon}</span>
             <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:16,color:"var(--ink)",flex:1}}>{row.label}</span>
-            <span style={{width:44,height:26,borderRadius:100,border:"2.5px solid var(--ink)",background:on?row.col:"#D5D5CD",position:"relative",flexShrink:0,transition:"background .15s"}}>
-              <span style={{position:"absolute",top:1,left:on?20:1,width:18,height:18,borderRadius:"50%",background:"#fff",border:"2px solid var(--ink)",transition:"left .15s"}} />
+            <span style={{width:44,height:26,borderRadius:100,border:"2.5px solid var(--line)",background:on?row.col:"var(--track-off)",position:"relative",flexShrink:0,transition:"background .15s"}}>
+              <span style={{position:"absolute",top:1,left:on?20:1,width:18,height:18,borderRadius:"50%",background:"#fff",border:"2px solid var(--line)",transition:"left .15s"}} />
             </span>
           </button>
         );
       })}
+      {onTheme && (
+        <div style={{ marginTop:12 }}>
+          <div className="xhd" style={{ marginBottom:8 }}>Appearance</div>
+          <div className="theme-seg" role="radiogroup" aria-label="Theme">
+            {[{v:"auto",l:"AUTO"},{v:"light",l:"LIGHT"},{v:"dark",l:"DARK"}].map(function(o) {
+              var on = (st.theme || "auto") === o.v;
+              return <button key={o.v} role="radio" aria-checked={on} className={"theme-opt" + (on ? " on" : "")} onClick={function() { onTheme(o.v); }}>{o.l}</button>;
+            })}
+          </div>
+          <div style={{ fontSize:10, color:"var(--mid)", fontWeight:700, marginTop:6 }}>Auto follows your phone's light or dark setting.</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1909,6 +1945,20 @@ export default function App() {
   var copiedPair = useState(false); var copied = copiedPair[0]; var setCopied = copiedPair[1];
   var forceCkPair = useState(false); var forceCheckin = forceCkPair[0]; var setForceCheckin = forceCkPair[1];
   var beerNoticePair = useState(""); var beerNotice = beerNoticePair[0]; var setBeerNotice = beerNoticePair[1];
+  // Theme: Auto follows the phone (and changes live); Light / Dark override it
+  useEffect(function() {
+    if (!ready) return; // until saved data loads, keep what index.html's early script set (no flash)
+    var mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    function apply() {
+      var dark = st.theme === "dark" || (st.theme !== "light" && !!(mq && mq.matches));
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    }
+    apply();
+    if (mq && st.theme === "auto") {
+      if (mq.addEventListener) mq.addEventListener("change", apply); else if (mq.addListener) mq.addListener(apply);
+      return function() { if (mq.removeEventListener) mq.removeEventListener("change", apply); else if (mq.removeListener) mq.removeListener(apply); };
+    }
+  }, [st.theme, ready]);
   // Re-render once a minute so the evening check-in card appears on time and "hours since" stays fresh
   var tickPair = useState(0); var setTick = tickPair[1];
   useEffect(function() { var iv = setInterval(function() { setTick(function(t) { return t + 1; }); }, 60000); return function() { clearInterval(iv); }; }, []);
@@ -2821,7 +2871,7 @@ export default function App() {
     return (
       <>
         <style>{css}</style>
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"#999", fontSize:10, letterSpacing:"2px", fontWeight:700, background:"#FAFAF5" }}>LOADING…</div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"var(--sub)", fontSize:10, letterSpacing:"2px", fontWeight:700, background:"var(--bg)" }}>LOADING…</div>
       </>
     );
   }
@@ -2904,11 +2954,11 @@ export default function App() {
                 );
               })}
             </div>
-            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--ink)"}}>
+            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--line)"}}>
               <button
                 onClick={finishSession}
                 disabled={celebrating}
-                style={{width:"100%",padding:"16px",background:"var(--green)",border:"3px solid var(--ink)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
+                style={{width:"100%",padding:"16px",background:"var(--green)",border:"3px solid var(--line)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--line)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
 {st.dayIdx === SCHED.length - 1 ? "🏆 FINISH CYCLE · weights advance ↑" : "✓ FINISH SESSION → " + (SCHED[st.dayIdx + 1] ? SCHED[st.dayIdx + 1].label : "")}
               </button>
               <div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
@@ -2961,7 +3011,7 @@ export default function App() {
             <div className="xsec">
               <div className="xhd">Workouts · Show / Hide</div>
               <div style={{ fontSize:11, color:"var(--mid)", marginBottom:10, lineHeight:1.6, fontWeight:700 }}>Turn off what you don't use. Hidden workouts disappear from the top nav. Your data is kept.</div>
-              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} onTheme={function(v) { setSt({ theme: v }); }} />
             </div>
             <div className="xsec">
               <div className="xhd">Data · Export / Import</div>
@@ -2992,10 +3042,10 @@ export default function App() {
           return (
           <div className="pg">
             <div className="wtag">CALI CYCLE <strong>{st.caliCycle || 1}</strong> · <strong>{cday.focus}</strong></div>
-            <div className="motd" style={{ background:"#EDE9FE", borderColor:purple }}>
+            <div className="motd" style={{ background:"var(--purple-bg)", borderColor:purple }}>
               <button className="qref" onClick={refreshQuote} aria-label="New quote">↻</button>
               <div className="motd-q">"{motiv.q}"</div>
-              {motiv.a && <div className="motd-a" style={{ color:"#7C3AED" }}>— {motiv.a}</div>}
+              {motiv.a && <div className="motd-a" style={{ color:"var(--purple-ink)" }}>— {motiv.a}</div>}
             </div>
             <div className="drow">
               {CALI_SCHED.map(function(day, i) {
@@ -3054,9 +3104,9 @@ export default function App() {
               })}
             </div>
 
-            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--ink)"}}>
+            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--line)"}}>
               <button onClick={finishCaliSession} disabled={celebrating}
-                style={{width:"100%",padding:"16px",background:purple,border:"3px solid var(--ink)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
+                style={{width:"100%",padding:"16px",background:purple,border:"3px solid var(--line)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--line)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
                 {st.caliDayIdx === CALI_SCHED.length - 1 ? "🏆 FINISH CALI CYCLE ↑" : "✓ FINISH SESSION → " + (CALI_SCHED[st.caliDayIdx + 1] ? CALI_SCHED[st.caliDayIdx + 1].label : "")}
               </button>
               <div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
@@ -3130,7 +3180,7 @@ export default function App() {
             </div>
             <div className="asec">
               <div className="at">Workouts · Show / Hide</div>
-              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} onTheme={function(v) { setSt({ theme: v }); }} />
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
@@ -3139,11 +3189,11 @@ export default function App() {
         {/* KETTLEBELL TRAIN */}
         {st.mode === 2 && atab === 0 && (
           <div className="pg">
-            <div className="wtag" style={{background:KB_COLOR,borderColor:"var(--ink)"}}>🔔 SESSION <strong>{st.kbSession || 1}</strong> · {st.kbWeight || KB_CIRCUIT.bellKg}kg BELL</div>
-            <div className="motd" style={{ background:"#FEF3C7", borderColor:KB_COLOR }}>
+            <div className="wtag" style={{background:KB_COLOR,borderColor:"var(--line)"}}>🔔 SESSION <strong>{st.kbSession || 1}</strong> · {st.kbWeight || KB_CIRCUIT.bellKg}kg BELL</div>
+            <div className="motd" style={{ background:"var(--amber-bg)", borderColor:KB_COLOR }}>
               <button className="qref" onClick={refreshQuote} aria-label="New quote">↻</button>
               <div className="motd-q">"{motiv.q}"</div>
-              {motiv.a && <div className="motd-a" style={{ color:"#B45309" }}>— {motiv.a}</div>}
+              {motiv.a && <div className="motd-a" style={{ color:"var(--kb-ink)" }}>— {motiv.a}</div>}
             </div>
 
             <div style={{fontSize:11,color:"var(--mid)",letterSpacing:1,fontWeight:700,margin:"4px 0 8px"}}>WARM-UP</div>
@@ -3152,8 +3202,8 @@ export default function App() {
                 var done = !!st.kbWarmup[w.id];
                 return (
                   <button key={w.id} onClick={function(){ markKbWarmup(w.id); }}
-                    style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--ink)",borderRadius:14,background:done?"var(--green-bg)":"var(--card)",cursor:"pointer",boxShadow:"2px 2px 0 var(--ink)",textAlign:"left"}}>
-                    <span style={{width:24,height:24,borderRadius:"50%",border:"2.5px solid var(--ink)",background:done?"var(--green)":"var(--card)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,flexShrink:0}}>{done?"✓":""}</span>
+                    style={{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"12px 14px",border:"3px solid var(--line)",borderRadius:14,background:done?"var(--green-bg)":"var(--card)",cursor:"pointer",boxShadow:"2px 2px 0 var(--line)",textAlign:"left"}}>
+                    <span style={{width:24,height:24,borderRadius:"50%",border:"2.5px solid var(--line)",background:done?"var(--green)":"var(--card)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:900,flexShrink:0}}>{done?"✓":""}</span>
                     <span style={{fontFamily:"'Nunito',sans-serif",fontWeight:900,fontSize:16,color:"var(--ink)"}}>{w.name}</span>
                   </button>
                 );
@@ -3207,13 +3257,13 @@ export default function App() {
               })}
             </div>
 
-            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--ink)"}}>
+            <div style={{marginTop:18,paddingTop:14,borderTop:"3px solid var(--line)"}}>
               <button onClick={finishKbSession} disabled={celebrating}
-                style={{width:"100%",padding:"16px",background:KB_COLOR,border:"3px solid var(--ink)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--ink)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
+                style={{width:"100%",padding:"16px",background:KB_COLOR,border:"3px solid var(--line)",borderRadius:100,fontFamily:"'Nunito',sans-serif",fontSize:20,fontWeight:900,color:"#fff",cursor:"pointer",boxShadow:"3px 3px 0 var(--line)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,letterSpacing:-0.5}}>
                 ✓ FINISH SESSION
               </button>
               <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
-                <button className="fhb" style={{borderColor:KB_COLOR,color:"#B45309"}} onClick={function() { setAtab(1); }}>STATS ▶</button>
+                <button className="fhb" style={{borderColor:KB_COLOR,color:"var(--kb-ink)"}} onClick={function() { setAtab(1); }}>STATS ▶</button>
               </div>
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
@@ -3237,7 +3287,7 @@ export default function App() {
               nudgeCtx={Object.assign({ enabledModes: st.enabledModes }, nudgeExtras(st))} />
             <div className="xsec">
               <div className="xhd">Workouts · Show / Hide</div>
-              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} onTheme={function(v) { setSt({ theme: v }); }} />
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
@@ -3309,7 +3359,7 @@ export default function App() {
             </div>
             <div className="asec">
               <div className="at">Workouts · Show / Hide</div>
-              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} />
+              <WorkoutToggles st={st} acc={acc} onToggle={toggleMode} onTheme={function(v) { setSt({ theme: v }); }} />
             </div>
             <div className="sig">built between sets<span>to stay in the game</span></div>
           </div>
