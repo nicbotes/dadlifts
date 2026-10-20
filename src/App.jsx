@@ -2844,7 +2844,7 @@ export default function App() {
           <div className="bar-gap" />
           <div className="stabs">
             <button className={"stab" + (atab === 0 ? " on" : "")} style={atab === 0 && st.mode === 3 ? { background:BEER_COLOR } : {}} onClick={function() { setAtab(0); }}>{st.mode === 3 ? "LOG" : "TRAIN"}</button>
-            <button className={"stab" + (atab === 1 ? " on" : "")} style={atab === 1 && st.mode === 3 ? { background:BEER_COLOR } : {}} onClick={function() { setAtab(1); }}>{st.mode === 3 ? "INSIGHTS" : "STATS"}</button>
+            <button className={"stab" + (atab === 1 ? " on" : "")} style={atab === 1 && st.mode === 3 ? { background:BEER_COLOR } : {}} onClick={function() { setAtab(1); }}>STATS</button>
           </div>
         </div>
 
@@ -3229,7 +3229,7 @@ export default function App() {
           </div>
         )}
 
-        {/* BEER INSIGHTS */}
+        {/* BEER STATS */}
         {st.mode === 3 && atab === 1 && (
           <div className="pg">
             <div style={{ fontSize:10, color:"var(--mid)", letterSpacing:"1.5px", marginBottom:14, fontWeight:700 }}>PRECALCULATED · SWIPE → LOG</div>

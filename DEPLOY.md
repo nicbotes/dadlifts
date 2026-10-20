@@ -35,7 +35,7 @@ for the right moment.
 
 1. **Phone:** open https://nicbotes.github.io/dadlifts/ → on iPhone, Share →
    Add to Home Screen and open it from the icon (iOS 16.4+).
-2. **App:** 🍺 → LOG → *Notifications* → **TURN ON** → **COPY KEY**.
+2. **App:** 🍺 → STATS → *Notifications* → **TURN ON** → **COPY KEY**.
 3. **GitHub:** nicbotes/dadlifts → Settings → Secrets and variables → Actions →
    New repository secret:
    - `VAPID_PRIVATE_KEY` — the private key you were given (pairs with the

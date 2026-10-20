@@ -1,5 +1,5 @@
 // ── BEER TRACKER UI ───────────────────────────────────────────────────────────
-// Mode 3 (🍺). Two tabs: LOG (quick log, urge surfing, today) and INSIGHTS
+// Mode 3 (🍺). Two tabs: LOG (quick log, urge surfing, today) and STATS
 // (precalculated metrics from src/beer.mjs, pace, dry-stretch timeline, habit
 // guide, settings, export). All state lives in the main app blob:
 // beerLog / beerCfg / beerInsights.
@@ -429,13 +429,13 @@ export function BeerLogTab(props) {
       )}
 
       <div style={{ display:"flex", justifyContent:"flex-end", marginTop:4 }}>
-        <button className="fhb" style={{ borderColor:BEER_COLOR, color:BEER_COLOR }} onClick={props.onInsights}>INSIGHTS ▶</button>
+        <button className="fhb" style={{ borderColor:BEER_COLOR, color:BEER_COLOR }} onClick={props.onInsights}>STATS ▶</button>
       </div>
     </div>
   );
 }
 
-// ── INSIGHTS TAB ──────────────────────────────────────────────────────────────
+// ── STATS TAB ─────────────────────────────────────────────────────────────────
 function Collapsible(props) {
   var pair = useState(!!props.open); var open = pair[0]; var setOpen = pair[1];
   return (
