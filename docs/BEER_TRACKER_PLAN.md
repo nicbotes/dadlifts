@@ -109,7 +109,7 @@ Also exported: `beerLogToCsv`, `beerExportJson`, `makeEntry`, `normalizeBeerLog`
 
 ## 5. UI ✅ — `src/Beer.jsx`, wired in `src/App.jsx`
 
-Mode 3 (🍺, teal `#0D9488`). Tab labels become **LOG / INSIGHTS**. Swipe works as before.
+Mode 3 (🍺, teal `#0D9488`). Tab labels are **LOG / STATS**. Swipe works as before.
 
 **LOG** (simplified, about 45 words on screen)
 1. Hero: days dry (or ml today), one short line, the last 14 days as coloured dots, a
@@ -123,10 +123,10 @@ Mode 3 (🍺, teal `#0D9488`). Tab labels become **LOG / INSIGHTS**. Swipe works
 3. Pace line under the row for an hour after a beer: "Water next. Next beer after 19:00."
 4. Today: compact rows for beers, urges and the dry / check-in mark, each with ×.
 
-Moved off LOG: the quote, flags (in Insights), explanations, and the Notifications
-card (now on Insights).
+Moved off LOG: the quote, flags (in Stats), explanations, and the Notifications
+card (now on Stats).
 
-**INSIGHTS** (reduced, about 150 words)
+**STATS** (reduced, about 150 words)
 1. At a glance: days dry (best), this week (▼/▲ vs last week), minutes per beer (target 60),
    plus up to two warnings that the patterns card doesn't already show.
 2. Last 30 days: one daily bar chart and a line: dry days · volume · standard drinks.
@@ -186,7 +186,7 @@ node cli/dadlift.js beer-export > beer.csv     # or: beer-export json
 
 * `insights.pace`: sessions in the last 30 days, average beers per session, average minutes
   per beer (first to last, divided by the gaps), fastest and biggest session, count of fast
-  sessions, last 5 sessions. Shown as a *Pace* section in Insights.
+  sessions, last 5 sessions. Shown on the Stats tab.
 * Flags (now amber, under *Worth a look*): big session named by date with litres and
   standard drinks; fast pace naming the fastest session. Wording is factual, not alarming.
 * **Speed bump** under the LOG button for an hour after a beer: "First one logged. Make the
@@ -199,7 +199,7 @@ node cli/dadlift.js beer-export > beer.csv     # or: beer-export json
 
 ### Import past entries ✅
 
-* **Add past entries** (Insights → Export): paste a beer JSON export, a list of entries,
+* **Add past entries** (Stats → Export & import): paste a beer JSON export, a list of entries,
   or an import link. Merges into the log; never replaces. Duplicates (same id, or same
   time + ml + type) are skipped. The tracking start date moves back to the earliest
   imported day so dry days in between count; other settings and check-ins are kept.
