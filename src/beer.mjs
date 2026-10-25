@@ -19,11 +19,11 @@ export const ETHANOL_DENSITY = 0.789;            // g per ml of pure ethanol
 export const KCAL_PER_G_ALCOHOL = 7;
 export const BEER_CARB_G_PER_100ML = 3.5;        // typical lager — ~4 kcal/g
 
+// Quick-log sizes. "PINT" is 500ml, the usual South African pint.
 export const SIZES = [
   { ml:330, label:"330" },
   { ml:440, label:"440" },
-  { ml:500, label:"500" },
-  { ml:568, label:"PINT" },
+  { ml:500, label:"PINT" },
 ];
 
 export const TRIGGERS = {
