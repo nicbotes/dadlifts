@@ -24,6 +24,9 @@ implemented on this branch; ⏳ items are deliberate follow-ups.
 
 ## 2. Research basis (what the numbers mean)
 
+* **UK units** (shown in the app): 1 unit = 10 ml pure alcohol, so units = ml × ABV% ÷ 1000.
+  A 500 ml pint at 5% = 2.5 units; 440 ml = 2.2; 330 ml = 1.65. Weekly guideline 14 units
+  (≈ 5½ pints). Each entry uses its own ABV, so stronger beer counts for more.
 * **Alcohol maths.** grams = ml × ABV% × 0.789. A standard drink is configurable:
   UK unit 8 g, WHO 10 g (default), South Africa 12 g, US 14 g. Beer kcal ≈ 7 kcal/g
   alcohol + ~3.5 g carbs/100 ml × 4 kcal.
@@ -127,9 +130,11 @@ Moved off LOG: the quote, flags (in Stats), explanations, and the Notifications
 card (now on Stats).
 
 **STATS** (reduced, about 150 words)
-1. At a glance: days dry (best), this week (▼/▲ vs last week), minutes per beer (target 60),
-   plus up to two warnings that the patterns card doesn't already show.
-2. Last 30 days: one daily bar chart and a line: dry days · volume · standard drinks.
+1. At a glance: days dry (best), beers in the last 7 days with their UK units, minutes per
+   beer (target 60). Below: a units bar against the 14-unit weekly guideline (teal, amber
+   from 75%, red over), with ▼/▲ vs the week before, plus up to two warnings that the bar
+   and the patterns card don't already show.
+2. Last 30 days: one daily bar chart and a line: dry days · beers · units.
 3. Your patterns: danger window, heaviest day, main trigger, biggest session, fastest pace,
    urges beaten and best swap, budget and money when set, and one tip for the main trigger.
 4. Collapsed: Playbook · What a dry stretch does · Staying on the right side ·
