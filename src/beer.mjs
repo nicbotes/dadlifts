@@ -83,6 +83,7 @@ export const CHECK_SIGNS = [
 export const PACE = { targetMin: 60, fastMin: 45 };
 
 export const LOW_RISK = {
+  weeklyUnits: 14,    // UK low-risk weekly guideline (UK unit = 10ml pure alcohol)
   weeklyG: 112,       // UK CMO / WHO-aligned: ≤14 units (8g) ≈ 112g pure alcohol per week
   bingeG: 60,         // WHO heavy episodic drinking: ≥60g on one occasion
   dailyRunCaution: 4, // 4+ consecutive drinking days → daily-pattern caution
@@ -215,6 +216,8 @@ function daysBetweenKeys(a, b) {
 }
 
 // ── ALCOHOL MATHS ────────────────────────────────────────────────────────────
+// UK units: 1 unit = 10ml of pure alcohol, so ml × ABV% ÷ 1000. A 500ml pint at 5% = 2.5.
+export function ukUnits(ml, abv) { return ml * abv / 1000; }
 export function gramsAlcohol(ml, abv) { return ml * (abv / 100) * ETHANOL_DENSITY; }
 export function kcalBeer(ml, abv) {
   return gramsAlcohol(ml, abv) * KCAL_PER_G_ALCOHOL + (ml / 100) * BEER_CARB_G_PER_100ML * 4;
@@ -240,8 +243,9 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   drinks.forEach(function(e) {
     var k = dayKey(e.ts, e.tzOff, roll);
     var abv = e.abv != null ? e.abv : cfg.abv;
-    if (!byDay[k]) byDay[k] = { ml:0, g:0, kcal:0, count:0 };
+    if (!byDay[k]) byDay[k] = { ml:0, g:0, kcal:0, count:0, units:0 };
     byDay[k].ml += e.ml;
+    byDay[k].units += ukUnits(e.ml, abv);
     byDay[k].g += gramsAlcohol(e.ml, abv);
     byDay[k].kcal += kcalBeer(e.ml, abv);
     byDay[k].count += 1;
@@ -275,13 +279,13 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   // Windows
   // Only days on/after the start date count as tracked — untracked days are neither dry nor drinking.
   function window(days) {
-    var out = { ml:0, g:0, kcal:0, drinkingDays:0, dryDays:0, trackedDays:0, count:0 };
+    var out = { ml:0, g:0, kcal:0, units:0, drinkingDays:0, dryDays:0, trackedDays:0, count:0 };
     for (var i = 0; i < days; i++) {
       var k = addDaysKey(todayKey, -i);
       if (daysBetweenKeys(startKey, k) < 0) continue;
       out.trackedDays++;
       var d = byDay[k];
-      if (d) { out.ml += d.ml; out.g += d.g; out.kcal += d.kcal; out.count += d.count; out.drinkingDays++; }
+      if (d) { out.ml += d.ml; out.g += d.g; out.kcal += d.kcal; out.units += d.units; out.count += d.count; out.drinkingDays++; }
       else out.dryDays++;
     }
     out.stdDrinks = out.g / cfg.stdDrinkG;
@@ -296,13 +300,14 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
     }
     return out;
   }
-  var today = byDay[todayKey] || { ml:0, g:0, kcal:0, count:0 };
+  var today = byDay[todayKey] || { ml:0, g:0, kcal:0, count:0, units:0 };
   var w7 = window(7), w30 = window(30), prev7 = windowBefore(7, 7), prev30 = windowBefore(30, 30);
-  var allTime = { ml:0, g:0, kcal:0, count:drinks.length, drinkingDays:Object.keys(byDay).length };
-  Object.keys(byDay).forEach(function(k) { allTime.ml += byDay[k].ml; allTime.g += byDay[k].g; allTime.kcal += byDay[k].kcal; });
+  var allTime = { ml:0, g:0, kcal:0, units:0, count:drinks.length, drinkingDays:Object.keys(byDay).length };
+  Object.keys(byDay).forEach(function(k) { allTime.ml += byDay[k].ml; allTime.g += byDay[k].g; allTime.kcal += byDay[k].kcal; allTime.units += byDay[k].units; });
   allTime.dryDays = Math.max(0, trackedDays - allTime.drinkingDays);
   allTime.stdDrinks = allTime.g / cfg.stdDrinkG;
 
+  function r1u(x) { return Math.round(x * 10 + 1e-9) / 10; }
   function fmtL(ml) { return ml >= 1000 ? (Math.round(ml / 100) / 10) + "L" : Math.round(ml) + "ml"; }
   function pctChange(cur, prev) {
     if (!prev && !cur) return 0;
@@ -398,10 +403,10 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
   var flags = [];
   var bingeDays = Object.keys(byDay).filter(function(k) { return byDay[k].g >= LOW_RISK.bingeG; });
   var binge30 = bingeDays.filter(function(k) { return daysBetweenKeys(k, todayKey) < 30; });
-  if (binge30.length === 1) flags.push({ level:"mid", key:"binge", text:"Big session on " + dayLabel(binge30[0]) + ": " + fmtL(byDay[binge30[0]].ml) + " (≈" + Math.round(byDay[binge30[0]].g / cfg.stdDrinkG) + " std drinks). Nights like this, not the odd beer, are the thing to cut first." });
+  if (binge30.length === 1) flags.push({ level:"mid", key:"binge", text:"Big session on " + dayLabel(binge30[0]) + ": " + byDay[binge30[0]].count + " beers, " + r1u(byDay[binge30[0]].units) + " units. Nights like this, not the odd beer, are the thing to cut first." });
   if (binge30.length > 1) flags.push({ level:"mid", key:"binge", text: binge30.length + " big sessions in the last 30 days (60g+ of alcohol in a day, about 3 × 500ml). These are the thing to cut first." });
   if (pace.fastest && pace.fastest.minPerBeer < PACE.fastMin) flags.push({ level:"mid", key:"pace", text:"Fast pace: on " + pace.fastest.label + " it was a beer every " + pace.fastest.minPerBeer + " min. Slow to one an hour, with water between, and the night stops at 2 instead of 6." });
-  if (w7.g > LOW_RISK.weeklyG) flags.push({ level:"mid", key:"weekly", text:"Last 7 days: " + Math.round(w7.g) + "g of alcohol, over the 112g low-risk weekly guideline (about 5 × 500ml)." });
+  if (w7.units > LOW_RISK.weeklyUnits) flags.push({ level:"mid", key:"weekly", text:"Last 7 days: " + w7.count + " beers, " + r1u(w7.units) + " units. Over the 14-unit weekly guideline (about 5½ pints)." });
   if (currentDrinkingRun >= LOW_RISK.dailyRunCaution) flags.push({ level:"mid", key:"daily", text: currentDrinkingRun + " days in a row with beer. Break the run with a dry day tomorrow; runs are how a habit settles in." });
   if (w7.drinkingDays >= 5 && !flags.some(function(f) { return f.key === "daily"; })) flags.push({ level:"mid", key:"frequent", text: w7.drinkingDays + " of the last 7 days had beer. Aim for at least 3 dry days a week, back-to-back if you can." });
   if (cfg.weeklyBudgetMl > 0 && w7.ml > cfg.weeklyBudgetMl) flags.push({ level:"mid", key:"budget", text:"Over your weekly budget by " + Math.round(w7.ml - cfg.weeklyBudgetMl) + "ml." });
@@ -466,10 +471,10 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
       dryDaysAll: allTime.dryDays,
       dryPctAll: trackedDays ? Math.round((allTime.dryDays / trackedDays) * 100) : 0,
     },
-    today: { ml:Math.round(today.ml), g:r1(today.g), stdDrinks:r1(today.g / cfg.stdDrinkG), kcal:Math.round(today.kcal), count:today.count },
-    week: { ml:Math.round(w7.ml), g:r1(w7.g), stdDrinks:r1(w7.stdDrinks), kcal:Math.round(w7.kcal), count:w7.count, drinkingDays:w7.drinkingDays, dryDays:w7.dryDays, trackedDays:w7.trackedDays, avgMlPerDay:Math.round(w7.avgMlPerDay), vsPrevPct:pctChange(w7.ml, prev7.ml), prevMl:Math.round(prev7.ml) },
-    month: { ml:Math.round(w30.ml), g:r1(w30.g), stdDrinks:r1(w30.stdDrinks), kcal:Math.round(w30.kcal), count:w30.count, drinkingDays:w30.drinkingDays, dryDays:w30.dryDays, trackedDays:w30.trackedDays, avgMlPerDay:Math.round(w30.avgMlPerDay), vsPrevPct:pctChange(w30.ml, prev30.ml), prevMl:Math.round(prev30.ml) },
-    allTime: { ml:Math.round(allTime.ml), g:r1(allTime.g), stdDrinks:r1(allTime.stdDrinks), kcal:Math.round(allTime.kcal), count:allTime.count, drinkingDays:allTime.drinkingDays, dryDays:allTime.dryDays },
+    today: { ml:Math.round(today.ml), units:r1u(today.units), g:r1(today.g), stdDrinks:r1(today.g / cfg.stdDrinkG), kcal:Math.round(today.kcal), count:today.count },
+    week: { ml:Math.round(w7.ml), units:r1u(w7.units), unitsPct:Math.round((w7.units / LOW_RISK.weeklyUnits) * 100), g:r1(w7.g), stdDrinks:r1(w7.stdDrinks), kcal:Math.round(w7.kcal), count:w7.count, drinkingDays:w7.drinkingDays, dryDays:w7.dryDays, trackedDays:w7.trackedDays, avgMlPerDay:Math.round(w7.avgMlPerDay), vsPrevPct:pctChange(w7.ml, prev7.ml), prevMl:Math.round(prev7.ml) },
+    month: { ml:Math.round(w30.ml), units:r1u(w30.units), g:r1(w30.g), stdDrinks:r1(w30.stdDrinks), kcal:Math.round(w30.kcal), count:w30.count, drinkingDays:w30.drinkingDays, dryDays:w30.dryDays, trackedDays:w30.trackedDays, avgMlPerDay:Math.round(w30.avgMlPerDay), vsPrevPct:pctChange(w30.ml, prev30.ml), prevMl:Math.round(prev30.ml) },
+    allTime: { ml:Math.round(allTime.ml), units:r1u(allTime.units), g:r1(allTime.g), stdDrinks:r1(allTime.stdDrinks), kcal:Math.round(allTime.kcal), count:allTime.count, drinkingDays:allTime.drinkingDays, dryDays:allTime.dryDays },
     daily30: daily30,
     last14: last14,
     weekly8: weekly8,
@@ -493,7 +498,7 @@ export function computeBeerInsights(rawLog, rawCfg, now, rawCheckins) {
 export function beerLogToCsv(rawLog, rawCfg) {
   var cfg = normalizeBeerCfg(rawCfg);
   var log = normalizeBeerLog(rawLog);
-  var head = ["id","ts_utc","local_time","day","hour","type","ml","abv","grams_alcohol","std_drinks","kcal","trigger","swap","note"];
+  var head = ["id","ts_utc","local_time","day","hour","type","ml","abv","uk_units","grams_alcohol","std_drinks","kcal","trigger","swap","note"];
   function q(v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   var rows = log.map(function(e) {
     var abv = e.abv != null ? e.abv : cfg.abv;
@@ -501,7 +506,7 @@ export function beerLogToCsv(rawLog, rawCfg) {
     var ld = localDate(e.ts, e.tzOff);
     var local = ld.toISOString().replace("Z", "").replace("T", " ").slice(0, 16);
     return [e.id, e.ts, local, dayKey(e.ts, e.tzOff, cfg.rolloverHour), localHour(e.ts, e.tzOff),
-      e.resisted ? "urge_beaten" : "beer", e.ml, e.resisted ? "" : abv,
+      e.resisted ? "urge_beaten" : "beer", e.ml, e.resisted ? "" : abv, e.resisted ? 0 : Math.round(ukUnits(e.ml, abv) * 100) / 100,
       Math.round(g * 10) / 10, Math.round((g / cfg.stdDrinkG) * 100) / 100, e.resisted ? 0 : Math.round(kcalBeer(e.ml, abv)),
       e.trigger || "", e.swap || "", e.note || ""].map(q).join(",");
   });

@@ -5,8 +5,8 @@
 // beerLog / beerCfg / beerInsights.
 import { useState, useEffect, useRef } from "react";
 import {
-  BEER_COLOR, SIZES, TRIGGERS, SWAPS, STD_DRINK_OPTIONS, MILESTONES, CHECK_SIGNS, PACE,
-  beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge, composeBeerCheckin,
+  BEER_COLOR, SIZES, TRIGGERS, SWAPS, MILESTONES, CHECK_SIGNS, PACE,
+  beerLogToCsv, beerExportJson, localHour, dayKey, composeBeerNudge, composeBeerCheckin, ukUnits, LOW_RISK,
 } from "./beer.mjs";
 import { pushStatus, enablePush, disablePush, showSample } from "./push.js";
 
@@ -322,7 +322,7 @@ export function BeerLogTab(props) {
         {drankToday ? (
           <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
             <div className="bz-hero-n drank" style={{ fontSize:52 }}>{ins.today.ml}</div>
-            <div className="bz-hero-l" style={{ marginTop:0 }}>ml today · {ins.today.stdDrinks} std</div>
+            <div className="bz-hero-l" style={{ marginTop:0 }}>ml today · {ins.today.units} units</div>
           </div>
         ) : (
           <div style={{ display:"flex", alignItems:"baseline", gap:8 }}>
@@ -374,7 +374,7 @@ export function BeerLogTab(props) {
                 <span className="cv">{count}×</span>
                 <button className="cb" onClick={function() { setCount(Math.min(12, count + 1)); }} aria-label="more">+</button>
               </div>
-              <div className="bz-mini" style={{ marginTop:0 }}>{count > 1 ? "= " + fmtMl(total) : "how many"}</div>
+              <div className="bz-mini" style={{ marginTop:0 }}>{(count > 1 ? "= " + fmtMl(total) + " · " : "") + (Math.round(ukUnits(total, cfg.abv) * 10) / 10) + " units"}</div>
             </div>
             <div className="bz-chips" style={{ alignItems:"center" }}>
               {[0,1,2].map(function(h) { return <button key={h} className={"bz-chip sm" + (!timeStr && backH === h ? " on" : "")} onClick={function() { setBackH(h); setTimeStr(""); }}>{h === 0 ? "NOW" : "-" + h + "H"}</button>; })}
@@ -518,6 +518,7 @@ export function BeerInsightsTab(props) {
   if (ins.budget) patterns.push({ k:"🎯 Weekly budget", v: fmtMl(ins.budget.usedMl) + " / " + fmtMl(ins.budget.weeklyMl), warn: ins.budget.pct >= 100 });
   if (ins.money) patterns.push({ k:"💸 Spent · 30 days", v: String(ins.money.spent30) });
   var weekPct = w.vsPrevPct;
+  var unitsColor = w.unitsPct > 100 ? "var(--red)" : w.unitsPct >= 75 ? AMBER : BEER_COLOR;
 
   return (
     <div>
@@ -530,9 +531,9 @@ export function BeerInsightsTab(props) {
             <div className="bz-tile-s">best {s.longest}</div>
           </div>
           <div className="bz-tile">
-            <div className="bz-tile-v" style={{ color:AMBER }}>{fmtMl(w.ml)}</div>
-            <div className="bz-tile-l">this week</div>
-            <div className="bz-tile-s" style={{ color: weekPct == null || weekPct === 0 ? "var(--mid)" : weekPct < 0 ? "var(--green)" : "var(--red)" }}>{weekPct == null ? "—" : weekPct === 0 ? "same" : (weekPct < 0 ? "▼ " : "▲ ") + Math.abs(weekPct) + "%"}</div>
+            <div className="bz-tile-v" style={{ color:AMBER }}>{w.count}<span className="bz-tile-u">{w.count === 1 ? "beer" : "beers"}</span></div>
+            <div className="bz-tile-l">last 7 days</div>
+            <div className="bz-tile-s">{w.units} units</div>
           </div>
           <div className="bz-tile">
             <div className="bz-tile-v" style={{ color: pace.avgMinPerBeer != null && pace.avgMinPerBeer < PACE.fastMin ? AMBER : "var(--ink)" }}>{pace.avgMinPerBeer == null ? "—" : pace.avgMinPerBeer}<span className="bz-tile-u">{pace.avgMinPerBeer == null ? "" : "min"}</span></div>
@@ -540,14 +541,25 @@ export function BeerInsightsTab(props) {
             <div className="bz-tile-s">target {PACE.targetMin}</div>
           </div>
         </div>
-        {ins.flags.filter(function(f) { return f.key !== "binge" && f.key !== "pace"; }).slice(0, 2).map(function(f, i) { return <div key={i} className="bz-flag mid" style={{ marginTop: i ? 5 : 10 }}>⚠️ <span>{f.text}</span></div>; })}
+        <div className="bz-card" style={{ marginTop:10, marginBottom:0, padding:"11px 13px" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline" }}>
+            <div className="bz-hd" style={{ marginBottom:0 }}>Units · last 7 days</div>
+            <div style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:16, color: unitsColor }}>{w.units} <span style={{ fontSize:11, color:"var(--mid)" }}>/ {LOW_RISK.weeklyUnits}</span></div>
+          </div>
+          <div className="bz-track" style={{ marginTop:6 }}><div className="bz-fill" style={{ width: Math.min(100, w.unitsPct) + "%", background: unitsColor }} /></div>
+          <div className="bz-mini" style={{ marginTop:6 }}>
+            {weekPct == null || weekPct === 0 ? "" : <span style={{ color: weekPct < 0 ? "var(--green)" : "var(--red)" }}>{(weekPct < 0 ? "▼ " : "▲ ") + Math.abs(weekPct) + "% vs the week before · "}</span>}
+            14 units ≈ 5½ pints, spread over 3+ days
+          </div>
+        </div>
+        {ins.flags.filter(function(f) { return f.key !== "binge" && f.key !== "pace" && f.key !== "weekly"; }).slice(0, 2).map(function(f, i) { return <div key={i} className="bz-flag mid" style={{ marginTop: i ? 5 : 10 }}>⚠️ <span>{f.text}</span></div>; })}
       </div>
 
       <div className="asec">
         <div className="at" style={{ color:BEER_COLOR, borderColor:BEER_COLOR }}>Last 30 days</div>
         <div className="bz-card">
           <Bars data={daily} color={AMBER} labelEvery={10} />
-          <div className="bz-mini">{m.dryDays}/{m.trackedDays} dry days · {fmtMl(m.ml)} · {m.stdDrinks} std drinks</div>
+          <div className="bz-mini">{m.dryDays}/{m.trackedDays} dry days · {m.count} {m.count === 1 ? "beer" : "beers"} · {m.units} units</div>
         </div>
       </div>
 
@@ -605,9 +617,6 @@ export function BeerInsightsTab(props) {
       <Collapsible icon="⚙️" title="Settings">
         <Stepper label="Default size" value={cfg.sizeMl} step={10} fmt={function(v) { return v + "ml"; }} onChange={function(v) { onCfg({ sizeMl: Math.max(50, v) }); }} />
         <Stepper label="ABV" value={cfg.abv} step={0.5} fmt={function(v) { return v + "%"; }} onChange={function(v) { onCfg({ abv: Math.min(20, Math.max(0, Math.round(v * 10) / 10)) }); }} />
-        <div className="crow"><div className="clabel" style={{ width:110 }}>Std drink</div>
-          <div className="bz-chips">{STD_DRINK_OPTIONS.map(function(o) { return <button key={o.g} className={"bz-chip" + (cfg.stdDrinkG === o.g ? " on" : "")} style={{ padding:"4px 8px", fontSize:9 }} onClick={function() { onCfg({ stdDrinkG: o.g }); }}>{o.label}</button>; })}</div>
-        </div>
         <Stepper label="Weekly budget" value={cfg.weeklyBudgetMl} step={330} fmt={function(v) { return v === 0 ? "DRY" : v + "ml"; }} onChange={function(v) { onCfg({ weeklyBudgetMl: Math.max(0, v) }); }} />
         <Stepper label="Day rolls at" value={cfg.rolloverHour} step={1} fmt={function(v) { return hourLabel(v); }} onChange={function(v) { onCfg({ rolloverHour: Math.min(12, Math.max(0, v)) }); }} />
         <Stepper label="Cost / unit" value={cfg.costPerUnit} step={5} fmt={function(v) { return v === 0 ? "off" : v; }} onChange={function(v) { onCfg({ costPerUnit: Math.max(0, v) }); }} />
